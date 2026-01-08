@@ -1,0 +1,21 @@
+name: Check Issue Link
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-issue-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR Body for Issue Link
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            // Cherche des mots clés comme "Fixes #12", "Close #12", "ref #12"
+            const regex = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved|ref) #\d+/i;
+
+            if (!regex.test(body)) {
+              core.setFailed("⛔ Erreur : Ta Pull Request doit mentionner une issue (ex: 'Fixes #12').");
+            }
