@@ -83,6 +83,22 @@ docker-compose up -d --build
 
 L'application sera accessible sur http://localhost
 
+### Tests unitaires
+
+```bash
+# Exécuter les tests du backend
+cd app/server
+npm test
+
+# Exécuter les tests en mode watch (développement)
+cd app/server && npm run test:watch
+
+# Exécuter les tests avec couverture de code
+cd app/server && npm run test:coverage
+```
+
+**Tests automatiques avec GitHub Actions** : Les tests backend sont automatiquement exécutés à chaque Pull Request vers `main`. La PR ne peut être mergée que si tous les tests passent. ✅
+
 ### Commandes utiles
 
 ```bash
