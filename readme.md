@@ -48,6 +48,11 @@ Les routes suivantes sont disponibles :
 - Docker
 - Docker Compose
 
+```bash
+sudo apt-get update
+sudo apt install ./docker-desktop-amd64.deb
+```
+
 ### Développement
 
 ```bash
