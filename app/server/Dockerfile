@@ -6,9 +6,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Copier le code source
+# Copier le code source et le script de démarrage
 COPY . .
+RUN chmod +x /app/start.sh
+
+# Générer le Prisma Client au moment du build
+RUN npx prisma generate
 
 EXPOSE 3000
 
-CMD ["node", "app.js"]
+# Utiliser le script de démarrage qui s'assure que la DB est à jour
+ENTRYPOINT ["/app/start.sh"]
+CMD ["npm", "start"]

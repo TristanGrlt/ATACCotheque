@@ -55,6 +55,7 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-userpassword}
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-masterKey123}
+      DATABASE_URL: "mysql://dev_user:devpassword@mysql:3306/ataccoteque_dev"
     depends_on:
       mysql:
         condition: service_healthy

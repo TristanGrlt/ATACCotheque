@@ -42,6 +42,7 @@ services:
       DB_PASSWORD: devpassword
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
+      DATABASE_URL: "mysql://dev_user:devpassword@mysql:3306/ataccoteque_dev"
     ports:
       - "3000:3000"
     volumes:
