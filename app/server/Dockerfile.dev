@@ -2,12 +2,17 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Installer nodemon pour le hot-reload
-RUN npm install -g nodemon
-
+# Copier les fichiers de dépendances
 COPY package*.json ./
+COPY tsconfig.json ./
+
+# Installer toutes les dépendances (dev inclus)
 RUN npm install
+
+# Le code source sera monté via volume en développement
+# mais on copie quand même pour éviter les erreurs
+COPY . .
 
 EXPOSE 3000
 
-CMD ["nodemon", "app.js"]
+CMD ["npm", "run", "dev"]

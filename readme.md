@@ -21,15 +21,17 @@ Utilisation de l'environnement d'exécution **Node.js** avec le framework **Expr
 
 Le projet utilise également les bibliothèques suivantes avec _Node.js_ :
 
-- **jsonwebtoken** pour l'authentification des utilisateurs lors des appels API
+- **cors** pour gérer les requêtes cross-origin
+- **dotenv** pour la gestion des variables d'environnement
+- **mongoose** pour l'interaction avec MongoDB
+
+### MongoDB
+
+Base de données NoSQL utilisée pour le stockage des données du projet.
 
 ### Meilisearch
 
 Moteur de recherche open source pour l'indexation des annales afin d'avoir une barre de recherche rapide et résiliente aux fautes de frappe.
-
-### MySQL
-
-Base de données utilisée par le projet.
 
 ### Nginx
 
@@ -74,7 +76,7 @@ L'application sera accessible sur :
 - **Frontend** : http://localhost:5173
 - **Backend API** : http://localhost:3000
 - **Meilisearch** : http://localhost:7700
-- **MySQL** : localhost:3306
+- **MongoDB** : localhost:27017
 
 ### Production
 
@@ -97,7 +99,16 @@ docker-compose logs -f
 # Voir les logs d'un service spécifique
 docker-compose logs -f backend
 docker-compose logs -f frontend
-docker-compose logs -f mysql
+docker-compose logs -f mongodb
+
+# Arrêter tous les services
+docker-compose down
+
+# Arrêter et supprimer les volumes (⚠️ supprime les données)
+docker-compose down -v
+
+# Reconstruire une image spécifique
+docker-compose build backend
 
 # Arrêter les services (développement)
 docker-compose -f docker-compose.dev.yml down
