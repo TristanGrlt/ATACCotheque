@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Installer les dépendances nécessaires pour compiler bcrypt
+RUN apk add --no-cache python3 make g++
+
 # Copier les fichiers de dépendances
 COPY package*.json ./
 COPY tsconfig.json ./

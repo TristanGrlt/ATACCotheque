@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './utils/connectDB.js';
 import healthRouter from './routes/health.route.js';
+import userRouter from './routes/user.route.js';
 
 dotenv.config();
 
@@ -16,10 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/health', healthRouter);
-
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello World!');
-});
+app.use('/user', userRouter);
 
 app.listen(port, async () => {
   await connectDB();

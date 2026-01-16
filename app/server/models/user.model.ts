@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
 import mongoose from "mongoose";
 
-interface IUser {
+export interface IUser {
   username: string;
   password: string;
 }
@@ -9,13 +9,13 @@ interface IUser {
 const userSchema = new Schema<IUser>({
   username: {
     type: String,
-    required: true,
+    required: [true, 'Le nom d\'utilisateur est obligatoire'],
     unique: true,
     trim: true
   },
   password: {
     type: String,
-    required: true,
+    required: [true, 'Le mot de passe est obligatoire'],
     trim: true
   }
 })
