@@ -8,12 +8,6 @@ RUN npm install -g nodemon
 COPY package*.json ./
 RUN npm install
 
-# Copier le script de démarrage
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
 EXPOSE 3000
 
-# Utiliser le script de démarrage qui génère Prisma avant de lancer l'app
-ENTRYPOINT ["/start.sh"]
-CMD ["npm", "run", "dev"]
+CMD ["nodemon", "app.js"]
