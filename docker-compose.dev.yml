@@ -36,6 +36,7 @@ services:
       MONGO_URI: mongodb://dev_user:devpassword@mongodb:27017/ataccoteque_dev?authSource=admin
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
+      JWT_SECRET: changeMe
     ports:
       - "3000:3000"
     volumes:

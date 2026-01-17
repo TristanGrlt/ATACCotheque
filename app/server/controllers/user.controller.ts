@@ -3,6 +3,7 @@ import User, { IUser } from '../models/user.model.js'
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken'
+import { JWT_SECRET } from '../app.js';
 
 export const addUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
@@ -43,11 +44,7 @@ export const connectUser = async (req: Request<{}, {}, IUser>, res: Response) =>
 
   const match = await bcrypt.compare(password, user.password);
   if (match) {
-    const jwtSecret = process.env.JWT_SECRET
-    if (!jwtSecret) {
-      throw new Error("JWT_SECRET environment variable is not defined");
-    }
-    const jsToken = jwt.sign({ userId: user._id }, jwtSecret);
+    const jsToken = jwt.sign({ userId: user._id }, JWT_SECRET);
     res.cookie('jwt', jsToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
