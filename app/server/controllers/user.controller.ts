@@ -19,7 +19,7 @@ export const addUser = async (req: Request<{}, {}, IUser>, res: Response) => {
     await user.save();
 
     const { password: _pw, ...userData } = user.toObject();
-    res.status(201).json(userData);
+    return res.status(201).json(userData);
   } catch (error : any) {
     if (error?.code === 11000) {
       return res.status(400).json({
@@ -27,9 +27,9 @@ export const addUser = async (req: Request<{}, {}, IUser>, res: Response) => {
       });
     }
     if (error instanceof mongoose.Error.ValidationError) {
-      res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: error.message });
     } 
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -62,6 +62,7 @@ export const connectUser = async (req: Request<{}, {}, IUser>, res: Response) =>
   }
 };
 
-export const logoutUser = async (req: Request<{}, {}, IUser>, res: Response) => {
+export const logoutUser = (req: Request<{}, {}, IUser>, res: Response) => {
   res.clearCookie('jwt');
+  res.status(200).json({ message: "Déconnexion réussie" })
 };
