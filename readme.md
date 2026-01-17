@@ -62,13 +62,13 @@ sudo apt install ./docker-desktop-amd64.deb
 cp .env.example .env
 
 # Lancer l'environnement de développement
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # Ou avec reconstruction des images si vous modifiez les Dockerfile
-docker-compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build
 
 # En arrière-plan (détaché)
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 L'application sera accessible sur :
@@ -82,10 +82,10 @@ L'application sera accessible sur :
 
 ```bash
 # Lancer en production
-docker-compose up -d
+docker compose up -d
 
 # Avec reconstruction des images
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 L'application sera accessible sur http://localhost
@@ -94,61 +94,55 @@ L'application sera accessible sur http://localhost
 
 ```bash
 # Voir les logs de tous les services
-docker-compose logs -f
+docker compose logs -f
 
 # Voir les logs d'un service spécifique
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f mongodb
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f mongodb
 
 # Arrêter tous les services
-docker-compose down
+docker compose down
 
 # Arrêter et supprimer les volumes (⚠️ supprime les données)
-docker-compose down -v
+docker compose down -v
 
 # Reconstruire une image spécifique
-docker-compose build backend
+docker compose build backend
 
 # Arrêter les services (développement)
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 
 # Arrêter les services (production)
-docker-compose down
+docker compose down
 
 # Arrêter et supprimer les volumes (attention : supprime la DB !)
-docker-compose down -v
+docker compose down -v
 
 # Redémarrer un service spécifique
-docker-compose restart backend
+docker compose restart backend
 
 # Accéder au shell d'un container
-docker-compose exec backend sh
-docker-compose exec mysql mysql -u root -p
+docker compose exec backend sh
+docker compose exec mysql mysql -u root -p
 
 # Voir l'état des services
-docker-compose ps
+docker compose ps
 ```
 
 ### Initialisation de la base de données
 
 ```bash
 # Une fois les services lancés, exécuter les migrations
-docker-compose exec backend npm run migrate
+docker compose exec backend npm run migrate
 
 # Ou entrer dans le container MySQL
-docker-compose exec mysql mysql -u ataccoteque_user -p ataccoteque_dev
+docker compose exec mysql mysql -u ataccoteque_user -p ataccoteque_dev
 ```
 
 ### Développement sans Docker (optionnel)
 
-Si vous préférez développer localement sans Docker :
-
-1. Installez MySQL et Meilisearch localement
-2. Créez une base de données `ataccoteque_dev`
-3. Configurez les variables d'environnement dans `.env`
-4. Lancez le backend : `cd app/server && npm install && npm run dev`
-5. Lancez le frontend : `cd app/client && npm install && npm run dev`
+Si vous préférez développer localement sans Docker, lancer et installer les différent éléments présents dans le fichier `docker-compose.dev.yml`
 
 ## 🛠️ Structure Docker
 
@@ -174,11 +168,10 @@ Si vous préférez développer localement sans Docker :
 Créez un fichier `.env` à la racine du projet :
 
 ```env
-# MySQL
-MYSQL_ROOT_PASSWORD=rootpassword
-MYSQL_DATABASE=ataccoteque
-MYSQL_USER=ataccoteque_user
-MYSQL_PASSWORD=userpassword
+# MongoDB
+MONGO_INITDB_ROOT_USERNAME=changeMeInProduction
+MONGO_INITDB_ROOT_PASSWORD=changeMeInProduction
+MONGO_DB_NAME=ataccoteque
 
 # Meilisearch
 MEILI_MASTER_KEY=changeMeInProduction
@@ -330,7 +323,7 @@ git push origin --delete feat/42-recherche-annales
 git checkout -b feat/42-recherche-annales
 
 # 3. Lancer l'environnement de développement
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 4. Développer et commiter régulièrement
 git add app/client/src/components/SearchBar.tsx
@@ -376,17 +369,17 @@ git branch -d feat/42-recherche-annales
 **Les containers ne démarrent pas ?**
 
 ```bash
-docker-compose down
-docker-compose up --build
+docker compose down
+docker compose up --build
 ```
 
 **La base de données ne se connecte pas ?**
 
 ```bash
 # Vérifier que MySQL est bien démarré
-docker-compose ps
+docker compose ps
 # Voir les logs
-docker-compose logs mysql
+docker compose logs mysql
 ```
 
 **Port déjà utilisé ?**
@@ -400,6 +393,6 @@ ports:
 **Réinitialiser complètement l'environnement**
 
 ```bash
-docker-compose down -v
-docker-compose up --build
+docker compose down -v
+docker compose up --build
 ```
