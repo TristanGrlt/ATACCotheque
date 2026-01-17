@@ -1,24 +1,16 @@
 services:
-  # Base de données MySQL
-  mysql:
-    image: mysql:8.0
-    container_name: ataccoteque-mysql
+  # MongoDB
+  mongodb:
+    image: mongo:noble
+    container_name: ataccoteque-mongo
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-ataccoteque}
-      MYSQL_USER: ${MYSQL_USER:-ataccoteque_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-userpassword}
-    ports:
-      - "3306:3306"
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-ataccoteque_user}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-userpassword}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-ataccoteque}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mongo_data:/data/db
     networks:
       - ataccoteque-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Meilisearch
   meilisearch:
@@ -48,11 +40,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-ataccoteque}
-      DB_USER: ${MYSQL_USER:-ataccoteque_user}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-userpassword}
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-ataccoteque}?authSource=admin
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-masterKey123}
     depends_on:
