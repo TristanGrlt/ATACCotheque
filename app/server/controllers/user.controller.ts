@@ -61,3 +61,7 @@ export const connectUser = async (req: Request<{}, {}, IUser>, res: Response) =>
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect` });
   }
 };
+
+export const logoutUser = async (req: Request<{}, {}, IUser>, res: Response) => {
+  res.clearCookie('jwt');
+};
