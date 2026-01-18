@@ -7,10 +7,47 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
+import { Spinner } from "@/components/ui/spinner"
 
 import logo from '/atacc_logo.png'
+import { useState } from "react"
+import { apiRequest } from "@/services/api"
+import type { AxiosError } from "axios";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircleIcon } from "lucide-react"
 
 export function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true)
+
+    if (!username || !password) {
+      setError('Veuillez remplir tous les champs.');
+      setLoading(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const data = Object.fromEntries(formData);
+
+    try {
+      const res = await apiRequest.post("/user/login", data);
+    } catch (err) {
+      const error = err as AxiosError<{ error?: string }>;
+      setError(error.response?.data?.error || "Erreur de connexion");
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <Card className="w-full max-w-sm">
@@ -26,9 +63,16 @@ export function Login() {
               Vous n'avez pas de compte ? Demandé en un à un administrateur
             </FieldDescription>
           </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircleIcon />
+              <AlertTitle>Erreur</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
                 <FieldLabel>Nom d'utilisation</FieldLabel>
@@ -36,6 +80,7 @@ export function Login() {
                   id="username"
                   type="text"
                   placeholder="Admin"
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </Field>
               <Field>
@@ -43,10 +88,18 @@ export function Login() {
                 <Input 
                   id="password"
                   type="password"
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
               <Field>
-                <Button type="submit">Se connecter</Button>
+                <Button 
+                type="submit"
+                disabled={isLoading}
+                >
+                  {isLoading
+                    ? <Spinner />
+                  :"Se connecter"}
+                </Button>
               </Field>
             </FieldGroup>
           </form>
