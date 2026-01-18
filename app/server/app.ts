@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './utils/connectDB.js';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Routes
 app.use('/health', healthRouter);
