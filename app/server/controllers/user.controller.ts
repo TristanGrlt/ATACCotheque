@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import User, { IUser } from '../models/user.model.js'
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import jwt, { JwtPayload } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
@@ -70,8 +70,10 @@ export const verifyUser = (req: Request, res: Response) => {
   
   try {
     jwt.verify(token, JWT_SECRET);
+    res.cookie('jwt', token, cookieOptions);
     res.status(200).json({ valid: true })
   } catch (error) {
+    res.clearCookie('jwt');
     res.status(401).json({ error: 'Session invalide' });
   }
 }
