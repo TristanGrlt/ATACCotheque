@@ -15,12 +15,16 @@ import { apiRequest } from "@/services/api"
 import type { AxiosError } from "axios";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircleIcon } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { useNavigate } from "react-router-dom"
 
 export function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(false);
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,7 +43,9 @@ export function Login() {
     const data = Object.fromEntries(formData);
 
     try {
-      const res = await apiRequest.post("/user/login", data);
+      const res = await apiRequest.post("/user/login", { username, password });
+      await login()
+      navigate('/admin')
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
       setError(error.response?.data?.error || "Erreur de connexion");
