@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
-export const addUser = async (req: Request<{}, {}, IUser>, res: Response) => {
+export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
     const { username, password } = req.body;
 
@@ -35,7 +35,7 @@ export const addUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   }
 };
 
-export const connectUser = async (req: Request<{}, {}, IUser>, res: Response) => {
+export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   const { username, password } = req.body;
 
   const user = await User.findOne({ username });
