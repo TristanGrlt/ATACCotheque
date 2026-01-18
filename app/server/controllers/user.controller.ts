@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import User, { IUser } from '../models/user.model.js'
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
@@ -60,3 +60,18 @@ export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie('jwt');
   res.status(200).json({ message: "Déconnexion réussie" })
 };
+
+export const verifyUser = (req: Request, res: Response) => {
+  const token = req.cookies?.jwt;
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Accès non autorisé' });
+  }
+  
+  try {
+    jwt.verify(token, JWT_SECRET);
+    res.status(200).json({ valid: true })
+  } catch (error) {
+    res.status(401).json({ error: 'Session invalide' });
+  }
+}
