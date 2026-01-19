@@ -36,6 +36,9 @@ services:
       MONGO_URI: mongodb://dev_user:devpassword@mongodb:27017/ataccoteque_dev?authSource=admin
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
+      JWT_SECRET: changeMe
+      API_ENDPOINT: http://meilisearch:3000
+      CORS_ORIGIN: http://localhost:5173
     ports:
       - "3000:3000"
     volumes:
@@ -54,7 +57,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ataccoteque-frontend-dev
     environment:
-      VITE_API_URL: http://localhost:3000
+      VITE_API_ENDPOINT: http://localhost:3000
     ports:
       - "5173:5173"
     volumes:
