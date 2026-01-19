@@ -36,7 +36,6 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
 };
 
 export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
-  console.log('toto')
   const { username, password } = req.body;
 
   const user = await User.findOne({ username });
