@@ -130,14 +130,6 @@ export function SideBar() {
           <div>
             <Outlet />
         </div>
-
-
-
-      {/* <main className="bg-[var(--sidebar)]">
-        <SidebarTrigger />
-        <div className="rounded-md m-3 h-full">
-        </div>
-      </main> */}
       </SidebarInset>
     </SidebarProvider>
   )
