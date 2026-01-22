@@ -59,7 +59,7 @@ export function SideBar() {
         } as React.CSSProperties
       }
     >
-      <Sidebar collapsible="offcanvas">
+      <Sidebar collapsible="offcanvas" variant="inset">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -104,9 +104,9 @@ export function SideBar() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset >
-        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-          <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <SidebarInset className="px-2">
+        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) bg-background">
+          <div className="flex w-full items-center gap-1 lg:gap-2 px-2">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation="vertical"
@@ -127,10 +127,8 @@ export function SideBar() {
             </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
+          <div>
             <Outlet />
-          </div>
         </div>
 
 
