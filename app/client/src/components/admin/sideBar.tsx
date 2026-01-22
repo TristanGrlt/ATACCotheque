@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom"
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import { Link, Outlet } from "react-router-dom"
+import { Calendar, Home, Inbox, User } from "lucide-react"
  
 import {
   Sidebar,
@@ -23,29 +23,19 @@ import { Button } from "../ui/button"
 
 const items = [
   {
-    title: "Home",
-    url: "#",
+    title: "Tableau de bord",
+    url: "dashboard",
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "#",
+    title: "Annale en attente",
+    url: "toto",
     icon: Inbox,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
+    title: "Utilisateurs",
+    url: "users",
+    icon: User,
   },
 ]
 
@@ -67,10 +57,10 @@ export function SideBar() {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="/">
+              <Link to="/">
                 <img src={logo} alt="logo" width={25} />
                 <span className="text-base font-semibold">Attacothèque.</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -83,10 +73,10 @@ export function SideBar() {
                 {items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <a href={item.url}>
+                      <Link to={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
