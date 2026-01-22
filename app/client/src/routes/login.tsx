@@ -11,7 +11,6 @@ import { Spinner } from "@/components/ui/spinner"
 
 import logo from '/atacc_logo.png'
 import { useState } from "react"
-import { apiRequest } from "@/services/api"
 import type { AxiosError } from "axios";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircleIcon } from "lucide-react"
@@ -36,15 +35,8 @@ export function Login() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const data = Object.fromEntries(formData);
-
     try {
-      const res = await apiRequest.post("/user/login", { username, password });
-      await login()
+      await login({username, password})
       navigate('/admin')
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
