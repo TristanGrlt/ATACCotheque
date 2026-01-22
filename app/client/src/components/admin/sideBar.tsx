@@ -1,5 +1,5 @@
-import { Link, Outlet } from "react-router-dom"
-import { Calendar, Home, Inbox, User } from "lucide-react"
+import { Link, Outlet, useLocation } from "react-router-dom"
+import { EllipsisVertical, Home, Inbox, LogOut, Monitor, Moon, Sun, User } from "lucide-react"
  
 import {
   Sidebar,
@@ -20,6 +20,25 @@ import {
 import logo from '/atacc_logo.png'
 import { Separator } from "../ui/separator"
 import { Button } from "../ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuPortal, 
+  DropdownMenuRadioGroup, 
+  DropdownMenuRadioItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuSub, 
+  DropdownMenuSubContent, 
+  DropdownMenuSubTrigger, 
+  DropdownMenuTrigger 
+} from "../ui/dropdown-menu"
+
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useAuth } from "@/contexts/AuthContext"
+import { useTheme } from "../theme-provider"
+import type { Theme } from "../theme-provider"
 
 const items = [
   {
@@ -40,6 +59,20 @@ const items = [
 ]
 
 export function SideBar() {
+
+  const isMobile = useIsMobile();
+  const { logout, username } = useAuth();
+  const { theme, setTheme } = useTheme();
+
+  // Déduire le titre de la section depuis l'URL courante
+  const location = useLocation();
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1] ?? '';
+  const currentItem = items.find((i) => i.url === lastSegment || location.pathname.endsWith(`/${i.url}`));
+  const sectionTitle = currentItem
+    ? currentItem.title
+    : 'error'
+
   return (
     <SidebarProvider 
     style={
@@ -55,7 +88,7 @@ export function SideBar() {
             <SidebarMenuItem>
               <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link to="/">
                 <img src={logo} alt="logo" width={25} />
@@ -87,9 +120,51 @@ export function SideBar() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg">
-              User
-            </SidebarMenuButton>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton 
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarFallback className="h-8 w-8 rounded-lg">{username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <p>{username}</p>
+                    </div>
+                    <EllipsisVertical />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                  side={isMobile ? "bottom" : "right"}
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Thème</DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuGroup>
+                          <DropdownMenuRadioGroup
+                            value={theme}
+                            onValueChange={(value) => setTheme(value as Theme)}
+                          >
+                            <DropdownMenuRadioItem value="light"><Sun /> Claire</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="dark"><Moon /> Sombre</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="system"><Monitor /> Système</DropdownMenuRadioItem>
+                          </DropdownMenuRadioGroup>
+                        </DropdownMenuGroup>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={logout}>
+                    <LogOut />
+                    Se déconnecter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
@@ -102,7 +177,7 @@ export function SideBar() {
               orientation="vertical"
               className="mx-2 data-[orientation=vertical]:h-4"
             />
-            <h1 className="text-base font-medium">Paneau d'administration</h1>
+            <h1 className="text-base font-medium">{sectionTitle}</h1>
             <div className="ml-auto flex items-center gap-2">
               <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
                 <a
