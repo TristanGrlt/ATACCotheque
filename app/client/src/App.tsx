@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, Navigate } from 'react-router-dom'
 import { LandingPage } from './routes/landingPage.tsx'
 import { SideBar } from './components/admin/sideBar.tsx'
 import { Login } from './routes/login.tsx'
@@ -12,6 +12,7 @@ function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<div>Dashboard</div>} />
           <Route path='users' element={<div>Users</div>} />
           <Route path='toto' element={<LandingPage />} />

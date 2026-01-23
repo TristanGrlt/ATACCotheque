@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import User, { IUser } from '../models/user.model.js'
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
@@ -45,7 +45,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
 
   const match = await bcrypt.compare(password, user.password);
   if (match) {
-    const jsToken = jwt.sign({ userId: user._id }, JWT_SECRET);
+    const jsToken = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET);
     res.cookie('jwt', jsToken, cookieOptions);
 
     const { password: _pw, ...userData } = user.toObject();
@@ -68,9 +68,12 @@ export const verifyUser = (req: Request, res: Response) => {
   }
   
   try {
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    if (typeof decoded !== 'object' || !decoded.userId) {
+      return res.status(403).json({ error: 'Session invalide' });
+    }
     res.cookie('jwt', token, cookieOptions);
-    res.status(200).json({ valid: true })
+    res.status(200).json({ username: decoded.username })
   } catch (error) {
     res.clearCookie('jwt');
     res.status(401).json({ error: 'Session invalide' });

@@ -6,7 +6,7 @@ export function LandingPage() {
   const [count, setCount] = useState(0)
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-background via-secondary to-accent/20">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
         {/* Header avec les logos */}
         <div className='flex w-full justify-center gap-8 md:gap-20 mb-16 animate-fade-in'>
