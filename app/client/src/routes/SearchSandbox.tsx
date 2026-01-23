@@ -53,7 +53,7 @@ export function SearchSandbox() {
         ) : (
           results.map((hit, i) => (
             <div key={hit.id || i} className="p-4 border rounded-lg bg-card hover:shadow-md transition-shadow">
-              <div className="font-bold text-lg">{hit.title}</div>
+              <div className="font-bold text-lg">{hit.course}</div>
               <div className="text-sm text-muted-foreground flex gap-2">
                 <span className="bg-secondary px-2 py-0.5 rounded">{hit.year}</span>
                 <span className="bg-secondary px-2 py-0.5 rounded">{hit.level}</span>
