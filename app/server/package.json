@@ -27,6 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.13.1",
     "prisma": "^7.3.0"
+    "meilisearch": "^0.55.0",
+   
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
