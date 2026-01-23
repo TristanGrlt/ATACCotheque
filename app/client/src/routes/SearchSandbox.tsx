@@ -11,22 +11,24 @@ const client = new MeiliSearch({
 export function SearchSandbox() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
-  const [status, setStatus] = useState('Idle');
+  const [status, setStatus] = useState('Attente');
 
   useEffect(() => {
-    const performSearch = async () => {
+    // Create a timer to delay the search
+    const delayDebounceFn = setTimeout(async () => {
       try {
-        setStatus('Searching...');
+        setStatus('Recherche...');
         const search = await client.index('exams').search(query);
-        console.log("Meili response:", search);
         setResults(search.hits);
-        setStatus(search.hits.length > 0 ? 'Results found' : 'No results');
+        setStatus(search.hits.length > 0 ? `${search.hits.length} résultats` : 'Aucun résultat');
       } catch (err) {
         console.error(err);
-        setStatus('Error connecting to Meilisearch');
+        setStatus('Erreur de connexion');
       }
-    };
-    performSearch();
+    }, 300); // 300ms delay
+
+    // Cleanup function: clear the timer if the user types again before 300ms
+    return () => clearTimeout(delayDebounceFn);
   }, [query]);
 
   return (
@@ -34,12 +36,12 @@ export function SearchSandbox() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">🧪 Search Sandbox</h1>
         <span className="text-xs font-mono bg-gray-200 px-2 py-1 rounded">
-          Status: {status}
+          Statut: {status}
         </span>
       </div>
 
       <Input
-        placeholder="Type to search (e.g. 'Algebra')..."
+        placeholder="Recherche (e.g. 'Algèbre')..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -47,8 +49,7 @@ export function SearchSandbox() {
       <div className="grid gap-2">
         {results.length === 0 ? (
           <div className="text-center text-gray-500 py-10 border-2 border-dashed rounded-lg">
-            Index is empty or no matches found. <br />
-            <span className="text-xs">Did you run the seed script?</span>
+            Aucune ressource trouvée. <br />
           </div>
         ) : (
           results.map((hit, i) => (
