@@ -1,118 +1,68 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { DataTable } from "@/components/dataTable/dataTable"
 import { createColumns, type User } from "./columns"
-// import { toast } from "sonner" // ou votre système de notifications
-
-// Données de test en dur
-const mockUsers: User[] = [
-  {
-    id: 1,
-    name: "Jean Dupont",
-    email: "jean.dupont@example.com",
-    role: "admin",
-  },
-  {
-    id: 2,
-    name: "Marie Martin",
-    email: "marie.martin@example.com",
-    role: "user",
-  },
-  {
-    id: 3,
-    name: "Pierre Dubois",
-    email: "pierre.dubois@example.com",
-    role: "moderator",
-  },
-  {
-    id: 4,
-    name: "Sophie Laurent",
-    email: "sophie.laurent@example.com",
-    role: "user",
-  },
-  {
-    id: 5,
-    name: "Luc Bernard",
-    email: "luc.bernard@example.com",
-    role: "admin",
-  },
-  {
-    id: 6,
-    name: "Claire Petit",
-    email: "claire.petit@example.com",
-    role: "user",
-  },
-  {
-    id: 7,
-    name: "Thomas Moreau",
-    email: "thomas.moreau@example.com",
-    role: "moderator",
-  },
-  {
-    id: 8,
-    name: "Emma Simon",
-    email: "emma.simon@example.com",
-    role: "user",
-  },
-  {
-    id: 9,
-    name: "Nicolas Michel",
-    email: "nicolas.michel@example.com",
-    role: "admin",
-  },
-  {
-    id: 10,
-    name: "Julie Lefevre",
-    email: "julie.lefevre@example.com",
-    role: "user",
-  },
-  {
-    id: 11,
-    name: "Antoine Garcia",
-    email: "antoine.garcia@example.com",
-    role: "moderator",
-  },
-  {
-    id: 12,
-    name: "Camille Roux",
-    email: "camille.roux@example.com",
-    role: "user",
-  },
-]
+import { AddUser } from "@/components/admin/addUser"
+import { apiRequest } from "@/services/api"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function User() {
-  const [data, setData] = useState<User[]>(mockUsers)
+  
+  const [data, setData] = useState<User[]>([])
   const [selectedRows, setSelectedRows] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Gérer l'édition
-  const handleEdit = useCallback((user: User) => {
-    console.log("Éditer:", user)
-    // toast?.success(`Édition de ${user.name}`)
-    // Ici vous pouvez ouvrir un modal, naviguer vers une page, etc.
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { data } = await apiRequest.get('/user')
+        setData(data)
+      } catch (err) {
+        toast("Erreur lors du chargement de la page", {
+          description: typeof err === "object" && err !== null && "error" in err ? (err as any).error : "Erreur inconnue"
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadUsers()
   }, [])
 
-  // Gérer la suppression
+
+
+
+
+
+
+
+
+
+
+  const handleEdit = useCallback((user: User) => {
+    console.log("Édit")
+  }, [])
+
   const handleDelete = useCallback((user: User) => {
-    if (confirm(`Voulez-vous vraiment supprimer ${user.name} ?`)) {
-      setData(data.filter(u => u.id !== user.id))
-      // toast?.success(`${user.name} supprimé avec succès`)
+    if (confirm(`Voulez-vous vraiment supprimer ${user.username} ?`)) {
+      setData(data.filter(u => u._id !== user._id))
     }
   }, [data])
 
-  // Gérer la sélection de lignes
   const handleRowSelection = useCallback((rows: User[]) => {
     setSelectedRows(rows)
     console.log("Lignes sélectionnées:", rows)
   }, [])
 
-  // Supprimer toutes les lignes sélectionnées
   const handleDeleteSelected = useCallback(() => {
     if (selectedRows.length === 0) return
     
     if (confirm(`Supprimer ${selectedRows.length} utilisateur(s) ?`)) {
-      const selectedIds = selectedRows.map(r => r.id)
-      setData(data.filter(u => !selectedIds.includes(u.id)))
+      const selectedIds = selectedRows.map(r => r._id)
+      setData(data.filter(u => !selectedIds.includes(u._id)))
       // toast?.success(`${selectedRows.length} utilisateur(s) supprimé(s)`)
     }
   }, [selectedRows])
@@ -123,36 +73,36 @@ export function User() {
   }), [handleEdit, handleDelete])
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-6">
+    <div className="mx-auto pt-6">
+      <div className="mb-6 flex justify-between">
         <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
-        <p className="text-muted-foreground mt-2">
-          Gérez vos utilisateurs avec tri, filtrage et pagination
-        </p>
-      </div>
-
-      {/* Actions groupées (optionnel) */}
-      {selectedRows.length > 0 && (
-        <div className="mb-4 flex items-center gap-2 p-4 bg-muted rounded-lg">
-          <span className="text-sm font-medium">
-            {selectedRows.length} élément(s) sélectionné(s)
-          </span>
-          <button
-            onClick={handleDeleteSelected}
-            className="ml-auto px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
-          >
+        {selectedRows.length > 0 ? (
+          <Button variant="destructive" onClick={handleDeleteSelected}>
             Supprimer la sélection
-          </button>
+          </Button>) : (
+            <AddUser />
+          )}
+      </div>
+        
+      {isLoading ? (
+        <div className="flex w-full max-w-sm flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div className="flex gap-4" key={index}>
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
         </div>
+      ) : (
+        <DataTable 
+          columns={columns} 
+          data={data}
+          searchKey="username"
+          searchPlaceholder="Filtrer par nom d'utilisateurs..."
+          onRowSelectionChange={handleRowSelection}
+        />
       )}
-
-      <DataTable 
-        columns={columns} 
-        data={data}
-        searchKey="email"
-        searchPlaceholder="Filtrer par email..."
-        onRowSelectionChange={handleRowSelection}
-      />
     </div>
   )
 }

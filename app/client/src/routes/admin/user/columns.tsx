@@ -9,16 +9,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
 // Type de vos données
 export type User = {
-  id: number
-  name: string
-  email: string
-  role: string
+  _id: number
+  username: string
 }
 
 // Props pour les actions
@@ -28,7 +25,6 @@ type ColumnActions = {
 }
 
 export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<User>[] => [
-  // Colonne de sélection
   {
     id: "select",
     header: ({ table }) => (
@@ -52,41 +48,19 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
     enableHiding: false,
   },
   {
-    accessorKey: "name",
+    accessorKey: "username",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Nom
+          Nom d'utilisateur
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
   },
-  {
-    accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Email
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-  },
-  {
-    accessorKey: "role",
-    header: "Rôle",
-    cell: ({ row }) => {
-      return <div className="capitalize">{row.getValue("role")}</div>
-    },
-  },
-  // Colonne d'actions
   {
     id: "actions",
     enableHiding: false,
@@ -103,21 +77,15 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.email)}
-            >
-              Copier l'email
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onEdit(user)}>
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil />
               Modifier
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => onDelete(user)}
-              className="text-red-600"
+              variant="destructive"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 />
               Supprimer
             </DropdownMenuItem>
           </DropdownMenuContent>

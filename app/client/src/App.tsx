@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { Upload } from './routes/upload.tsx'
 
 import { User } from './routes/admin/user/user.tsx'
+import { AddUser } from './components/admin/addUser.tsx'
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='dashboard' element={<div>Dashboard</div>} />
+          <Route path='dashboard' element={<AddUser></AddUser>} />
           <Route path='users' element={<User />} />
           <Route path='toto' element={<LandingPage />} />
         </Route>
