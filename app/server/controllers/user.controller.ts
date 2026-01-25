@@ -6,6 +6,16 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
+export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
+  const usersList = await User.find();
+
+  const sanitizedUsers = usersList.map(user => {
+    const { password: _pw, ...userData } = user.toObject();
+    return userData;
+  });
+  return res.status(200).json(sanitizedUsers);
+}
+
 export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
     const { username, password } = req.body;
