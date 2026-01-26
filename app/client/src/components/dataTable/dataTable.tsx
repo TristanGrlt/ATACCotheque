@@ -20,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -51,51 +52,43 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   searchKey,
-  searchPlaceholder = "Rechercher...",
+  searchPlaceholder = "Search...",
   onRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({})
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
     columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
     },
   })
 
-  // Notifier le parent des lignes sélectionnées
   React.useEffect(() => {
     if (onRowSelectionChange) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)
       onRowSelectionChange(selectedRows)
     }
-  }, [rowSelection, onRowSelectionChange])
+  }, [rowSelection, onRowSelectionChange, table])
 
   return (
     <div className="w-full">
-      {/* Barre d'outils */}
-      <div className="flex items-center py-4 gap-2">
+      <div className="flex items-center py-4">
         {searchKey && (
           <Input
             placeholder={searchPlaceholder}
@@ -106,38 +99,36 @@ export function DataTable<TData, TValue>({
             className="max-w-sm"
           />
         )}
-        
-        {/* Dropdown pour gérer les colonnes visibles */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Colonnes <ChevronDown />
+              Columns <ChevronDown />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
+            <DropdownMenuGroup>
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {/* Table */}
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -180,38 +171,32 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Aucun résultat.
+                  No results.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between py-4">
-        {/* Compteur de sélection */}
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} sur{" "}
-          {table.getFilteredRowModel().rows.length} ligne(s) sélectionnée(s).
+      <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-muted-foreground text-sm">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-
-        {/* Contrôles pagination */}
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          {/* Sélecteur de taille de page */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Lignes par page</p>
+            <p className="text-sm font-medium">Rows per page</p>
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
                 table.setPageSize(Number(value))
               }}
             >
-              <SelectTrigger className="h-8 w-20">
-                <SelectValue />
+              <SelectTrigger className="h-8 w-17.5">
+                <SelectValue placeholder={table.getState().pagination.pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[10, 25, 50, 100].map((pageSize) => (
+                {[10, 20, 30, 40, 50].map((pageSize) => (
                   <SelectItem key={pageSize} value={`${pageSize}`}>
                     {pageSize}
                   </SelectItem>
@@ -219,15 +204,11 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Indicateur de page */}
-          <div className="flex w-25 items-center justify-center text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} sur{" "}
+          <div className="flex items-center justify-center text-sm font-medium">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
             {table.getPageCount()}
           </div>
-
-          {/* Boutons navigation */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 justify-center">
             <Button
               variant="outline"
               size="sm"
