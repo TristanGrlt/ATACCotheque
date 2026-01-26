@@ -111,7 +111,7 @@ export function AddUser() {
                   </FieldLabel>
                   <ButtonGroup>
                       <Input 
-                        id="password"
+                        id="password2"
                         type={isPasswordVisible2 ? "text" : "password"}
                         required
                         placeholder="••••••••" 
