@@ -16,6 +16,20 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
   return res.status(200).json(sanitizedUsers);
 }
 
+export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res: Response) => {
+  const { userId } = req.params;
+
+  const nUsers = await User.countDocuments();
+  if (nUsers <= 1) {
+    res.status(403).json({ error: "Le nombre d'utilisateurs doit ne peut pas être nul" });
+  }
+  const del = await User.deleteOne({_id: userId}).exec();
+  if (del.deletedCount < 1) {
+    res.status(500).json({ error: "Le nombre d'utilisateurs doit ne peut pas être nul" });
+  }
+  res.status(200).json({ message: "L'utilisateur à bien été déconnecté" });
+}
+
 export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
     const { username, password } = req.body;
