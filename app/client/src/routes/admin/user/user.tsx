@@ -8,7 +8,7 @@ import { apiRequest } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash } from "lucide-react"
+import { Trash, Trash2 } from "lucide-react"
 
 export function User() {
   
@@ -79,7 +79,7 @@ export function User() {
         <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
         {selectedRows.length > 0 ? (
           <Button variant="destructive" onClick={handleDeleteSelected}>
-            <Trash />
+            <Trash2 />
             Supprimer la sélection
           </Button>) : (
             <AddUser />
