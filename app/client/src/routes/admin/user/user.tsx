@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { DataTable } from "@/components/dataTable/dataTable"
 import { createColumns, type User } from "./columns"
@@ -8,15 +6,20 @@ import { apiRequest } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
+import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
 
 export function User() {
   
   const [data, setData] = useState<User[]>([])
   const [selectedRows, setSelectedRows] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [usersToDelete, setUsersToDelete] = useState(false)
 
   useEffect(() => {
+
+    // -----  LOAD  -----
     const loadUsers = async () => {
       try {
         const { data } = await apiRequest.get('/user')
@@ -29,45 +32,48 @@ export function User() {
         setIsLoading(false);
       }
     }
-
     loadUsers()
   }, [])
 
-
-
-
-
-
-
-
-
-
-
-  const handleEdit = useCallback((user: User) => {
+  // -----  EDIT  -----
+  const handleEdit = useCallback((_user: User) => {
     console.log("Édit")
   }, [])
 
+  // -----  DELETE  -----
   const handleDelete = useCallback((user: User) => {
-    if (confirm(`Voulez-vous vraiment supprimer ${user.username} ?`)) {
-      setData(data.filter(u => u._id !== user._id))
-    }
-  }, [data])
+    setUserToDelete(user)
+  }, [])
 
+  const confirmDelete = useCallback(async () => {
+    if (userToDelete) {
+      await apiRequest.delete(`/user/${userToDelete._id}`)
+      setData(data.filter(u => u._id !== userToDelete._id))
+      setUserToDelete(null)
+      toast.success(`${userToDelete.username} a été supprimé`)
+    }
+  }, [data, userToDelete])
+
+  // -----  ROW SELECTION DEL  -----
   const handleRowSelection = useCallback((rows: User[]) => {
     setSelectedRows(rows)
-    console.log("Lignes sélectionnées:", rows)
   }, [])
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedRows.length === 0) return
-    
-    if (confirm(`Supprimer ${selectedRows.length} utilisateur(s) ?`)) {
-      const selectedIds = selectedRows.map(r => r._id)
-      setData(data.filter(u => !selectedIds.includes(u._id)))
-      // toast?.success(`${selectedRows.length} utilisateur(s) supprimé(s)`)
-    }
+    setUsersToDelete(true);    
   }, [selectedRows])
 
+  const confirmDeleteSelected = useCallback(async () => {
+    const selectedIds = selectedRows.map(r => r._id)
+    setData(data.filter(u => !selectedIds.includes(u._id)))
+    for (const id of selectedIds) {
+      await apiRequest.delete(`/user/${id}`)
+    }
+    toast.success(`${selectedRows.length} utilisateur ont été supprimé`)
+  }, [selectedRows])
+
+  // -----  MEMO  -----
   const columns = useMemo(() => createColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
@@ -97,13 +103,32 @@ export function User() {
           ))}
         </div>
       ) : (
-        <DataTable 
-          columns={columns} 
-          data={data}
-          searchKey="username"
-          searchPlaceholder="Filtrer par nom d'utilisateurs..."
-          onRowSelectionChange={handleRowSelection}
-        />
+        <>
+          <DataTable 
+            columns={columns} 
+            data={data}
+            searchKey="username"
+            searchPlaceholder="Filtrer par nom d'utilisateurs..."
+            onRowSelectionChange={handleRowSelection}
+          />
+
+          <DeleteConfirmDialog
+            open={!!userToDelete}
+            onOpenChange={(open) => !open && setUserToDelete(null)}
+            onConfirm={confirmDelete}
+            title="Supprimer cet utilisateur ?"
+            description="Cette action est irréversible. L'utilisateur"
+            itemName={userToDelete?.username}
+          />
+
+          <DeleteConfirmDialog
+            open={!!usersToDelete}
+            onOpenChange={(open) => !open && setUsersToDelete(false)}
+            onConfirm={confirmDeleteSelected}
+            title={`Supprimer la sélection de ${selectedRows.length} d'utilisateur(s) ?`}
+            description="Cette action est irréversible. La sélection sera définitivement supprimé"
+          />
+        </>
       )}
     </div>
   )
