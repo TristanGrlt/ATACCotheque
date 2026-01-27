@@ -113,7 +113,7 @@ export function AddUser({ onUserCreated }: AddUserProps) {
                       placeholder="••••••••" 
                       onChange={(e) => setPassword(e.target.value)}
                     />
-                    <Button variant="outline" 
+                    <Button variant="outline" type="button" 
                           onClick={(e) => {e.preventDefault(); setPasswordVisible(!isPasswordVisible)}}>
                             {isPasswordVisible ? (<EyeClosed />) : (<Eye />)}
                     </Button>
@@ -132,7 +132,7 @@ export function AddUser({ onUserCreated }: AddUserProps) {
                         placeholder="••••••••" 
                         onChange={(e) => setPassword2(e.target.value)}
                       />
-                      <Button variant="outline" 
+                      <Button variant="outline" type="button" 
                         onClick={(e) => {e.preventDefault(); setPasswordVisible2(!isPasswordVisible2)}}>
                           {isPasswordVisible2 ? (<EyeClosed />) : (<Eye />)}
                       </Button>
