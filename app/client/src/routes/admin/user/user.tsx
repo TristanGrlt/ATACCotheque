@@ -25,7 +25,7 @@ export function User() {
         const { data: users } = await apiRequest.get('/user')
         setData(users)
       } catch (err) {
-        toast("Erreur lors du chargement de la page", {
+        toast.error("Erreur lors du chargement de la page", {
           description: getRequestMessage(err)
         })
       } finally {
