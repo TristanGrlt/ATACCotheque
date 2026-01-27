@@ -6,10 +6,9 @@ import { Input } from "../ui/input";
 import { Spinner } from "../ui/spinner";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
-import { apiRequest } from "@/services/api";
+import { apiRequest, getRequestMessage } from "@/services/api";
 import { ButtonGroup } from "../ui/button-group";
 import { toast } from "sonner";
-import { isAxiosError } from "axios";
 
 export function AddUser() {
 
@@ -50,12 +49,7 @@ export function AddUser() {
       setError(null);
       toast(`L'utilisateur "${data.username}" à bien été ajouté`)
     } catch (err) {
-      if (isAxiosError(err)) {
-        const data = err.response?.data as { error?: string } | undefined;
-        setError(data?.error ?? err.message);
-      } else {
-        setError(err instanceof Error ? err.message : String(err));
-      }
+      setError(getRequestMessage(err))
     } finally {
       setLoading(false)
     }
