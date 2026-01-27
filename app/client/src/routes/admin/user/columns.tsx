@@ -12,13 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-// Type de vos données
 export type User = {
   _id: number
   username: string
 }
 
-// Props pour les actions
 type ColumnActions = {
   onEdit: (user: User) => void
   onDelete: (user: User) => void
