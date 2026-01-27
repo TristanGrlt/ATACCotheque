@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { DataTable } from "@/components/dataTable/dataTable"
 import { createColumns, type User } from "./columns"
 import { AddUser } from "@/components/admin/addUser"
-import { apiRequest } from "@/services/api"
+import { apiRequest, getRequestMessage } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -26,7 +26,7 @@ export function User() {
         setData(data)
       } catch (err) {
         toast("Erreur lors du chargement de la page", {
-          description: typeof err === "object" && err !== null && "error" in err ? (err as any).error : "Erreur inconnue"
+          description: getRequestMessage(err)
         })
       } finally {
         setIsLoading(false);
@@ -47,7 +47,12 @@ export function User() {
 
   const confirmDelete = useCallback(async () => {
     if (userToDelete) {
-      await apiRequest.delete(`/user/${userToDelete._id}`)
+      try {
+        await apiRequest.delete(`/user/${userToDelete._id}`)
+      } catch (err) {
+        toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
+        return;
+      }
       setData(data.filter(u => u._id !== userToDelete._id))
       setUserToDelete(null)
       toast.success(`${userToDelete.username} a été supprimé`)
@@ -66,10 +71,16 @@ export function User() {
 
   const confirmDeleteSelected = useCallback(async () => {
     const selectedIds = selectedRows.map(r => r._id)
-    setData(data.filter(u => !selectedIds.includes(u._id)))
-    for (const id of selectedIds) {
-      await apiRequest.delete(`/user/${id}`)
+    try {
+      for (const id of selectedIds) {
+        await apiRequest.delete(`/user/${id}`)
+      }
+    } catch (err) {
+      toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
+      return;
     }
+    setData(data.filter(u => !selectedIds.includes(u._id)))
+    setSelectedRows([])
     toast.success(`${selectedRows.length} utilisateur ont été supprimé`)
   }, [selectedRows])
 
