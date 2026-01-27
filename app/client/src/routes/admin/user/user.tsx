@@ -22,8 +22,8 @@ export function User() {
     // -----  LOAD  -----
     const loadUsers = async () => {
       try {
-        const { data } = await apiRequest.get('/user')
-        setData(data)
+        const { data: users } = await apiRequest.get('/user')
+        setData(users)
       } catch (err) {
         toast("Erreur lors du chargement de la page", {
           description: getRequestMessage(err)
@@ -55,7 +55,7 @@ export function User() {
       }
       setData(data.filter(u => u._id !== userToDelete._id))
       setUserToDelete(null)
-      toast.success(`${userToDelete.username} a été supprimé`)
+      toast.success(`${userToDelete.username} a été supprimé(e)`)
     }
   }, [data, userToDelete])
 
@@ -67,10 +67,11 @@ export function User() {
   const handleDeleteSelected = useCallback(() => {
     if (selectedRows.length === 0) return
     setUsersToDelete(true);    
-  }, [selectedRows])
+  }, [selectedRows, data, setData])
 
   const confirmDeleteSelected = useCallback(async () => {
     const selectedIds = selectedRows.map(r => r._id)
+    const count = selectedRows.length
     try {
       for (const id of selectedIds) {
         await apiRequest.delete(`/user/${id}`)
@@ -81,7 +82,7 @@ export function User() {
     }
     setData(data.filter(u => !selectedIds.includes(u._id)))
     setSelectedRows([])
-    toast.success(`${selectedRows.length} utilisateur ont été supprimé`)
+    toast.success(`${count} utilisateur${count > 1 ? 's' : ''} ont été supprimé${count > 1 ? 's' : ''}`)
   }, [selectedRows])
 
   // -----  MEMO  -----
@@ -136,8 +137,8 @@ export function User() {
             open={!!usersToDelete}
             onOpenChange={(open) => !open && setUsersToDelete(false)}
             onConfirm={confirmDeleteSelected}
-            title={`Supprimer la sélection de ${selectedRows.length} d'utilisateur(s) ?`}
-            description="Cette action est irréversible. La sélection sera définitivement supprimé"
+            title={`Supprimer la sélection de ${selectedRows.length} utilisateur${selectedRows.length > 1 ? 's' : ''} ?`}
+            description="Cette action est irréversible. La sélection sera définitivement supprimée"
           />
         </>
       )}
