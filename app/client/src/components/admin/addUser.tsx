@@ -9,6 +9,7 @@ import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
 import { apiRequest } from "@/services/api";
 import { ButtonGroup } from "../ui/button-group";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
 
 export function AddUser() {
 
@@ -19,6 +20,7 @@ export function AddUser() {
   const [isPasswordVisible2, setPasswordVisible2] = useState(false);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -38,16 +40,29 @@ export function AddUser() {
 
     try {
       const { data } = await apiRequest.post("/user/signup", {username, password})
+      setOpen(false);
+
+      setUsername('');
+      setPassword('');
+      setPassword2('');
+      setPasswordVisible(false);
+      setPasswordVisible2(false);
+      setError(null);
       toast(`L'utilisateur "${data.username}" à bien été ajouté`)
     } catch (err) {
-      console.error("error");
+      if (isAxiosError(err)) {
+        const data = err.response?.data as { error?: string } | undefined;
+        setError(data?.error ?? err.message);
+      } else {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           + Ajouter un utilisateur
