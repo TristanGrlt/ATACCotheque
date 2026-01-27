@@ -9,8 +9,13 @@ import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { ButtonGroup } from "../ui/button-group";
 import { toast } from "sonner";
+import type { User } from "@/routes/admin/user/columns";
 
-export function AddUser() {
+type AddUserProps = {
+  onUserCreated?: (user: User) => void
+}
+
+export function AddUser({ onUserCreated }: AddUserProps) {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +44,7 @@ export function AddUser() {
 
     try {
       const { data } = await apiRequest.post("/user/signup", {username, password})
+      onUserCreated?.(data)
       setOpen(false);
 
       setUsername('');
