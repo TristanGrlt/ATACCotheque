@@ -70,19 +70,33 @@ export function User() {
   }, [selectedRows, data, setData])
 
   const confirmDeleteSelected = useCallback(async () => {
+    if (selectedRows.length === 0) return
+
     const selectedIds = selectedRows.map(r => r._id)
-    const count = selectedRows.length
-    try {
-      for (const id of selectedIds) {
+    const deletedIds: User["_id"][] = []
+    const errors: unknown[] = []
+
+    for (const id of selectedIds) {
+      try {
         await apiRequest.delete(`/user/${id}`)
+        deletedIds.push(id)
+      } catch (err) {
+        errors.push(err)
       }
-    } catch (err) {
-      toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
-      return;
     }
-    setData(data.filter(u => !selectedIds.includes(u._id)))
-    setSelectedRows([])
-    toast.success(`${count} utilisateur${count > 1 ? 's' : ''} ont été supprimé${count > 1 ? 's' : ''}`)
+
+    if (deletedIds.length > 0) {
+      setData(prev => prev.filter(u => !deletedIds.includes(u._id)))
+      setSelectedRows(prev => prev.filter(u => !deletedIds.includes(u._id)))
+      const successCount = deletedIds.length
+      toast.success(`${successCount} utilisateur${successCount > 1 ? 's ont' : ' a'} été supprimé${successCount > 1 ? 's' : ''}`)
+    }
+
+    if (errors.length > 0) {
+      toast.error(`Une erreur est survenue lors de la suppression de ${errors.length} utilisateur${errors.length > 1 ? 's' : ''} : ${getRequestMessage(errors[0])}`)
+    }
+
+    setUsersToDelete(false)
   }, [selectedRows])
 
   // -----  MEMO  -----
