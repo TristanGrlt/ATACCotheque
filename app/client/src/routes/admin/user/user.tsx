@@ -114,7 +114,9 @@ export function User() {
             <Trash2 />
             Supprimer la sélection
           </Button>) : (
-            <AddUser />
+            <AddUser 
+              onUserCreated={(user) => setData((prev) => [...prev, user])}
+            />
           )}
       </div>
         
