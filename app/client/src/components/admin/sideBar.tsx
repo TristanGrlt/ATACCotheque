@@ -39,6 +39,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "../theme-provider"
 import type { Theme } from "../theme-provider"
+import { Toaster } from "../ui/sonner"
 
 const items = [
   {
@@ -193,6 +194,7 @@ export function SideBar() {
           </div>
         </header>
           <div>
+            <Toaster />
             <Outlet />
         </div>
       </SidebarInset>
