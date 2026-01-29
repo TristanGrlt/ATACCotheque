@@ -41,6 +41,9 @@ async function seed() {
   console.log(`Connecting to Meili at: ${host}`);
   const index = client.index('exams');
 
+  console.log('Updating settings...');
+  await index.updateFilterableAttributes(['level', 'major', 'year']);
+
   // Configure Synonyms
   await index.updateSynonyms({
     'maths': ['mathématiques'],
