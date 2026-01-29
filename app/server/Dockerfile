@@ -1,26 +1,20 @@
-FROM node:20-alpine
-
+FROM oven/bun:1 AS base
 WORKDIR /app
 
-# Installer les dépendances nécessaires pour compiler bcrypt
-RUN apk add --no-cache python3 make g++
-
-# Copier les fichiers de dépendances
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Installer toutes les dépendances (y compris devDependencies pour build)
-RUN npm ci
-
-# Copier le code source
+# Étape d'installation et build
+FROM base AS builder
+COPY package.json bun.lockb tsconfig.json ./
+RUN bun install --frozen-lockfile
 COPY . .
+RUN bun run build
 
-# Build l'application TypeScript
-RUN npm run build
-
-# Nettoyer les devDependencies après le build
-RUN npm prune --production
+# Étape finale
+FROM base AS release
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/dist ./dist
+# Installation des dépendances de prod uniquement
+RUN bun install --production
 
 EXPOSE 3000
 
-CMD ["node", "dist/app.js"]
+CMD ["bun", "dist/app.js"]

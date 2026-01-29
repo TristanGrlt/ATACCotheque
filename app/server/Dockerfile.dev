@@ -1,16 +1,13 @@
-FROM node:20-alpine
+FROM oven/bun:1
 
 WORKDIR /app
 
-# Installer les dépendances nécessaires pour compiler bcrypt
-RUN apk add --no-cache python3 make g++
-
 # Copier les fichiers de dépendances
-COPY package*.json ./
+COPY package.json bun.lockb ./
 COPY tsconfig.json ./
 
 # Installer toutes les dépendances (dev inclus)
-RUN npm install
+RUN bun install
 
 # Le code source sera monté via volume en développement
 # mais on copie quand même pour éviter les erreurs
@@ -18,4 +15,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["bun", "run", "dev"]

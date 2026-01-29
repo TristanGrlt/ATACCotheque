@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 
 echo "Starting ..."
 
-echo "[2/3] npm install terminé."
+echo "[2/3] bun install terminé."
 
 # 3. Lancer la stack docker compose
 docker compose -f docker-compose.dev.yml up --build -d
@@ -26,8 +26,8 @@ echo "[1/3] node_modules supprimés."
 # Cela assure que les dossiers node_modules existent avec les permissions de l'utilisateur
 # avant que Docker ne monte les volumes.
 echo "Installation des dépendances locales..."
-cd app/client && npm install && cd -
-cd app/server && npm install && cd -
+cd app/client && bun install && cd -
+cd app/server && bun install && cd -
 
 # Trigger hot reload
 touch app/server/app.ts
