@@ -11,7 +11,6 @@ import { Spinner } from "@/components/ui/spinner"
 
 import logo from '/atacc_logo.png'
 import { useState } from "react"
-import { apiRequest } from "@/services/api"
 import type { AxiosError } from "axios";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircleIcon } from "lucide-react"
@@ -36,15 +35,8 @@ export function Login() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const data = Object.fromEntries(formData);
-
     try {
-      const res = await apiRequest.post("/user/login", { username, password });
-      await login()
+      await login({username, password})
       navigate('/admin')
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
@@ -56,7 +48,7 @@ export function Login() {
 
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-xl">
         <CardHeader>
           <div className="flex flex-col items-center gap-2 text-center">
             <a>

@@ -43,9 +43,8 @@ services:
       MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-ataccoteque}?authSource=admin
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-masterKey123}
+      JWT_SECRET: ${JWT_SECRET:-changeMe}
     depends_on:
-      mysql:
-        condition: service_healthy
       meilisearch:
         condition: service_healthy
     networks:
@@ -56,6 +55,8 @@ services:
     build:
       context: ./app/client
       dockerfile: Dockerfile
+      args:
+        VITE_API_ENDPOINT: ${API_ENDPOINT:-/api}
     container_name: ataccoteque-frontend
     depends_on:
       - backend
@@ -78,7 +79,7 @@ services:
       - ataccoteque-network
 
 volumes:
-  mysql_data:
+  mongo_data:
   meilisearch_data:
 
 networks:
