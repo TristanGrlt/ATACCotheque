@@ -17,4 +17,70 @@ model User {
   id       String @id @default(cuid())
   username String @unique
   password String
+
+  @@map("users")
+}
+
+model Major {
+  id     String  @id @default(cuid())
+  name   String
+  levels Level[]
+
+  @@index([name])
+  @@map("majors")
+}
+
+model Level {
+  id      String   @id @default(cuid())
+  name    String
+  major   Major    @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  majorId String
+  courses Course[]
+
+  @@index([majorId])
+  @@index([name])
+  @@map("levels")
+}
+
+model ExamType {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  courses   Course[]
+  pastExams PastExam[]
+
+  @@map("exam_types")
+}
+
+model Course {
+  id        String     @id @default(cuid())
+  name      String
+  semestre  String
+  level     Level      @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  levelId   String
+  examTypes ExamType[]
+  pastExams PastExam[]
+
+  @@unique([name, semestre, levelId])
+  @@index([levelId])
+  @@index([name])
+  @@index([semestre])
+  @@map("courses")
+}
+
+model PastExam {
+  id         String   @id @default(cuid())
+  path       String   @unique
+  year       Int
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId   String
+  examType   ExamType @relation(fields: [examTypeId], references: [id], onDelete: Restrict)
+  examTypeId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([courseId, examTypeId, year])
+  @@index([courseId])
+  @@index([examTypeId])
+  @@index([year])
+  @@map("past_exams")
 }
