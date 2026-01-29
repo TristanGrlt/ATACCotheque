@@ -5,7 +5,7 @@ import { verifyToken } from '../middlewares/verifyToken.js';
 const router = Router();
 
 router.get('/', verifyToken, getUsers);
-router.delete('/:userId', deleteUser)
+router.delete('/:userId', verifyToken, deleteUser)
 
 router.post('/signup', verifyToken, signupUser);
 router.post('/login', loginUser);
