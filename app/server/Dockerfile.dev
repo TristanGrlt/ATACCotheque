@@ -2,15 +2,15 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
 COPY package.json bun.lockb ./
 COPY tsconfig.json ./
+COPY prisma ./prisma
 
-# Installer toutes les dépendances (dev inclus)
 RUN bun install
 
-# Le code source sera monté via volume en développement
-# mais on copie quand même pour éviter les erreurs
+# Générer le client Prisma
+RUN bunx prisma generate
+
 COPY . .
 
 EXPOSE 3000
