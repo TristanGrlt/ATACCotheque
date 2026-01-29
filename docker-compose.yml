@@ -12,6 +12,18 @@ services:
     networks:
       - ataccoteque-network
 
+  postgresql:
+    image: postgres:latest
+    container_name: ataccoteque-postgresql
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgresql_data:/var/lib/postgresql
+    networks:
+      - ataccoteque-network
+
   # Meilisearch
   meilisearch:
     image: getmeili/meilisearch:v1.6
@@ -41,6 +53,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-ataccoteque}?authSource=admin
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB}?schema=public
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-masterKey123}
       JWT_SECRET: ${JWT_SECRET:-changeMe}
@@ -81,6 +94,7 @@ services:
 volumes:
   mongo_data:
   meilisearch_data:
+  postgresql_data:
 
 networks:
   ataccoteque-network:

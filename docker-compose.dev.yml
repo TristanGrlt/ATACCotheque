@@ -19,8 +19,6 @@ services:
       POSTGRES_USER: dev_user
       POSTGRES_PASSWORD: devpassword
       POSTGRES_DB: ataccoteque_dev
-    ports:
-      - 5432:5432
     volumes:
       - postgresql_dev_data:/var/lib/postgresql
     networks:
