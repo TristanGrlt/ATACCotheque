@@ -3,12 +3,18 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Arguments de build
+ARG VITE_API_ENDPOINT=/api
+
 # Copier les fichiers de dépendances
 COPY package*.json ./
 RUN npm ci
 
 # Copier le reste des fichiers
 COPY . .
+
+# Définir les variables d'environnement pour le build
+ENV VITE_API_ENDPOINT=${VITE_API_ENDPOINT}
 
 # Build de l'application
 RUN npm run build
