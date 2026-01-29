@@ -19,9 +19,9 @@ Le projet utilise également les bibliothèques suivantes avec _React_ :
 
 Utilisation de l'environnement d'exécution **Node.js** avec le framework **Express.js** qui utilise le langage **TypeScript** pour conserver les avantages d'un langage typé.
 
-### MongoDB
+### PostgreSQL
 
-Base de données NoSQL utilisée pour le stockage des données du projet.
+Base de données relationnelle utilisée pour le stockage des données du projet. L'ORM **Prisma** est utilisé pour gérer les modèles et les migrations.
 
 ### Meilisearch
 
@@ -70,7 +70,8 @@ L'application sera accessible sur :
 - **Frontend** : http://localhost:5173
 - **Backend API** : http://localhost:3000
 - **Meilisearch** : http://localhost:7700
-- **MongoDB** : localhost:27017
+- **PostgreSQL** : localhost:5432
+- **Adminer** (interface de gestion de base de données) : http://localhost:8080
 
 **La méthode recommandé est d'utiliser le script `./start-dev-stack.sh` pour lancer la stack de production**
 
@@ -110,6 +111,30 @@ docker compose up -d --build
 
 L'application sera accessible sur http://localhost
 
+#### Adminer - Interface de gestion de base de données
+
+En développement, **Adminer** est disponible pour gérer facilement la base de données PostgreSQL via une interface web intuitive.
+
+Accédez à Adminer sur : **http://localhost:8080**
+
+**Informations de connexion :**
+
+- **Système** : PostgreSQL
+- **Serveur** : `postgres` (nom du service Docker)
+- **Utilisateur** : Voir variable `POSTGRES_USER` dans `.env`
+- **Mot de passe** : Voir variable `POSTGRES_PASSWORD` dans `.env`
+- **Base de données** : Voir variable `POSTGRES_DB` dans `.env`
+
+Adminer permet de :
+
+- Visualiser la structure de la base de données
+- Exécuter des requêtes SQL
+- Gérer les tables, index et relations
+- Importer/exporter des données
+- Visualiser et éditer les données directement
+
+> **Note** : Adminer n'est disponible qu'en environnement de développement pour des raisons de sécurité.
+
 ### Commandes utiles
 
 ```bash
@@ -119,7 +144,7 @@ docker compose logs -f
 # Voir les logs d'un service spécifique
 docker compose logs -f backend
 docker compose logs -f frontend
-docker compose logs -f mongodb
+docker compose logs -f postgres
 
 # Arrêter tous les services
 docker compose down
@@ -144,7 +169,7 @@ docker compose restart backend
 
 # Accéder au shell d'un container
 docker compose exec backend sh
-docker compose exec mysql mysql -u root -p
+docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
 
 # Voir l'état des services
 docker compose ps
@@ -153,11 +178,15 @@ docker compose ps
 ### Initialisation de la base de données
 
 ```bash
-# Une fois les services lancés, exécuter les migrations
-docker compose exec backend npm run migrate
+# Les migrations Prisma sont automatiquement exécutées au démarrage du backend
+# Pour exécuter manuellement les migrations :
+docker compose exec backend bunx prisma migrate dev
 
-# Ou entrer dans le container MySQL
-docker compose exec mysql mysql -u ataccoteque_user -p ataccoteque_dev
+# Pour appliquer le seed (données initiales) :
+docker compose exec backend bunx prisma db seed
+
+# Ou entrer dans le container PostgreSQL
+docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
 ```
 
 ### Développement sans Docker (optionnel)
@@ -188,10 +217,11 @@ Si vous préférez développer localement sans Docker, lancer et installer les d
 Créez un fichier `.env` à la racine du projet :
 
 ```env
-# MongoDB
-MONGO_INITDB_ROOT_USERNAME=changeMeInProduction
-MONGO_INITDB_ROOT_PASSWORD=changeMeInProduction
-MONGO_DB_NAME=ataccoteque
+# PostgreSQL
+POSTGRES_USER=changeMeInProduction
+POSTGRES_PASSWORD=changeMeInProduction
+POSTGRES_DB=ataccoteque
+DATABASE_URL=postgresql://user:password@postgres:5432/ataccoteque
 
 # Meilisearch
 MEILI_MASTER_KEY=changeMeInProduction

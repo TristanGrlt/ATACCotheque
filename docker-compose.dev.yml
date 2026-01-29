@@ -1,17 +1,4 @@
 services:
-  mongodb:
-    image: mongo:noble
-    container_name: ataccoteque-mongo-dev
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: dev_user
-      MONGO_INITDB_ROOT_PASSWORD: devpassword
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_dev_data:/data/db
-    networks:
-      - ataccoteque-dev-network
-
   postgresql:
     image: postgres:latest
     container_name: ataccoteque-postgresql-dev
@@ -53,7 +40,6 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      MONGO_URI: mongodb://dev_user:devpassword@mongodb:27017/ataccoteque_dev?authSource=admin
       DATABASE_URL: postgresql://dev_user:devpassword@postgresql:5432/ataccoteque_dev?schema=public
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
@@ -66,7 +52,7 @@ services:
       - ./app/server:/app
       - /app/node_modules
     depends_on:
-      - mongodb
+      - postgresql
       - meilisearch
     networks:
       - ataccoteque-dev-network
@@ -93,7 +79,6 @@ services:
 volumes:
   postgresql_dev_data:
   meilisearch_dev_data:
-  mongo_dev_data:
 
 networks:
   ataccoteque-dev-network:
