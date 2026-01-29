@@ -3,13 +3,15 @@ import { LandingPage } from './routes/landingPage.tsx'
 import { SideBar } from './components/admin/sideBar.tsx'
 import { Login } from './routes/login.tsx'
 import { ProtectedRoute } from './components/protectedRoute.tsx'
+import { Upload } from './routes/upload.tsx'
+
 
 function App() {
   return (
     <Routes>
       <Route index element={<LandingPage />} />
       <Route path='login' element={<Login />} />
-
+      <Route path='upload' element={<Upload />} />
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />

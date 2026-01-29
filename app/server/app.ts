@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import connectDB from './utils/connectDB.js';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
+import majorRouter from './routes/major.route.js';
+import courseRouter from './routes/course.route.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -23,6 +25,8 @@ app.use(cookieParser());
 // Routes
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
+app.use('/major',majorRouter)
+app.use('/course', courseRouter);
 
 
 // JWT_SECRET
