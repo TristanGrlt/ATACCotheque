@@ -7,7 +7,6 @@ import { Upload } from './routes/upload.tsx'
 
 import { User } from './routes/admin/user/user.tsx'
 import { AddUser } from './components/admin/addUser.tsx'
-import { Upload } from './routes/upload.tsx'
 
 
 function App() {
