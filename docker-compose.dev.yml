@@ -12,6 +12,28 @@ services:
     networks:
       - ataccoteque-dev-network
 
+  postgresql:
+    image: postgres:latest
+    container_name: ataccoteque-postgresql-dev
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: ataccoteque_dev
+    ports:
+      - 5432:5432
+    volumes:
+      - postgresql_dev_data:/var/lib/postgresql
+    networks:
+      - ataccoteque-dev-network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - ataccoteque-dev-network
+
   meilisearch:
     image: getmeili/meilisearch:v1.6
     container_name: ataccoteque-meilisearch-dev
@@ -34,6 +56,7 @@ services:
       NODE_ENV: development
       PORT: 3000
       MONGO_URI: mongodb://dev_user:devpassword@mongodb:27017/ataccoteque_dev?authSource=admin
+      DATABASE_URL: postgresql://dev_user:devpassword@postgresql:5432/ataccoteque_dev?schema=public
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
       JWT_SECRET: changeMe
@@ -70,8 +93,9 @@ services:
     command: bun run dev
 
 volumes:
-  mongo_dev_data:
+  postgresql_dev_data:
   meilisearch_dev_data:
+  mongo_dev_data:
 
 networks:
   ataccoteque-dev-network:
