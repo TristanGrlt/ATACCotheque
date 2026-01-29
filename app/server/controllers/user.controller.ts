@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import User, { IUser } from '../models/user.model.js'
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
@@ -64,7 +64,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
 
   const user = await User.findOne({ username });
   if (!user) {
-    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect` });
+    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
 
   const match = await bcrypt.compare(password, user.password);
