@@ -19,12 +19,6 @@ Le projet utilise également les bibliothèques suivantes avec _React_ :
 
 Utilisation de l'environnement d'exécution **Node.js** avec le framework **Express.js** qui utilise le langage **TypeScript** pour conserver les avantages d'un langage typé.
 
-Le projet utilise également les bibliothèques suivantes avec _Node.js_ :
-
-- **cors** pour gérer les requêtes cross-origin
-- **dotenv** pour la gestion des variables d'environnement
-- **mongoose** pour l'interaction avec MongoDB
-
 ### MongoDB
 
 Base de données NoSQL utilisée pour le stockage des données du projet.
@@ -77,6 +71,32 @@ L'application sera accessible sur :
 - **Backend API** : http://localhost:3000
 - **Meilisearch** : http://localhost:7700
 - **MongoDB** : localhost:27017
+
+**La méthode recommandé est d'utiliser le script `./start-dev-stack.sh` pour lancer la stack de production**
+
+#### Base de donnés
+
+La base de donné est un server PostgreSQL. La connexion et la création de tables est géré par l'ORM _Prisma_. En production, lancer le serveur avec la commande donné précédement.
+
+**Si** les shéma ont été **modifier**, le serveur doit mettre à jour ces tables. Pour cella éxécuter la commande de migration suivante:
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev
+```
+
+**Si VOUS modifier** les shéma. Vous êtes donc responsable de ce changement et devait appliquer là aussi une migration mais cette fois si nomé. Pour cella, éxécuter la commande suivante:
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev --name <nom_changement>
+```
+
+En remplaçant `<nom_changement>` par une description de votre changement (à la manière d'un commit). Par exemple: `user_add_username_field`
+
+Le fichier `app/server/prisma/seed.ts` contient les élément de base qui seront ajouté automatiquement au démarage du serveur de production mais qui doivent être éxécuté à la main durant la fase de production. Pour cella, à chaque que le fichier est modifié, éxécuté la commande suivante:
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend bunx prisma db seed
+```
 
 ### Production
 
