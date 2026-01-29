@@ -48,12 +48,12 @@ export function User() {
   const confirmDelete = useCallback(async () => {
     if (userToDelete) {
       try {
-        await apiRequest.delete(`/user/${userToDelete._id}`)
+        await apiRequest.delete(`/user/${userToDelete.id}`)
       } catch (err) {
         toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
         return;
       }
-      setData(data.filter(u => u._id !== userToDelete._id))
+      setData(data.filter(u => u.id !== userToDelete.id))
       setUserToDelete(null)
       toast.success(`${userToDelete.username} a été supprimé(e)`)
     }
@@ -72,8 +72,8 @@ export function User() {
   const confirmDeleteSelected = useCallback(async () => {
     if (selectedRows.length === 0) return
 
-    const selectedIds = selectedRows.map(r => r._id)
-    const deletedIds: User["_id"][] = []
+    const selectedIds = selectedRows.map(r => r.id)
+    const deletedIds: User["id"][] = []
     const errors: unknown[] = []
 
     for (const id of selectedIds) {
@@ -86,8 +86,8 @@ export function User() {
     }
 
     if (deletedIds.length > 0) {
-      setData(prev => prev.filter(u => !deletedIds.includes(u._id)))
-      setSelectedRows(prev => prev.filter(u => !deletedIds.includes(u._id)))
+      setData(prev => prev.filter(u => !deletedIds.includes(u.id)))
+      setSelectedRows(prev => prev.filter(u => !deletedIds.includes(u.id)))
       const successCount = deletedIds.length
       toast.success(`${successCount} utilisateur${successCount > 1 ? 's ont' : ' a'} été supprimé${successCount > 1 ? 's' : ''}`)
     }

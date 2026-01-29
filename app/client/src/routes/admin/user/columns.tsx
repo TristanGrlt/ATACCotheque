@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export type User = {
-  _id: number
+  id: number
   username: string
 }
 
