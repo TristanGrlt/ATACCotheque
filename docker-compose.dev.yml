@@ -49,7 +49,7 @@ services:
       - meilisearch
     networks:
       - ataccoteque-dev-network
-    command: npm run dev
+    command: bun run dev
 
   frontend:
     build:
@@ -67,7 +67,7 @@ services:
       - backend
     networks:
       - ataccoteque-dev-network
-    command: npm run dev
+    command: bun run dev
 
 volumes:
   mongo_dev_data:
