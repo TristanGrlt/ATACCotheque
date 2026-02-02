@@ -60,16 +60,16 @@ jobs:
             git pull origin main
             
             echo "🛑 Stopping containers..."
-            docker compose down
+            sudo docker compose down
             
             echo "🏗️ Building and starting containers..."
-            docker compose up -d --build
+            sudo docker compose up -d --build
             
             echo "⏳ Waiting for containers to be healthy..."
             sleep 10
             
             echo "🧹 Cleaning up unused images..."
-            docker image prune -af
+            sudo docker image prune -af
             
             echo "✅ Deployment completed successfully!"
           ENDSSH
@@ -89,7 +89,7 @@ jobs:
             echo "📊 Checking container status..."
             
             # Vérifier que les conteneurs tournent
-            RUNNING_CONTAINERS=$(docker compose ps -q | wc -l)
+            RUNNING_CONTAINERS=$(sudo docker compose ps -q | wc -l)
             if [ $RUNNING_CONTAINERS -eq 0 ]; then
               echo "❌ No containers running!"
               exit 1
@@ -98,10 +98,10 @@ jobs:
             echo "✅ $RUNNING_CONTAINERS containers are running"
             
             # Afficher le statut
-            docker compose ps
+            sudo docker compose ps
             
             # Vérifier les logs pour des erreurs critiques
-            if docker compose logs --tail=50 | grep -i "error\|fatal\|exception" | grep -v "health check"; then
+            if sudo docker compose logs --tail=50 | grep -i "error\|fatal\|exception" | grep -v "health check"; then
               echo "⚠️ Errors detected in logs, but containers are running"
             fi
           ENDSSH
@@ -129,8 +129,8 @@ jobs:
               git reset --hard $PREVIOUS_COMMIT
               
               # Redémarrer les conteneurs avec l'ancienne version
-              docker compose down
-              docker compose up -d --build
+              sudo docker compose down
+              sudo docker compose up -d --build
               
               echo "✅ Rollback completed successfully"
             else
@@ -141,184 +141,203 @@ jobs:
 
       - name: 🎉 Notify Discord - Success
         if: success()
+        env:
+          DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L"
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          TIMESTAMP: ${{ github.event.head_commit.timestamp }}
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "✅ Déploiement réussi",
-                "description": "Le déploiement sur le serveur de production a été effectué avec succès.",
-                "color": 3066993,
-                "fields": [
+            -d "{
+              \"embeds\": [{
+                \"title\": \"✅ Déploiement réussi\",
+                \"description\": \"Le déploiement sur le serveur de production a été effectué avec succès.\",
+                \"color\": 3066993,
+                \"fields\": [
                   {
-                    "name": "📦 Repository",
-                    "value": "${{ github.repository }}",
-                    "inline": true
+                    \"name\": \"📦 Repository\",
+                    \"value\": \"${{ github.repository }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "🌿 Branch",
-                    "value": "${{ github.ref_name }}",
-                    "inline": true
+                    \"name\": \"🌿 Branch\",
+                    \"value\": \"${{ github.ref_name }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "👤 Author",
-                    "value": "${{ github.actor }}",
-                    "inline": true
+                    \"name\": \"👤 Author\",
+                    \"value\": \"${{ github.actor }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "📝 Commit",
-                    "value": "```${{ github.event.head_commit.message }}```",
-                    "inline": false
+                    \"name\": \"📝 Commit\",
+                    \"value\": \"\`\`\`${COMMIT_MESSAGE}\`\`\`\",
+                    \"inline\": false
                   },
                   {
-                    "name": "🔗 Commit URL",
-                    "value": "[Voir le commit](${{ github.event.head_commit.url }})",
-                    "inline": false
+                    \"name\": \"🔗 Commit URL\",
+                    \"value\": \"[Voir le commit](${COMMIT_URL})\",
+                    \"inline\": false
                   }
                 ],
-                "timestamp": "${{ github.event.head_commit.timestamp }}",
-                "footer": {
-                  "text": "GitHub Actions • Déploiement"
+                \"timestamp\": \"${TIMESTAMP}\",
+                \"footer\": {
+                  \"text\": \"GitHub Actions • Déploiement\"
                 },
-                "thumbnail": {
-                  "url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                \"thumbnail\": {
+                  \"url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\"
                 }
               }]
-            }' \
-            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+            }" \
+            "$DISCORD_WEBHOOK"
 
       - name: ❌ Notify Discord - Failure (No Rollback)
         if: failure() && steps.deploy.outcome == 'failure' && steps.backup.outcome == 'failure'
+        env:
+          DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L"
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "❌ Échec du déploiement",
-                "description": "Le déploiement a échoué avant la phase de backup. Aucun rollback possible.",
-                "color": 15158332,
-                "fields": [
+            -d "{
+              \"embeds\": [{
+                \"title\": \"❌ Échec du déploiement\",
+                \"description\": \"Le déploiement a échoué avant la phase de backup. Aucun rollback possible.\",
+                \"color\": 15158332,
+                \"fields\": [
                   {
-                    "name": "📦 Repository",
-                    "value": "${{ github.repository }}",
-                    "inline": true
+                    \"name\": \"📦 Repository\",
+                    \"value\": \"${{ github.repository }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "🌿 Branch",
-                    "value": "${{ github.ref_name }}",
-                    "inline": true
+                    \"name\": \"🌿 Branch\",
+                    \"value\": \"${{ github.ref_name }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "👤 Author",
-                    "value": "${{ github.actor }}",
-                    "inline": true
+                    \"name\": \"👤 Author\",
+                    \"value\": \"${{ github.actor }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "📝 Commit",
-                    "value": "```${{ github.event.head_commit.message }}```",
-                    "inline": false
+                    \"name\": \"📝 Commit\",
+                    \"value\": \"\`\`\`${COMMIT_MESSAGE}\`\`\`\",
+                    \"inline\": false
                   },
                   {
-                    "name": "🔗 Workflow Run",
-                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                    "inline": false
+                    \"name\": \"🔗 Workflow Run\",
+                    \"value\": \"[Voir les logs](${WORKFLOW_URL})\",
+                    \"inline\": false
                   }
                 ],
-                "timestamp": "${{ github.event.head_commit.timestamp }}",
-                "footer": {
-                  "text": "GitHub Actions • Échec"
+                \"timestamp\": \"${TIMESTAMP}\",
+                \"footer\": {
+                  \"text\": \"GitHub Actions • Échec\"
                 }
               }]
-            }' \
-            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+            }" \
+            "$DISCORD_WEBHOOK"
 
       - name: 🔄 Notify Discord - Rollback Success
         if: failure() && steps.deploy.outcome == 'failure' && steps.backup.outcome == 'success'
+        env:
+          DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L"
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "🔄 Rollback effectué",
-                "description": "Le déploiement a échoué. Un rollback automatique a été effectué vers la version précédente.",
-                "color": 16776960,
-                "fields": [
+            -d "{
+              \"embeds\": [{
+                \"title\": \"🔄 Rollback effectué\",
+                \"description\": \"Le déploiement a échoué. Un rollback automatique a été effectué vers la version précédente.\",
+                \"color\": 16776960,
+                \"fields\": [
                   {
-                    "name": "📦 Repository",
-                    "value": "${{ github.repository }}",
-                    "inline": true
+                    \"name\": \"📦 Repository\",
+                    \"value\": \"${{ github.repository }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "🌿 Branch",
-                    "value": "${{ github.ref_name }}",
-                    "inline": true
+                    \"name\": \"🌿 Branch\",
+                    \"value\": \"${{ github.ref_name }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "👤 Author",
-                    "value": "${{ github.actor }}",
-                    "inline": true
+                    \"name\": \"👤 Author\",
+                    \"value\": \"${{ github.actor }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "📝 Commit ayant échoué",
-                    "value": "```${{ github.event.head_commit.message }}```",
-                    "inline": false
+                    \"name\": \"📝 Commit ayant échoué\",
+                    \"value\": \"\`\`\`${COMMIT_MESSAGE}\`\`\`\",
+                    \"inline\": false
                   },
                   {
-                    "name": "⚠️ Action requise",
-                    "value": "Vérifiez les logs et corrigez les erreurs avant de redéployer.",
-                    "inline": false
+                    \"name\": \"⚠️ Action requise\",
+                    \"value\": \"Vérifiez les logs et corrigez les erreurs avant de redéployer.\",
+                    \"inline\": false
                   },
                   {
-                    "name": "🔗 Workflow Run",
-                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                    "inline": false
+                    \"name\": \"🔗 Workflow Run\",
+                    \"value\": \"[Voir les logs](${WORKFLOW_URL})\",
+                    \"inline\": false
                   }
                 ],
-                "timestamp": "${{ github.event.head_commit.timestamp }}",
-                "footer": {
-                  "text": "GitHub Actions • Rollback"
+                \"timestamp\": \"${TIMESTAMP}\",
+                \"footer\": {
+                  \"text\": \"GitHub Actions • Rollback\"
                 }
               }]
-            }' \
-            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+            }" \
+            "$DISCORD_WEBHOOK"
 
       - name: ❌ Notify Discord - Verification Failed
         if: failure() && steps.verify.outcome == 'failure' && steps.deploy.outcome == 'success'
+        env:
+          DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L"
+          TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "⚠️ Déploiement avec avertissement",
-                "description": "Le déploiement s'\''est terminé mais la vérification a détecté des problèmes.",
-                "color": 16776960,
-                "fields": [
+            -d "{
+              \"embeds\": [{
+                \"title\": \"⚠️ Déploiement avec avertissement\",
+                \"description\": \"Le déploiement est terminé mais la vérification a détecté des problèmes.\",
+                \"color\": 16776960,
+                \"fields\": [
                   {
-                    "name": "📦 Repository",
-                    "value": "${{ github.repository }}",
-                    "inline": true
+                    \"name\": \"📦 Repository\",
+                    \"value\": \"${{ github.repository }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "🌿 Branch",
-                    "value": "${{ github.ref_name }}",
-                    "inline": true
+                    \"name\": \"🌿 Branch\",
+                    \"value\": \"${{ github.ref_name }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "👤 Author",
-                    "value": "${{ github.actor }}",
-                    "inline": true
+                    \"name\": \"👤 Author\",
+                    \"value\": \"${{ github.actor }}\",
+                    \"inline\": true
                   },
                   {
-                    "name": "⚠️ Status",
-                    "value": "Les conteneurs ne répondent pas comme prévu. Vérification manuelle requise.",
-                    "inline": false
+                    \"name\": \"⚠️ Status\",
+                    \"value\": \"Les conteneurs ne répondent pas comme prévu. Vérification manuelle requise.\",
+                    \"inline\": false
                   },
                   {
-                    "name": "🔗 Workflow Run",
-                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                    "inline": false
+                    \"name\": \"🔗 Workflow Run\",
+                    \"value\": \"[Voir les logs](${WORKFLOW_URL})\",
+                    \"inline\": false
                   }
                 ],
-                "timestamp": "${{ github.event.head_commit.timestamp }}",
-                "footer": {
-                  "text": "GitHub Actions • Avertissement"
+                \"timestamp\": \"${TIMESTAMP}\",
+                \"footer\": {
+                  \"text\": \"GitHub Actions • Avertissement\"
                 }
               }]
-            }' \
-            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+            }" \
+            "$DISCORD_WEBHOOK"
