@@ -32,7 +32,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST 'bash -s' << 'ENDSSH'
             set -e
             
             cd /home/tristan/deploy/ATACCotheque || exit 1
@@ -50,7 +50,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST 'bash -s' << 'ENDSSH'
             set -e
             
             echo "📁 Navigating to project directory..."
@@ -81,7 +81,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST 'bash -s' << 'ENDSSH'
             set -e
             
             cd /home/tristan/deploy/ATACCotheque
@@ -113,7 +113,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST 'bash -s' << 'ENDSSH'
             set -e
             
             cd /home/tristan/deploy/ATACCotheque
