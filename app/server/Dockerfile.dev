@@ -8,10 +8,8 @@ COPY prisma ./prisma
 
 RUN bun install
 
-# Générer le client Prisma
 RUN bunx prisma generate
 
-COPY . .
 
 EXPOSE 3000
 
