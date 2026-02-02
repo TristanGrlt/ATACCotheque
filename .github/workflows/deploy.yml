@@ -60,16 +60,16 @@ jobs:
             git pull origin main
             
             echo "🛑 Stopping containers..."
-            sudo docker compose down
+            docker compose down
             
             echo "🏗️ Building and starting containers..."
-            sudo docker compose up -d --build
+            docker compose up -d --build
             
             echo "⏳ Waiting for containers to be healthy..."
             sleep 10
             
             echo "🧹 Cleaning up unused images..."
-            sudo docker image prune -af
+            docker image prune -af
             
             echo "✅ Deployment completed successfully!"
           ENDSSH
@@ -89,7 +89,7 @@ jobs:
             echo "📊 Checking container status..."
             
             # Vérifier que les conteneurs tournent
-            RUNNING_CONTAINERS=$(sudo docker compose ps -q | wc -l)
+            RUNNING_CONTAINERS=$(docker compose ps -q | wc -l)
             if [ $RUNNING_CONTAINERS -eq 0 ]; then
               echo "❌ No containers running!"
               exit 1
@@ -98,10 +98,10 @@ jobs:
             echo "✅ $RUNNING_CONTAINERS containers are running"
             
             # Afficher le statut
-            sudo docker compose ps
+            docker compose ps
             
             # Vérifier les logs pour des erreurs critiques
-            if sudo docker compose logs --tail=50 | grep -i "error\|fatal\|exception" | grep -v "health check"; then
+            if docker compose logs --tail=50 | grep -i "error\|fatal\|exception" | grep -v "health check"; then
               echo "⚠️ Errors detected in logs, but containers are running"
             fi
           ENDSSH
@@ -129,8 +129,8 @@ jobs:
               git reset --hard $PREVIOUS_COMMIT
               
               # Redémarrer les conteneurs avec l'ancienne version
-              sudo docker compose down
-              sudo docker compose up -d --build
+              docker compose down
+              docker compose up -d --build
               
               echo "✅ Rollback completed successfully"
             else
