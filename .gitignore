@@ -14,4 +14,23 @@ Desktop.ini
 *.sln
 *.sw?
 
+# --- Environment & Secrets ---
 .env
+.env.local
+.env.*.local
+
+# --- GitHub Actions ---
+.github/workflows/*.local.yml
+
+# --- Dependencies ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- Build outputs ---
+dist/
+build/
+*.log
+
+# --- Docker ---
+docker-compose.override.yml
