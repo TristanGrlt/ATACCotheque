@@ -1,0 +1,323 @@
+name: 🚀 Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🔐 Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 💾 Backup current state
+        id: backup
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            cd /home/tristan/deploy/ATACCotheque || exit 1
+            
+            echo "💾 Saving current commit hash..."
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "$CURRENT_COMMIT" > .last_deploy_commit
+            echo "Previous commit: $CURRENT_COMMIT"
+          ENDSSH
+
+      - name: 🚀 Deploy to server
+        id: deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            echo "📁 Navigating to project directory..."
+            cd /home/tristan/deploy/ATACCotheque || exit 1
+            
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+            
+            echo "🛑 Stopping containers..."
+            docker compose down
+            
+            echo "🏗️ Building and starting containers..."
+            docker compose up -d --build
+            
+            echo "⏳ Waiting for containers to be healthy..."
+            sleep 10
+            
+            echo "🧹 Cleaning up unused images..."
+            docker image prune -af
+            
+            echo "✅ Deployment completed successfully!"
+          ENDSSH
+
+      - name: 📊 Verify deployment
+        id: verify
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            cd /home/tristan/deploy/ATACCotheque
+            
+            echo "📊 Checking container status..."
+            
+            # Vérifier que les conteneurs tournent
+            RUNNING_CONTAINERS=$(docker compose ps -q | wc -l)
+            if [ $RUNNING_CONTAINERS -eq 0 ]; then
+              echo "❌ No containers running!"
+              exit 1
+            fi
+            
+            echo "✅ $RUNNING_CONTAINERS containers are running"
+            
+            # Afficher le statut
+            docker compose ps
+            
+            # Vérifier les logs pour des erreurs critiques
+            if docker compose logs --tail=50 | grep -i "error\|fatal\|exception" | grep -v "health check"; then
+              echo "⚠️ Errors detected in logs, but containers are running"
+            fi
+          ENDSSH
+
+      - name: 🔄 Rollback on failure
+        if: failure() && steps.deploy.outcome == 'failure'
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            cd /home/tristan/deploy/ATACCotheque
+            
+            echo "🔄 Starting rollback process..."
+            
+            # Récupérer le commit précédent
+            if [ -f .last_deploy_commit ]; then
+              PREVIOUS_COMMIT=$(cat .last_deploy_commit)
+              echo "Rolling back to commit: $PREVIOUS_COMMIT"
+              
+              # Revenir au commit précédent
+              git reset --hard $PREVIOUS_COMMIT
+              
+              # Redémarrer les conteneurs avec l'ancienne version
+              docker compose down
+              docker compose up -d --build
+              
+              echo "✅ Rollback completed successfully"
+            else
+              echo "❌ No previous commit found, cannot rollback"
+              exit 1
+            fi
+          ENDSSH
+
+      - name: 🎉 Notify Discord - Success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "✅ Déploiement réussi",
+                "description": "Le déploiement sur le serveur de production a été effectué avec succès.",
+                "color": 3066993,
+                "fields": [
+                  {
+                    "name": "📦 Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🌿 Branch",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "👤 Author",
+                    "value": "${{ github.actor }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "📝 Commit",
+                    "value": "```${{ github.event.head_commit.message }}```",
+                    "inline": false
+                  },
+                  {
+                    "name": "🔗 Commit URL",
+                    "value": "[Voir le commit](${{ github.event.head_commit.url }})",
+                    "inline": false
+                  }
+                ],
+                "timestamp": "${{ github.event.head_commit.timestamp }}",
+                "footer": {
+                  "text": "GitHub Actions • Déploiement"
+                },
+                "thumbnail": {
+                  "url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                }
+              }]
+            }' \
+            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+
+      - name: ❌ Notify Discord - Failure (No Rollback)
+        if: failure() && steps.deploy.outcome == 'failure' && steps.backup.outcome == 'failure'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Échec du déploiement",
+                "description": "Le déploiement a échoué avant la phase de backup. Aucun rollback possible.",
+                "color": 15158332,
+                "fields": [
+                  {
+                    "name": "📦 Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🌿 Branch",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "👤 Author",
+                    "value": "${{ github.actor }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "📝 Commit",
+                    "value": "```${{ github.event.head_commit.message }}```",
+                    "inline": false
+                  },
+                  {
+                    "name": "🔗 Workflow Run",
+                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                    "inline": false
+                  }
+                ],
+                "timestamp": "${{ github.event.head_commit.timestamp }}",
+                "footer": {
+                  "text": "GitHub Actions • Échec"
+                }
+              }]
+            }' \
+            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+
+      - name: 🔄 Notify Discord - Rollback Success
+        if: failure() && steps.deploy.outcome == 'failure' && steps.backup.outcome == 'success'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔄 Rollback effectué",
+                "description": "Le déploiement a échoué. Un rollback automatique a été effectué vers la version précédente.",
+                "color": 16776960,
+                "fields": [
+                  {
+                    "name": "📦 Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🌿 Branch",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "👤 Author",
+                    "value": "${{ github.actor }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "📝 Commit ayant échoué",
+                    "value": "```${{ github.event.head_commit.message }}```",
+                    "inline": false
+                  },
+                  {
+                    "name": "⚠️ Action requise",
+                    "value": "Vérifiez les logs et corrigez les erreurs avant de redéployer.",
+                    "inline": false
+                  },
+                  {
+                    "name": "🔗 Workflow Run",
+                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                    "inline": false
+                  }
+                ],
+                "timestamp": "${{ github.event.head_commit.timestamp }}",
+                "footer": {
+                  "text": "GitHub Actions • Rollback"
+                }
+              }]
+            }' \
+            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L
+
+      - name: ❌ Notify Discord - Verification Failed
+        if: failure() && steps.verify.outcome == 'failure' && steps.deploy.outcome == 'success'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "⚠️ Déploiement avec avertissement",
+                "description": "Le déploiement s'\''est terminé mais la vérification a détecté des problèmes.",
+                "color": 16776960,
+                "fields": [
+                  {
+                    "name": "📦 Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🌿 Branch",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "👤 Author",
+                    "value": "${{ github.actor }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "⚠️ Status",
+                    "value": "Les conteneurs ne répondent pas comme prévu. Vérification manuelle requise.",
+                    "inline": false
+                  },
+                  {
+                    "name": "🔗 Workflow Run",
+                    "value": "[Voir les logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                    "inline": false
+                  }
+                ],
+                "timestamp": "${{ github.event.head_commit.timestamp }}",
+                "footer": {
+                  "text": "GitHub Actions • Avertissement"
+                }
+              }]
+            }' \
+            https://discord.com/api/webhooks/1467945276525252618/a0q7puiyRnqgdMLKflBjEKPT4-q4hIrU0nhFU-kInP_nHdz-JNfzheQ-8CGIxUUZio9L

@@ -4,7 +4,7 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG VITE_API_ENDPOINT=/api
 
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
