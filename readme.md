@@ -1,4 +1,4 @@
-# ATACCothèque
+# <img src="app/client/public/atacc_logo.png" width="70"> ATACCothèque
 
 Bienvenue sur L'ataccothèque, votre plateforme dédiée au stockage et à la consultation des annales universitaires. Notre association s'engage à collecter, organiser et rendre accessibles les anciens contrôles de fac afin de soutenir les étudiants dans leur préparation académique. Grâce à notre vaste bibliothèque numérique, vous pouvez facilement accéder aux ressources nécessaires pour réussir vos examens.
 
@@ -8,20 +8,27 @@ Bienvenue sur L'ataccothèque, votre plateforme dédiée au stockage et à la co
 
 ### Frontend
 
-Utilisation de la bibliothèque **React** pour l'interface utilisateur web avec l'outil de construction **Vite**. _React_ utilise le langage **TypeScript** pour une programmation typée.
+Utilisation de la bibliothèque **React** avec l'outil de construction **Vite**. Utilisation du langage **TypeScript**. Fonctionne sur l'environnement d'exécution **Bun**.
 
-Le projet utilise également les bibliothèques suivantes avec _React_ :
+Les bibliothèques suivantes sont utilisées :
 
 - **shadcn/ui** pour des composants de base qui respectent les règles d'accessibilité (basé sur _Radix UI_)
-- **Tailwind CSS** car elle est une dépendance de _shadcn/ui_ et permet de garder une interface unifiée
+- **Tailwind CSS** (dépendance de _shadcn/ui_)
+- **axios** pour les requêtes API
+- **lucide-react** pour des icônes open source
 
 ### Backend
 
-Utilisation de l'environnement d'exécution **Node.js** avec le framework **Express.js** qui utilise le langage **TypeScript** pour conserver les avantages d'un langage typé.
+Utilisation du framework **Express.js**. Utilisation du langage **TypeScript**. Fonctionne sur l'environnement d'exécution **Bun**.
+
+Les bibliothèques suivantes sont utilisées :
+
+- **Prisma**, l'ORM utilisé pour la gestion de la base de données PostgreSQL
+- **jsonwebtoken** pour l'authentification à l'API
 
 ### PostgreSQL
 
-Base de données relationnelle utilisée pour le stockage des données du projet. L'ORM **Prisma** est utilisé pour gérer les modèles et les migrations.
+Base de données relationnelle.
 
 ### Meilisearch
 
@@ -37,33 +44,63 @@ Les routes suivantes sont disponibles :
 - `/api/` pour le _backend_ (API)
 - `/file/` pour l'accès aux annales
 
-## 🚀 Démarrage rapide
+---
+
+## Démarrage
 
 ### Prérequis
 
 - Docker
 - Docker Compose
 
-```bash
-sudo apt-get update
-sudo apt install ./docker-desktop-amd64.deb
-```
-
 ### Développement
 
-```bash
-# Copier le fichier d'environnement
-cp .env.example .env
+#### 1. Lancement de l'environnement de développement
 
+```bash
 # Lancer l'environnement de développement
 docker compose -f docker-compose.dev.yml up
 
-# Ou avec reconstruction des images si vous modifiez les Dockerfile
+# Ou avec reconstruction des images si vous modifiez les Dockerfile ou les dépendances
 docker compose -f docker-compose.dev.yml up --build
 
 # En arrière-plan (détaché)
 docker compose -f docker-compose.dev.yml up -d
 ```
+
+#### 2. Configuration
+
+Un élément en particulier nécessite une configuration pour être utilisé dans l'environnement d'exécution. En effet, l'ORM _Prisma_ doit être configuré afin de gérer les migrations de base de données (ses tables) ainsi que son "client" pour les interactions avec la base de données. Cette configuration se fait par l'intermédiaire de l'exécution de quelques commandes.
+
+Lors du **premier démarage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, les modifications qui ont été apportées doivent être répercutées sur votre serveur de développement. On appelle cette action "appliquer les migrations de la base de données". Ces migrations sont disponibles dans le dossier du même nom sous la forme de fichiers SQL. Afin de réaliser cette migration, exécuter la commande suivante :
+
+```bash
+# Appliquer les migrations à la base de données.
+docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev
+```
+
+L'utilisation de _Prisma_ repose aussi sur son "client" qui est généré en fonction des schémas définis. Lors du **premier démarage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, un nouveau "client" doit être généré. Pour cela, exécuter la commande suivante :
+
+```bash
+# Générer le client Prisma.
+docker compose -f docker-compose.dev.yml exec backend bunx prisma generate
+```
+
+Afin de peupler la base de données, vous avez la possibilité d'exécuter la commande suivante afin d'initialiser la base de données. Ce procédé est appelé seeding.
+
+```bash
+# Appliquer le seeding sur la base de données
+docker compose -f docker-compose.dev.yml exec backend bunx prisma db seed
+```
+
+**/!\\ ATTENTION /!\\** : après l'exécution de ces commandes, il est fortement conseillé de redémarrer le backend ou de reconstruire les images. Pour cela, exécuter la commande suivante
+
+```bash
+# Redémarrer le serveur backend
+docker compose -f docker-compose.dev.yml restart backend
+```
+
+#### 3. Accéder au service
 
 L'application sera accessible sur :
 
@@ -71,35 +108,28 @@ L'application sera accessible sur :
 - **Backend API** : http://localhost:3000
 - **Meilisearch** : http://localhost:7700
 - **PostgreSQL** : localhost:5432
-- **Adminer** (interface de gestion de base de données) : http://localhost:8080
+- **Adminer** : http://localhost:8080
 
-**La méthode recommandé est d'utiliser le script `./start-dev-stack.sh` pour lancer la stack de production**
+**Adminer** est disponible pour gérer facilement la base de données PostgreSQL via une interface web. Les informations de connexion sont les suivantes :
 
-#### Base de donnés
+- **Système** : PostgreSQL
+- **Serveur** : `postgresql`
+- **Utilisateur** : `dev_user`
+- **Mot de passe** : `devpassword`
+- **Base de données** : `ataccoteque_dev`
 
-La base de donné est un server PostgreSQL. La connexion et la création de tables est géré par l'ORM _Prisma_. En production, lancer le serveur avec la commande donné précédement.
-
-**Si** les shéma ont été **modifier**, le serveur doit mettre à jour ces tables. Pour cella éxécuter la commande de migration suivante:
-
-```bash
-docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev
-```
-
-**Si VOUS modifier** les shéma. Vous êtes donc responsable de ce changement et devait appliquer là aussi une migration mais cette fois si nomé. Pour cella, éxécuter la commande suivante:
-
-```bash
-docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev --name <nom_changement>
-```
-
-En remplaçant `<nom_changement>` par une description de votre changement (à la manière d'un commit). Par exemple: `user_add_username_field`
-
-Le fichier `app/server/prisma/seed.ts` contient les élément de base qui seront ajouté automatiquement au démarage du serveur de production mais qui doivent être éxécuté à la main durant la fase de production. Pour cella, à chaque que le fichier est modifié, éxécuté la commande suivante:
-
-```bash
-docker compose -f docker-compose.dev.yml exec backend bunx prisma db seed
-```
+---
 
 ### Production
+
+En production, des variables d'environnement contenant entre autres des mots de passe doivent être positionnées. Pour cela, exécuter la commande suivante pour créer le fichier `.env` qui les contiendra et modifier les valeurs associées par défaut.
+
+```bash
+# Créer le fichier .env
+cp .env.example .env
+```
+
+Pour lancer les services exécuter la commande suivante.
 
 ```bash
 # Lancer en production
@@ -109,31 +139,9 @@ docker compose up -d
 docker compose up -d --build
 ```
 
-L'application sera accessible sur http://localhost
+L'application est accessible à l'adresse suivante : http://localhost:8099
 
-#### Adminer - Interface de gestion de base de données
-
-En développement, **Adminer** est disponible pour gérer facilement la base de données PostgreSQL via une interface web intuitive.
-
-Accédez à Adminer sur : **http://localhost:8080**
-
-**Informations de connexion :**
-
-- **Système** : PostgreSQL
-- **Serveur** : `postgres` (nom du service Docker)
-- **Utilisateur** : Voir variable `POSTGRES_USER` dans `.env`
-- **Mot de passe** : Voir variable `POSTGRES_PASSWORD` dans `.env`
-- **Base de données** : Voir variable `POSTGRES_DB` dans `.env`
-
-Adminer permet de :
-
-- Visualiser la structure de la base de données
-- Exécuter des requêtes SQL
-- Gérer les tables, index et relations
-- Importer/exporter des données
-- Visualiser et éditer les données directement
-
-> **Note** : Adminer n'est disponible qu'en environnement de développement pour des raisons de sécurité.
+---
 
 ### Commandes utiles
 
@@ -161,7 +169,7 @@ docker compose -f docker-compose.dev.yml down
 # Arrêter les services (production)
 docker compose down
 
-# Arrêter et supprimer les volumes (attention : supprime la DB !)
+# Arrêter et supprimer les volumes (⚠️ supprime la DB !)
 docker compose down -v
 
 # Redémarrer un service spécifique
@@ -175,25 +183,9 @@ docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
 docker compose ps
 ```
 
-### Initialisation de la base de données
+---
 
-```bash
-# Les migrations Prisma sont automatiquement exécutées au démarrage du backend
-# Pour exécuter manuellement les migrations :
-docker compose exec backend bunx prisma migrate dev
-
-# Pour appliquer le seed (données initiales) :
-docker compose exec backend bunx prisma db seed
-
-# Ou entrer dans le container PostgreSQL
-docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
-```
-
-### Développement sans Docker (optionnel)
-
-Si vous préférez développer localement sans Docker, lancer et installer les différent éléments présents dans le fichier `docker-compose.dev.yml`
-
-## 🛠️ Structure Docker
+### Structure Docker
 
 ```
 .
@@ -212,35 +204,48 @@ Si vous préférez développer localement sans Docker, lancer et installer les d
 │       └── Dockerfile.dev      # Image développement backend
 ```
 
-## 📝 Variables d'environnement
+## Lors du développement
 
-Créez un fichier `.env` à la racine du projet :
+### Auto-complétion et erreurs IDE
 
-```env
-# PostgreSQL
-POSTGRES_USER=changeMeInProduction
-POSTGRES_PASSWORD=changeMeInProduction
-POSTGRES_DB=ataccoteque
-DATABASE_URL=postgresql://user:password@postgres:5432/ataccoteque
+Afin que votre IDE de choix parvienne à faire de l'auto-complétion et l'affichage des erreurs partout, les dépendances du projet doivent aussi être installées en local pour être reconnues par celui-ci. Pour cela, exécuter la commande suivante à la racine du répertoire `app/server` et `app/client` :
 
-# Meilisearch
-MEILI_MASTER_KEY=changeMeInProduction
-MEILI_ENV=production
-
-# Backend
-NODE_ENV=production
-JWT_SECRET=changeMeInProduction
+```bash
+# Installer les dépendances localement
+bun install
 ```
 
-## 🤝 Workflow de développement en équipe
+### Utilisation de Prisma
+
+Afin d'utiliser Prisma, référez-vous à la documentation officielle. Cependant, voici quelques bases importantes.
+
+#### Migration
+
+Les tables de la base de données sont construites par _Prisma_ lors de l'opération de migration grâce au schéma défini dans le fichier `app/server/prisma/schema.prisma`. Les migrations sont définies dans le dossier `migrations` à l'intérieur du dossier `prisma`. Ce dossier comprend un historique de toutes les migrations qui ont été effectuées. Pour ajouter une migration lorsque vous avez modifié un schéma Prisma, exécuter la commande suivante :
+
+```bash
+# Exemple de commande pour effectuer une migration nommée
+docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev --name <nom_changement>
+```
+
+En remplaçant `<nom_changement>` par une description de votre changement (à la manière d'un commit). Par exemple:
+
+```bash
+# Exemple de commande pour effectuer une migration nommée
+docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev --name user_add_username_field
+```
+
+Une fois ce changement effectué, régénérer le client à l'aide des commandes définies auparavant.
+
+#### Seeding
+
+Le fichier `app/server/prisma/seed.ts` est le script utilisé pour peupler la base de données, vous pouvez le modifier pour que la base de données soit remplie de valeurs par défaut lors du démarrage de la base de données de production. **Attention**, ce script est exécuté à chaque démarrage de serveur donc vérifiez bien que les informations sont déjà présentes. Afin de tester ce script, exécuter la commande définie auparavant.
+
+## Développement en équipe
 
 ### 1. Créer une issue
 
-Avant de commencer à travailler sur une fonctionnalité ou un bug, **créez toujours une issue** sur GitHub décrivant :
-
-- Le problème ou la fonctionnalité
-- Les critères d'acceptation
-- Les éventuelles contraintes techniques
+Avant de commencer à travailler sur une fonctionnalité ou un bug, **créez toujours une issue** sur GitHub décrivant le problème ou la fonctionnalité
 
 ### 2. Créer une branche liée à l'issue
 
@@ -248,19 +253,19 @@ Avant de commencer à travailler sur une fonctionnalité ou un bug, **créez tou
 
 Nomenclature des branches :
 
-- `feat/numero-issue-description` pour une nouvelle fonctionnalité
-- `fix/numero-issue-description` pour une correction de bug
-- `docs/numero-issue-description` pour la documentation
-- `refactor/numero-issue-description` pour du refactoring
+- `feat/description` pour une nouvelle fonctionnalité
+- `fix/description` pour une correction de bug
+- `docs/description` pour la documentation
+- `refactor/description` pour du refactoring
 
 Exemple :
 
 ```bash
 # Pour l'issue #42 : Ajout de la recherche d'annales
-git checkout -b feat/42-recherche-annales
+git checkout -b feat/recherche-annales
 
 # Pour l'issue #58 : Correction du bug de connexion
-git checkout -b fix/58-bug-connexion
+git checkout -b fix/bug-connexion
 ```
 
 ### 3. Développer avec des commits conventionnels
@@ -322,18 +327,6 @@ git push origin feat/42-recherche-annales
 # La PR doit OBLIGATOIREMENT être liée à l'issue correspondante
 ```
 
-**Template de Pull Request :**
-
-```markdown
-## Description
-
-Brève description des changements apportés.
-
-## Issue liée
-
-Closes #42
-```
-
 ### 5. Revue de code
 
 - Au moins **une approbation** est requise avant le merge
@@ -393,56 +386,4 @@ git push origin feat/42-recherche-annales
 git checkout main
 git pull
 git branch -d feat/42-recherche-annales
-```
-
-### Règles importantes
-
-✅ **À faire :**
-
-- Créer une issue avant de commencer
-- Une branche = une fonctionnalité/correction
-- Utiliser Conventional Commits
-- Lier les PR aux issues avec "Closes #XX"
-- Faire des commits atomiques et réguliers
-- Demander une revue de code
-
-❌ **À éviter :**
-
-- Travailler directement sur `main` (c'est impossible)
-- Créer des branches sans issue associée
-- Faire des commits sans message clair
-- Mélanger plusieurs fonctionnalités dans une branche
-- Merger sans revue de code
-
-## 🔧 Dépannage
-
-**Les containers ne démarrent pas ?**
-
-```bash
-docker compose down
-docker compose up --build
-```
-
-**La base de données ne se connecte pas ?**
-
-```bash
-# Vérifier que MySQL est bien démarré
-docker compose ps
-# Voir les logs
-docker compose logs mysql
-```
-
-**Port déjà utilisé ?**
-Modifiez les ports dans `docker-compose.dev.yml` :
-
-```yaml
-ports:
-  - "5174:5173" # Au lieu de 5173:5173
-```
-
-**Réinitialiser complètement l'environnement**
-
-```bash
-docker compose down -v
-docker compose up --build
 ```
