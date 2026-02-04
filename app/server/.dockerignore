@@ -6,3 +6,4 @@ dist
 .gitignore
 README.md
 .vscode
+generated

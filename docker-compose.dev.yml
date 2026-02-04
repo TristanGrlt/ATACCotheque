@@ -1,14 +1,23 @@
 services:
-  mongodb:
-    image: mongo:noble
-    container_name: ataccoteque-mongo-dev
+  postgresql:
+    image: postgres:latest
+    container_name: ataccoteque-postgresql-dev
     environment:
-      MONGO_INITDB_ROOT_USERNAME: dev_user
-      MONGO_INITDB_ROOT_PASSWORD: devpassword
-    ports:
-      - "27017:27017"
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: ataccoteque_dev
     volumes:
-      - mongo_dev_data:/data/db
+      - postgresql_dev_data:/var/lib/postgresql
+    networks:
+      - ataccoteque-dev-network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgresql
     networks:
       - ataccoteque-dev-network
 
@@ -33,11 +42,11 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      MONGO_URI: mongodb://dev_user:devpassword@mongodb:27017/ataccoteque_dev?authSource=admin
+      DATABASE_URL: postgresql://dev_user:devpassword@postgresql:5432/ataccoteque_dev?schema=public
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
       JWT_SECRET: changeMe
-      API_ENDPOINT: http://meilisearch:3000
+      API_ENDPOINT: http://localhost:3000
       CORS_ORIGIN: http://localhost:5173
     ports:
       - "3000:3000"
@@ -45,11 +54,11 @@ services:
       - ./app/server:/app
       - /app/node_modules
     depends_on:
-      - mongodb
+      - postgresql
       - meilisearch
     networks:
       - ataccoteque-dev-network
-    command: npm run dev
+    command: bun run dev
 
   frontend:
     build:
@@ -67,10 +76,10 @@ services:
       - backend
     networks:
       - ataccoteque-dev-network
-    command: npm run dev
+    command: bun run dev
 
 volumes:
-  mongo_dev_data:
+  postgresql_dev_data:
   meilisearch_dev_data:
 
 networks:

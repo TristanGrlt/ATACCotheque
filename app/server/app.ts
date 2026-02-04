@@ -1,7 +1,6 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './utils/connectDB.js';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
 import cookieParser from 'cookie-parser';
@@ -31,13 +30,6 @@ if (!process.env.JWT_SECRET) {
 }
 export const JWT_SECRET = process.env.JWT_SECRET;
 
-// MONGO_URI
-if (!process.env.MONGO_URI) {
-  throw new Error("MONGO_URI environment variable is not defined. Server stopped.");
-}
-export const MONGO_URI = process.env.MONGO_URI;
-
 app.listen(port, async () => {
-  await connectDB();
   console.log(`App listening on port ${port}`);
 });
