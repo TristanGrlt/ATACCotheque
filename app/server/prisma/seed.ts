@@ -35,8 +35,14 @@ async function seedDefaultRoles() {
 
 async function seedDefaultAccesRights() {
   const defaultRights = [
-    { name: 'CAN_MANAGE_USER' },
-    { name: 'CAN_REVIEW_ANNALE' }
+    { 
+      name: 'CAN_MANAGE_USER',
+      description: "Donne le droit de gérer les utilisateurs et les rôles"
+    },
+    { 
+      name: 'CAN_REVIEW_ANNALE',
+      description: "Donne le droit d'accepter de nouveau documents"
+    }
   ];
 
   for (const right of defaultRights) {
