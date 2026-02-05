@@ -159,6 +159,31 @@ export function Upload() {
                 </Select>
       
               </Field>
+              <div className="space-y-6">
+          
+              <div className="space-y-2">
+           
+
+                   <FieldLabel>
+                         Téléverser une annales  
+                    </FieldLabel>
+                <Input
+                  id="file-1"
+                  name="file-1"
+                  type="file"
+                  accept=".pdf"
+                />
+                <p className="text-sm text-muted-foreground">
+                 Seul le format pdf est accepté.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center space-x-3 mt-8">
+          
+              <Button type="submit">Submit</Button>
+            </div>
+
+
             </FieldGroup>
           </form>
         </CardContent>
