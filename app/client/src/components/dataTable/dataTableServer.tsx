@@ -113,7 +113,6 @@ export function DataTableServer<TData, TValue>({
     enableRowSelection: true,
   })
 
-  // Gestion de la sélection de lignes
   React.useEffect(() => {
     if (onRowSelectionChange) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)

@@ -50,7 +50,6 @@ export function usePaginatedData<T>({
   const [sortBy, setSortBy] = useState(defaultSortBy)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultSortOrder)
 
-  // Fonction de chargement
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
