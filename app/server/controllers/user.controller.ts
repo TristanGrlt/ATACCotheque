@@ -53,11 +53,21 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
       skip,
       take: pageSize,
       orderBy: { [sortBy]: sortOrder },
+      include: {
+        userRoles: {
+          include: {
+            role: true
+          }
+        }
+      }
     });
 
     const sanitizedUsers = usersList.map(user => {
-      const { password: _pw, ...userData } = user;
-      return userData;
+      const { password: _pw, userRoles, ...userData } = user;
+      return {
+        ...userData,
+        roles: userRoles.map(ur => ur.role.name)
+      };
     });
 
     // Retour avec format pagination
