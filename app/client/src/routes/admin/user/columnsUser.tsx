@@ -11,10 +11,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
 
 export type User = {
   id: number
   username: string
+  roles: string[]
 }
 
 type ColumnActions = {
@@ -56,6 +58,23 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
           Nom d'utilisateur
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
+      )
+    },
+  },
+  {
+    accessorKey: "roles",
+    header: "Rôles",
+    cell: ({ row }) => {
+      const roles = row.getValue("roles") as string[]
+      return (
+        <div className="flex gap-1 flex-wrap">
+          {roles.length === 0 ? (
+            <span className="text-muted-foreground">aucun</span>
+          ) : null}
+          {roles.map(role => (
+            <Badge key={role}>{role}</Badge>
+          ))}
+        </div>
       )
     },
   },
