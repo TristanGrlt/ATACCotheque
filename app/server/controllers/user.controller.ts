@@ -11,13 +11,52 @@ interface IUser {
 }
 
 export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
-  const usersList = await prisma.user.findMany();
+  // Paramètres de pagination depuis query params
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = parseInt(req.query.pageSize as string) || 20;
+  const search = req.query.search as string || '';
+  const sortBy = req.query.sortBy as string || 'username';
+  const sortOrder = (req.query.sortOrder as string || 'asc') as 'asc' | 'desc';
 
-  const sanitizedUsers = usersList.map(user => {
-    const { password: _pw, ...userData } = user;
-    return userData;
-  });
-  return res.status(200).json(sanitizedUsers);
+  const skip = (page - 1) * pageSize;
+
+  // Construction de la condition de recherche
+  const whereClause = search ? {
+    username: { contains: search, mode: 'insensitive' as const }
+  } : {};
+
+  try {
+    // Compte total pour la pagination
+    const totalCount = await prisma.user.count({ where: whereClause });
+
+    // Récupération paginée avec tri
+    const usersList = await prisma.user.findMany({
+      where: whereClause,
+      skip,
+      take: pageSize,
+      orderBy: { [sortBy]: sortOrder },
+    });
+
+    const sanitizedUsers = usersList.map(user => {
+      const { password: _pw, ...userData } = user;
+      return userData;
+    });
+
+    // Retour avec format pagination
+    return res.status(200).json({
+      data: sanitizedUsers,
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        hasNextPage: page < Math.ceil(totalCount / pageSize),
+        hasPreviousPage: page > 1,
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
+  }
 }
 
 export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res: Response) => {
