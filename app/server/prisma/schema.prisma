@@ -38,9 +38,10 @@ model UserRole {
 }
 
 model AccesRight {
-  id    Int              @id @default(autoincrement())
-  name  String           @unique
-  roles RoleAccesRight[]
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String           @default("")
+  roles       RoleAccesRight[]
 }
 
 model RoleAccesRight {
