@@ -6,6 +6,7 @@ import { Login } from './routes/login.tsx'
 import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { User } from './routes/admin/user/user.tsx'
 import { AddUser } from './components/admin/addUser.tsx'
+import { Upload } from './routes/upload.tsx'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route index element={<LandingPage />} />
       <Route path="sandbox" element={<SearchSandbox />} />
       <Route path='login' element={<Login />} />
+      <Route path='upload' element={<Upload />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
