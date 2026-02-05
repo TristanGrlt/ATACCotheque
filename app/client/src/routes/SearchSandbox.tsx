@@ -14,6 +14,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Search, SearchX } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { MEILI_HOST, MEILI_API_KEY } from '@/config/env';
 
 const client = new MeiliSearch({
@@ -43,7 +44,7 @@ export function SearchSandbox() {
 
         const search = await client.index('exams').search(query, {
           filter: filterString,
-          limit: 20
+          limit: 200
         });
 
         setResults(search.hits);
@@ -64,8 +65,7 @@ export function SearchSandbox() {
         {isSearching && <Spinner className="h-6 w-6 text-muted-foreground" />}
       </div>
 
-      {/* Filter Controls - Added simple selects for now */
-      /* TODO: Replace custom styling with shadcn component */}
+      {/* Filter Controls - Added simple selects for now */}
       <div className="flex gap-4">
         <select
           className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -119,15 +119,11 @@ export function SearchSandbox() {
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full font-semibold italic">
-                    {hit.major}
-                  </span>
-                  <span className="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-full font-medium">
-                    {hit.level}
-                  </span>
-                  <span className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full font-medium ml-auto">
+                  <Badge variant="secondary">{hit.major}</Badge>
+                  <Badge variant="outline">{hit.level}</Badge>
+                  <Badge variant="ghost" className="ml-auto text-muted-foreground">
                     Année: {hit.year}
-                  </span>
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
