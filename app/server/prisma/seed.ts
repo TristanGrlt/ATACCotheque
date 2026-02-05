@@ -25,6 +25,7 @@ async function main() {
   }
   await seedMajor();
   await seedLevel();
+  await seedExamType()
   await seedCourse();
 }
 
@@ -116,7 +117,7 @@ async function seedExamType(){
 
 async function seedCourse(){
     
-   const exist = await prisma.course.findUnique({
+   const exist = await prisma.course.findFirst({
         where: {
          name: "POO2",
                   semestre: "S1",
