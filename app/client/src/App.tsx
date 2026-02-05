@@ -4,7 +4,7 @@ import { SearchSandbox } from './routes/SearchSandbox.tsx'
 import { SideBar } from './components/admin/sideBar.tsx'
 import { Login } from './routes/login.tsx'
 import { ProtectedRoute } from './components/protectedRoute.tsx'
-import { User } from './routes/admin/user/user.tsx'
+import { UserIndex } from './routes/admin/user/userIndex.tsx'
 import { AddUser } from './components/admin/addUser.tsx'
 
 function App() {
@@ -18,7 +18,7 @@ function App() {
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<AddUser></AddUser>} />
-          <Route path='users' element={<User />} />
+          <Route path='users' element={<UserIndex />} />
           <Route path='toto' element={<LandingPage />} />
         </Route>
       </Route>
