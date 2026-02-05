@@ -130,8 +130,17 @@ async function seedCourse(){
                  name: "POO2",
                   semestre: "S1",
                   levelId : 9,
+                  examType: {
+                     connect: [
+                      { name: "CC1" },
+                      { name: "CC2" }
+                ]
+               }
+
+                  
               }
        })
+      
 
       }
   
