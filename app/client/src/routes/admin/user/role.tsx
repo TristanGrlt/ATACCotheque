@@ -1,73 +1,67 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
-import { DataTable } from "@/components/dataTable/dataTable"
+import { useState, useCallback, useMemo } from "react"
+import { DataTableServer } from "@/components/dataTable/dataTableServer"
 import { createColumns, type Role } from "./columnsRole"
-import { AddUser } from "@/components/admin/addUser"
+import { usePaginatedData } from "@/hooks/usePaginatedData"
 import { apiRequest, getRequestMessage } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
 
 export function Role() {
   
-  const [data, setData] = useState<Role[]>([])
   const [selectedRows, setSelectedRows] = useState<Role[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [userToDelete, setUserToDelete] = useState<Role | null>(null)
-  const [usersToDelete, setUsersToDelete] = useState(false)
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
+  const [rolesToDelete, setRolesToDelete] = useState(false)
 
-  useEffect(() => {
-
-    // -----  LOAD  -----
-    const loadUsers = async () => {
-      try {
-        const { data: users } = await apiRequest.get('/role')
-        setData(users)
-      } catch (err) {
-        toast.error("Erreur lors du chargement de la page", {
-          description: getRequestMessage(err)
-        })
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadUsers()
-  }, [])
+  const {
+    data,
+    pagination,
+    isLoading,
+    setData,
+    handlePageChange,
+    handlePageSizeChange,
+    handleSearchChange,
+    handleSortChange,
+    refetch,
+  } = usePaginatedData<Role>({
+    endpoint: '/role',
+    initialPageSize: 20,
+  })
 
   // -----  EDIT  -----
-  const handleEdit = useCallback((_user: Role) => {
+  const handleEdit = useCallback((_role: Role) => {
     console.log("Édit")
   }, [])
 
   // -----  DELETE  -----
-  const handleDelete = useCallback((user: Role) => {
-    setUserToDelete(user)
+  const handleDelete = useCallback((role: Role) => {
+    setRoleToDelete(role)
   }, [])
 
   const confirmDelete = useCallback(async () => {
-    if (userToDelete) {
+    if (roleToDelete) {
       try {
-        await apiRequest.delete(`/user/${userToDelete.id}`)
+        await apiRequest.delete(`/role/${roleToDelete.id}`)
+        setData(prev => prev.filter(r => r.id !== roleToDelete.id))
+        setRoleToDelete(null)
+        toast.success(`Le rôle "${roleToDelete.name}" a été supprimé`)
+        refetch()
       } catch (err) {
-        toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
-        return;
+        toast.error(`Une erreur est survenue lors de la suppression : ${getRequestMessage(err)}`);
       }
-      setData(data.filter(u => u.id !== userToDelete.id))
-      setUserToDelete(null)
-      toast.success(`${userToDelete.name} a été supprimé(e)`)
     }
-  }, [data, userToDelete])
+  }, [roleToDelete, setData, refetch])
 
-  // -----  ROW SELECTION DEL  -----
+  // -----  ROW SELECTION  -----
   const handleRowSelection = useCallback((rows: Role[]) => {
     setSelectedRows(rows)
   }, [])
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedRows.length === 0) return
-    setUsersToDelete(true);    
-  }, [selectedRows, data, setData])
+    setRolesToDelete(true)
+  }, [selectedRows])
 
   const confirmDeleteSelected = useCallback(async () => {
     if (selectedRows.length === 0) return
@@ -78,7 +72,7 @@ export function Role() {
 
     for (const id of selectedIds) {
       try {
-        await apiRequest.delete(`/user/${id}`)
+        await apiRequest.delete(`/role/${id}`)
         deletedIds.push(id)
       } catch (err) {
         errors.push(err)
@@ -86,18 +80,19 @@ export function Role() {
     }
 
     if (deletedIds.length > 0) {
-      setData(prev => prev.filter(u => !deletedIds.includes(u.id)))
-      setSelectedRows(prev => prev.filter(u => !deletedIds.includes(u.id)))
+      setData(prev => prev.filter(r => !deletedIds.includes(r.id)))
+      setSelectedRows([])
       const successCount = deletedIds.length
-      toast.success(`${successCount} utilisateur${successCount > 1 ? 's ont' : ' a'} été supprimé${successCount > 1 ? 's' : ''}`)
+      toast.success(`${successCount} rôle${successCount > 1 ? 's ont' : ' a'} été supprimé${successCount > 1 ? 's' : ''}`)
+      refetch()
     }
 
     if (errors.length > 0) {
-      toast.error(`Une erreur est survenue lors de la suppression de ${errors.length} utilisateur${errors.length > 1 ? 's' : ''} : ${getRequestMessage(errors[0])}`)
+      toast.error(`Une erreur est survenue lors de la suppression de ${errors.length} rôle${errors.length > 1 ? 's' : ''} : ${getRequestMessage(errors[0])}`)
     }
 
-    setUsersToDelete(false)
-  }, [selectedRows])
+    setRolesToDelete(false)
+  }, [selectedRows, setData, refetch])
 
   // -----  MEMO  -----
   const columns = useMemo(() => createColumns({
@@ -108,55 +103,50 @@ export function Role() {
   return (
     <div className="mx-auto mt-2">
       <div className="mb-6 flex justify-between">
-        <h1 className="text-3xl font-bold">Gestion des rôles</h1>
-        {selectedRows.length > 0 ? (
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des rôles</h1>
+          <p className="text-muted-foreground mt-2">
+            {pagination.totalCount} rôle{pagination.totalCount > 1 ? 's' : ''} au total
+          </p>
+        </div>
+        {selectedRows.length > 0 && (
           <Button variant="destructive" onClick={handleDeleteSelected}>
             <Trash2 />
-            Supprimer la sélection
-          </Button>) : (
-            <AddUser
-            />
-          )}
+            Supprimer la sélection ({selectedRows.length})
+          </Button>
+        )}
       </div>
         
-      {isLoading ? (
-        <div className="flex w-full max-w-sm flex-col gap-2">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div className="flex gap-4" key={index}>
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-20" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <DataTable 
-            columns={columns} 
-            data={data}
-            searchKey="username"
-            searchPlaceholder="Filtrer par rôles..."
-            onRowSelectionChange={handleRowSelection}
-          />
+      <DataTableServer
+        columns={columns}
+        data={data}
+        pagination={pagination}
+        searchKey="name"
+        searchPlaceholder="Rechercher par nom de rôle..."
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onSearchChange={handleSearchChange}
+        onSortChange={handleSortChange}
+        onRowSelectionChange={handleRowSelection}
+        isLoading={isLoading}
+      />
 
-          <DeleteConfirmDialog
-            open={!!userToDelete}
-            onOpenChange={(open) => !open && setUserToDelete(null)}
-            onConfirm={confirmDelete}
-            title="Supprimer cet utilisateur ?"
-            description="Cette action est irréversible. L'utilisateur"
-            itemName={userToDelete?.name}
-          />
+      <DeleteConfirmDialog
+        open={!!roleToDelete}
+        onOpenChange={(open) => !open && setRoleToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer ce rôle ?"
+        description="Cette action est irréversible. Le rôle"
+        itemName={roleToDelete?.name}
+      />
 
-          <DeleteConfirmDialog
-            open={!!usersToDelete}
-            onOpenChange={(open) => !open && setUsersToDelete(false)}
-            onConfirm={confirmDeleteSelected}
-            title={`Supprimer la sélection de ${selectedRows.length} utilisateur${selectedRows.length > 1 ? 's' : ''} ?`}
-            description="Cette action est irréversible. La sélection sera définitivement supprimée"
-          />
-        </>
-      )}
+      <DeleteConfirmDialog
+        open={rolesToDelete}
+        onOpenChange={(open) => !open && setRolesToDelete(false)}
+        onConfirm={confirmDeleteSelected}
+        title={`Supprimer ${selectedRows.length} rôle${selectedRows.length > 1 ? 's' : ''} ?`}
+        description="Cette action est irréversible. La sélection sera définitivement supprimée"
+      />
     </div>
   )
 }
