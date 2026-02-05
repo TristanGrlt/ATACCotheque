@@ -169,7 +169,7 @@ docker compose restart backend
 
 # Accéder au shell d'un container
 docker compose exec backend sh
-docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
+docker compose exec postgres psql -U ataccotheque_user -d ataccotheque_dev
 
 # Voir l'état des services
 docker compose ps
@@ -186,7 +186,7 @@ docker compose exec backend bunx prisma migrate dev
 docker compose exec backend bunx prisma db seed
 
 # Ou entrer dans le container PostgreSQL
-docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
+docker compose exec postgres psql -U ataccotheque_user -d ataccotheque_dev
 ```
 
 ### Développement sans Docker (optionnel)
@@ -220,8 +220,8 @@ Créez un fichier `.env` à la racine du projet :
 # PostgreSQL
 POSTGRES_USER=changeMeInProduction
 POSTGRES_PASSWORD=changeMeInProduction
-POSTGRES_DB=ataccoteque
-DATABASE_URL=postgresql://user:password@postgres:5432/ataccoteque
+POSTGRES_DB=ataccotheque
+DATABASE_URL=postgresql://user:password@postgres:5432/ataccotheque
 
 # Meilisearch
 MEILI_MASTER_KEY=changeMeInProduction
