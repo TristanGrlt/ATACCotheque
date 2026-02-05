@@ -21,7 +21,8 @@ export function Upload() {
 
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState("");
-
+  const [examType, setExamType] = useState([]);
+  const [selectedExamId, setSelectedExamId] = useState("");
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -37,6 +38,31 @@ export function Upload() {
 
     fetchCourse();
   }, []);
+
+   useEffect(() => {
+   
+    if (selectedCourse) {
+        const fetchExamType = async () => {
+            try {
+                const { data } = await apiRequest.get("/examType", {
+                    params: {
+                        courseTypeId : selectedCourse, 
+                    }
+                });
+                setExamType(data);
+            } catch (error) {
+                console.log(getRequestMessage(error));
+
+            } 
+        }
+        fetchExamType();
+
+    } else {
+       
+        setExamType([]);
+    }
+
+  }, [selectedCourse])
 
   const years = [];
   for (let i = 2026; i >= 2005; --i) {
@@ -78,6 +104,30 @@ export function Upload() {
                           )),
                         ),
                       )}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+      
+              </Field>
+
+               <Field>
+                <FieldLabel>Type d'examen</FieldLabel>
+                <Select value={selectedExamId} 
+                    onValueChange={setSelectedExamId} 
+                    disabled={!selectedCourse} >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisisez le type de l'examen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {
+                          examType.map((type: any) => (
+                          <SelectItem key={type.id} value={String(type.id)}>
+                              {type.name}
+                          </SelectItem>
+                      ))}
+
+                      
                     </SelectGroup>
                   </SelectContent>
                 </Select>
