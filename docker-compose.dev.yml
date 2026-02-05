@@ -1,15 +1,15 @@
 services:
   postgresql:
     image: postgres:latest
-    container_name: ataccoteque-postgresql-dev
+    container_name: ataccotheque-postgresql-dev
     environment:
       POSTGRES_USER: dev_user
       POSTGRES_PASSWORD: devpassword
-      POSTGRES_DB: ataccoteque_dev
+      POSTGRES_DB: ataccotheque_dev
     volumes:
       - postgresql_dev_data:/var/lib/postgresql
     networks:
-      - ataccoteque-dev-network
+      - ataccotheque-dev-network
 
   adminer:
     image: adminer
@@ -19,11 +19,11 @@ services:
     depends_on:
       - postgresql
     networks:
-      - ataccoteque-dev-network
+      - ataccotheque-dev-network
 
   meilisearch:
     image: getmeili/meilisearch:v1.6
-    container_name: ataccoteque-meilisearch-dev
+    container_name: ataccotheque-meilisearch-dev
     environment:
       MEILI_MASTER_KEY: devMasterKey
       MEILI_ENV: development
@@ -32,17 +32,17 @@ services:
     volumes:
       - meilisearch_dev_data:/meili_data
     networks:
-      - ataccoteque-dev-network
+      - ataccotheque-dev-network
 
   backend:
     build:
       context: ./app/server
       dockerfile: Dockerfile.dev
-    container_name: ataccoteque-backend-dev
+    container_name: ataccotheque-backend-dev
     environment:
       NODE_ENV: development
       PORT: 3000
-      DATABASE_URL: postgresql://dev_user:devpassword@postgresql:5432/ataccoteque_dev?schema=public
+      DATABASE_URL: postgresql://dev_user:devpassword@postgresql:5432/ataccotheque_dev?schema=public
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: devMasterKey
       JWT_SECRET: changeMe
@@ -57,14 +57,14 @@ services:
       - postgresql
       - meilisearch
     networks:
-      - ataccoteque-dev-network
+      - ataccotheque-dev-network
     command: bun run dev
 
   frontend:
     build:
       context: ./app/client
       dockerfile: Dockerfile.dev
-    container_name: ataccoteque-frontend-dev
+    container_name: ataccotheque-frontend-dev
     environment:
       VITE_API_ENDPOINT: http://localhost:3000
     ports:
@@ -75,7 +75,7 @@ services:
     depends_on:
       - backend
     networks:
-      - ataccoteque-dev-network
+      - ataccotheque-dev-network
     command: bun run dev
 
 volumes:
@@ -83,5 +83,5 @@ volumes:
   meilisearch_dev_data:
 
 networks:
-  ataccoteque-dev-network:
+  ataccotheque-dev-network:
     driver: bridge
