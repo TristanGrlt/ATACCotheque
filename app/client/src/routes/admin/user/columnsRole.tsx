@@ -11,6 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
 
 export type Role = {
   id: number
@@ -58,12 +59,18 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Ro
         </Button>
       )
     },
+    cell: ({ row }) => {
+      const role = row.original
+      return (
+        <Badge key={role.id}>{role.name}</Badge>
+      )
+    },
   },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const user = row.original
+      const role = row.original
 
       return (
         <DropdownMenu>
@@ -75,12 +82,12 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Ro
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(user)}>
+            <DropdownMenuItem onClick={() => onEdit(role)}>
               <Pencil />
               Modifier
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={() => onDelete(user)}
+              onClick={() => onDelete(role)}
               variant="destructive"
             >
               <Trash2 />
