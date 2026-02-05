@@ -1,7 +1,7 @@
 services:
   postgresql:
     image: postgres:latest
-    container_name: ataccoteque-postgresql
+    container_name: ataccotheque-postgresql
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -10,11 +10,11 @@ services:
     volumes:
       - postgresql_data:/var/lib/postgresql
     networks:
-      - ataccoteque-network
+      - ataccotheque-network
 
   meilisearch:
     image: getmeili/meilisearch:v1.6
-    container_name: ataccoteque-meilisearch
+    container_name: ataccotheque-meilisearch
     restart: always
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
@@ -22,13 +22,13 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     networks:
-      - ataccoteque-network
+      - ataccotheque-network
 
   backend:
     build:
       context: ./app/server
       dockerfile: Dockerfile
-    container_name: ataccoteque-backend
+    container_name: ataccotheque-backend
     restart: always
     environment:
       NODE_ENV: production
@@ -41,7 +41,7 @@ services:
       - meilisearch
       - postgresql
     networks:
-      - ataccoteque-network
+      - ataccotheque-network
 
   frontend:
     build:
@@ -49,16 +49,16 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_ENDPOINT: /api
-    container_name: ataccoteque-frontend
+    container_name: ataccotheque-frontend
     restart: always
     depends_on:
       - backend
     networks:
-      - ataccoteque-network
+      - ataccotheque-network
 
   nginx:
     image: nginx:alpine
-    container_name: ataccoteque-nginx
+    container_name: ataccotheque-nginx
     restart: always
     ports:
       - "8099:80"
@@ -69,12 +69,12 @@ services:
       - frontend
       - backend
     networks:
-      - ataccoteque-network
+      - ataccotheque-network
 
 volumes:
   meilisearch_data:
   postgresql_data:
 
 networks:
-  ataccoteque-network:
+  ataccotheque-network:
     driver: bridge

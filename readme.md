@@ -177,7 +177,7 @@ docker compose restart backend
 
 # Accéder au shell d'un container
 docker compose exec backend sh
-docker compose exec postgres psql -U ataccoteque_user -d ataccoteque_dev
+docker compose exec postgres psql -U ataccotheque_user -d ataccotheque_dev
 
 # Voir l'état des services
 docker compose ps
