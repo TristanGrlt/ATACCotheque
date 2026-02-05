@@ -38,10 +38,10 @@ model Level{
 model Course{
 	  id       Int       @id @default(autoincrement())
     name String @unique
-    semeste String
-    level Level  @relation(fields: [LevelId], references: [id])
+    semestre String
+    level Level  @relation(fields: [levelId], references: [id])
       
-    LevelId Int @unique
+    levelId Int @unique
     examType  ExamType[]
 
     pastExam PastExam[]
