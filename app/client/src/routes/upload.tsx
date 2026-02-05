@@ -23,6 +23,8 @@ export function Upload() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [examType, setExamType] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState("");
+   const [selectedYear, setSelectedYear] = useState("")
+  const [selectedSemester, setSelectedSemester] = useState("")
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -126,6 +128,30 @@ export function Upload() {
                               {type.name}
                           </SelectItem>
                       ))}
+
+                      
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+      
+              </Field>
+               <Field>
+                <FieldLabel>Année de l'examen</FieldLabel>
+                <Select value={selectedSemester} 
+                    onValueChange={setSelectedSemester} 
+                    disabled={!selectedCourse} >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisisez le type de l'examen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                     {
+                            years.map((year) => (
+                            <SelectItem key={year} value={String(year)}>
+                            {(year-1) + "/" + (year)}
+                            </SelectItem>
+                              ))
+                      }
 
                       
                     </SelectGroup>
