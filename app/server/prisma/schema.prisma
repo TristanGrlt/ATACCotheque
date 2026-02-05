@@ -18,3 +18,68 @@ model User {
   username String @unique
   password String
 }
+
+model Major{
+	  id       Int       @id @default(autoincrement())
+    name String @unique
+    level Level[]
+}
+
+
+model Level{
+	  id       Int       @id @default(autoincrement())
+    name String 
+
+    major Major  @relation(fields: [majorId], references: [id])
+    majorId  Int 
+    course Course[]
+}
+
+model Course{
+	  id       Int       @id @default(autoincrement())
+    name String @unique
+    semeste String
+    level Level  @relation(fields: [LevelId], references: [id])
+      
+    LevelId Int @unique
+    examType  ExamType[]
+
+    pastExam PastExam[]
+
+}
+
+model ExamType{
+	id       Int       @id @default(autoincrement())
+  name String @unique
+  course Course[]
+  pastExam PastExam[]
+}
+
+model PastExam{
+	id       Int       @id @default(autoincrement())
+    path String @unique
+    year Int 
+    course Course  @relation(fields: [courseId], references: [id])
+    courseId Int @unique
+    examtype ExamType  @relation(fields: [examTypeId], references: [id])
+    examTypeId  Int @unique
+
+}
+
+model Annexe{
+  	id       Int       @id @default(autoincrement())
+    name String 
+    type Type
+    isVerifed Boolean
+    path String?
+    url String? 
+
+
+
+}
+
+
+enum Type {
+	FILE
+	URL
+}

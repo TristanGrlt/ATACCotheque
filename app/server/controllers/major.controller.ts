@@ -1,11 +1,13 @@
-import Major, { IMajor } from '../models/major.model.js'
-import mongoose from 'mongoose'
-import { Request, Response } from 'express'
+import { Request, Response } from 'express';
+import prisma from '../lib/prisma.js';
 
-
-export const getMajor = async (req: Request, res: Response) => {
+interface IMajor {
+  name: string;
+}
+export const getMajor = async (req: Request<{}, {}, IMajor>, res: Response) => {
   
-  const major = await Major.find({})
-  res.json({ major })
+    const majorsList = await prisma.
+  
+  res.json(majorsList)
 }
 

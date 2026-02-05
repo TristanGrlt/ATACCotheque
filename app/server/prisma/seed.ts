@@ -23,6 +23,8 @@ async function main() {
   } else {
     console.log('ℹ️  Admin user already exists');
   }
+  await seedMajor();
+  // await seedLevel();
 }
 
 main()
@@ -33,3 +35,58 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+  async function seedMajor(){
+
+    const defaultMajor = [
+      { name: "Mathématique" },
+      { name: "Informatique" },
+
+    ];
+    for(const major of defaultMajor){
+      const exist = await prisma.major.findUnique({
+        where: {
+          name : major.name
+        }
+      });
+      if(!exist){
+        await prisma.major.create({data:major})
+      }
+
+  }
+}
+
+// async function seedLevel(){
+//       const defaultLevel = [
+//       { name: "L1" },
+//       { name: "L2" },
+//       { name: "L3" },
+//       { name: "M1" },
+//       { name: "M2" },
+
+//     ];
+//      const majors = await prisma.major.findMany();
+//      for(const major of majors){
+//         for (const level of defaultLevel ){
+//           const exist = await prisma.level.findFirst({
+//             where: {
+//               name: level.name,
+//               majorId: major.id
+//             }
+//           });
+//           if(!exist){
+//             await prisma.level.create({
+//               data:{
+//                 name : level.name,
+//                 majorId : major.id,
+//               }
+//             })
+//           }
+
+//         } 
+//      }
+     
+
+    
+
+//   }
