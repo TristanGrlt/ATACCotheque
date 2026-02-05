@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { DataTable } from "@/components/dataTable/dataTable"
-import { createColumns, type User } from "./columnsUser"
+import { createColumns, type Role } from "./columnsRole"
 import { AddUser } from "@/components/admin/addUser"
 import { apiRequest, getRequestMessage } from "@/services/api"
 import { toast } from "sonner"
@@ -9,12 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
 
-export function User() {
+export function Role() {
   
-  const [data, setData] = useState<User[]>([])
-  const [selectedRows, setSelectedRows] = useState<User[]>([])
+  const [data, setData] = useState<Role[]>([])
+  const [selectedRows, setSelectedRows] = useState<Role[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [userToDelete, setUserToDelete] = useState<Role | null>(null)
   const [usersToDelete, setUsersToDelete] = useState(false)
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function User() {
     // -----  LOAD  -----
     const loadUsers = async () => {
       try {
-        const { data: users } = await apiRequest.get('/user')
+        const { data: users } = await apiRequest.get('/role')
         setData(users)
       } catch (err) {
         toast.error("Erreur lors du chargement de la page", {
@@ -36,12 +36,12 @@ export function User() {
   }, [])
 
   // -----  EDIT  -----
-  const handleEdit = useCallback((_user: User) => {
+  const handleEdit = useCallback((_user: Role) => {
     console.log("Édit")
   }, [])
 
   // -----  DELETE  -----
-  const handleDelete = useCallback((user: User) => {
+  const handleDelete = useCallback((user: Role) => {
     setUserToDelete(user)
   }, [])
 
@@ -55,12 +55,12 @@ export function User() {
       }
       setData(data.filter(u => u.id !== userToDelete.id))
       setUserToDelete(null)
-      toast.success(`${userToDelete.username} a été supprimé(e)`)
+      toast.success(`${userToDelete.name} a été supprimé(e)`)
     }
   }, [data, userToDelete])
 
   // -----  ROW SELECTION DEL  -----
-  const handleRowSelection = useCallback((rows: User[]) => {
+  const handleRowSelection = useCallback((rows: Role[]) => {
     setSelectedRows(rows)
   }, [])
 
@@ -73,7 +73,7 @@ export function User() {
     if (selectedRows.length === 0) return
 
     const selectedIds = selectedRows.map(r => r.id)
-    const deletedIds: User["id"][] = []
+    const deletedIds: Role["id"][] = []
     const errors: unknown[] = []
 
     for (const id of selectedIds) {
@@ -108,14 +108,13 @@ export function User() {
   return (
     <div className="mx-auto mt-2">
       <div className="mb-6 flex justify-between">
-        <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
+        <h1 className="text-3xl font-bold">Gestion des rôles</h1>
         {selectedRows.length > 0 ? (
           <Button variant="destructive" onClick={handleDeleteSelected}>
             <Trash2 />
             Supprimer la sélection
           </Button>) : (
-            <AddUser 
-              onUserCreated={(user) => setData((prev) => [...prev, user])}
+            <AddUser
             />
           )}
       </div>
@@ -136,7 +135,7 @@ export function User() {
             columns={columns} 
             data={data}
             searchKey="username"
-            searchPlaceholder="Filtrer par nom d'utilisateurs..."
+            searchPlaceholder="Filtrer par rôles..."
             onRowSelectionChange={handleRowSelection}
           />
 
@@ -146,7 +145,7 @@ export function User() {
             onConfirm={confirmDelete}
             title="Supprimer cet utilisateur ?"
             description="Cette action est irréversible. L'utilisateur"
-            itemName={userToDelete?.username}
+            itemName={userToDelete?.name}
           />
 
           <DeleteConfirmDialog

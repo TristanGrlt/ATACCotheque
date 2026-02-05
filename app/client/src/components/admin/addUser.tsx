@@ -9,7 +9,7 @@ import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { ButtonGroup } from "../ui/button-group";
 import { toast } from "sonner";
-import type { User } from "@/routes/admin/user/columns";
+import type { User } from "@/routes/admin/user/columnsUser";
 
 type AddUserProps = {
   onUserCreated?: (user: User) => void
