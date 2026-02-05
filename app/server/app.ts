@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
+import courseRouter from './routes/course.route.js';
+
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -22,6 +24,7 @@ app.use(cookieParser());
 // Routes
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
+app.use('/course', courseRouter);
 
 
 // JWT_SECRET
