@@ -54,6 +54,7 @@ async function seedDefaultAccesRights() {
 }
 
 async function seedAdminUser() {
+  // @ts-ignore - Prisma models
   const existingAdmin = await prisma.user.findUnique({
     where: { username: 'admin' }
   });
@@ -68,11 +69,14 @@ async function seedAdminUser() {
       }
     });
     
+    // @ts-ignore - Prisma models
     const adminRole = await prisma.role.findUnique({
       where: { name: 'Admin' }
     });
 
     if (adminRole) {
+      // Assigner le rôle Admin à l'utilisateur
+      // @ts-ignore - Prisma models
       await prisma.userRole.create({
         data: {
           userId: admin.id,
@@ -80,9 +84,13 @@ async function seedAdminUser() {
         }
       });
 
+      // Récupérer tous les droits d'accès
+      // @ts-ignore - Prisma models
       const allAccesRights = await prisma.accesRight.findMany();
       
+      // Assigner chaque droit au rôle Admin
       for (const right of allAccesRights) {
+        // @ts-ignore - Prisma models
         await prisma.roleAccesRight.create({
           data: {
             roleId: adminRole.id,
@@ -100,6 +108,28 @@ async function seedAdminUser() {
   }
 }
 
+async function seedAdminRoleAccesRights() {
+  const adminRole = await prisma.role.findUnique({
+    where: { name: 'Admin' },
+    include: { accesRights: true }
+  });
+
+  if (adminRole && adminRole.accesRights.length === 0) {
+    const allAccesRights = await prisma.accesRight.findMany();
+    
+    for (const right of allAccesRights) {
+      await prisma.roleAccesRight.create({
+        data: {
+          roleId: adminRole.id,
+          accesRightId: right.id
+        }
+      });
+    }
+    
+    console.log(`✅ Admin role granted ${allAccesRights.length} access rights`);
+  }
+}
+
 async function main() {
   const firstStartup = await isFirstStartup();
   
@@ -114,6 +144,7 @@ async function main() {
     await seedDefaultRoles();
     await seedDefaultAccesRights();
     await seedAdminUser();
+    await seedAdminRoleAccesRights();
     
     console.log('\n✨ Seed completed successfully!');
   } else {
