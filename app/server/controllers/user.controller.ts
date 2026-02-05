@@ -4,21 +4,39 @@ import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
+import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
 
+/**
+ * Interface pour les données utilisateur dans les requêtes
+ */
 interface IUser {
   username: string;
   password: string;
 }
 
+/**
+ * Récupère la liste des utilisateurs avec pagination, recherche et tri
+ * Les mots de passe sont exclus des données retournées pour des raisons de sécurité
+ * 
+ * @param req - Objet Request Express avec query params optionnels :
+ *   - page: Numéro de la page (défaut: 1)
+ *   - pageSize: Nombre d'éléments par page (défaut: 20)
+ *   - search: Terme de recherche pour filtrer par nom d'utilisateur
+ *   - sortBy: Champ de tri (défaut: 'username')
+ *   - sortOrder: Ordre de tri 'asc' ou 'desc' (défaut: 'asc')
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - data: Tableau des utilisateurs (sans mot de passe)
+ *   - pagination: Métadonnées de pagination
+ * @throws {500} Erreur serveur lors de la récupération des utilisateurs
+ * 
+ * @example
+ * GET /api/users?page=1&pageSize=10&search=john&sortBy=username&sortOrder=asc
+ */
 export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
-  // Paramètres de pagination depuis query params
-  const page = parseInt(req.query.page as string) || 1;
-  const pageSize = parseInt(req.query.pageSize as string) || 20;
-  const search = req.query.search as string || '';
-  const sortBy = req.query.sortBy as string || 'username';
-  const sortOrder = (req.query.sortOrder as string || 'asc') as 'asc' | 'desc';
-
-  const skip = (page - 1) * pageSize;
+  const params = getPaginationParams(req, { sortBy: 'username' });
+  const { search, sortBy, sortOrder, pageSize } = params;
+  const skip = getSkip(params.page, params.pageSize);
 
   // Construction de la condition de recherche
   const whereClause = search ? {
@@ -43,22 +61,28 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
     });
 
     // Retour avec format pagination
-    return res.status(200).json({
-      data: sanitizedUsers,
-      pagination: {
-        page,
-        pageSize,
-        totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
-        hasNextPage: page < Math.ceil(totalCount / pageSize),
-        hasPreviousPage: page > 1,
-      }
-    });
+    const response = createPaginationResponse(sanitizedUsers, totalCount, params);
+    return res.status(200).json(response);
   } catch (error) {
     return res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
   }
 }
 
+/**
+ * Supprime un utilisateur spécifique après vérification qu'il reste au moins un utilisateur
+ * 
+ * @param req - Objet Request Express avec param :
+ *   - userId: Identifiant de l'utilisateur à supprimer (string)
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - message: Confirmation de la suppression (200)
+ *   - error: Message d'erreur si c'est le dernier utilisateur (403) ou erreur serveur (500)
+ * @throws {403} Si la suppression rendrait le nombre d'utilisateurs nul
+ * @throws {500} Erreur serveur lors de la suppression de l'utilisateur
+ * 
+ * @example
+ * DELETE /api/users/abc123
+ */
 export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res: Response) => {
   const { userId } = req.params;
 
@@ -77,6 +101,23 @@ export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res
   }
 }
 
+/**
+ * Crée un nouveau compte utilisateur avec mot de passe hashé
+ * 
+ * @param req - Objet Request Express avec body :
+ *   - username: Nom d'utilisateur (doit être unique)
+ *   - password: Mot de passe en clair (sera hashé avec bcrypt)
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - Données de l'utilisateur créé sans mot de passe (201)
+ *   - error: Message d'erreur si le nom existe déjà (400) ou erreur serveur (500)
+ * @throws {400} Si le nom d'utilisateur existe déjà (erreur Prisma P2002)
+ * @throws {500} Erreur serveur lors de la création de l'utilisateur
+ * 
+ * @example
+ * POST /api/users/signup
+ * Body: { "username": "john.doe", "password": "secretPass123" }
+ */
 export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
     const { username, password } = req.body;
@@ -103,6 +144,22 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
   }
 };
 
+/**
+ * Authentifie un utilisateur et crée une session via JWT cookie
+ * 
+ * @param req - Objet Request Express avec body :
+ *   - username: Nom d'utilisateur
+ *   - password: Mot de passe en clair
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - Données de l'utilisateur sans mot de passe (200) + cookie JWT
+ *   - error: Message d'erreur si identifiants incorrects (401)
+ * @throws {401} Si le nom d'utilisateur n'existe pas ou si le mot de passe est incorrect
+ * 
+ * @example
+ * POST /api/users/login
+ * Body: { "username": "john.doe", "password": "secretPass123" }
+ */
 export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   const { username, password } = req.body;
 
@@ -126,11 +183,36 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   }
 };
 
+/**
+ * Déconnecte l'utilisateur en supprimant le cookie JWT
+ * 
+ * @param req - Objet Request Express
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec message de confirmation (200)
+ * 
+ * @example
+ * POST /api/users/logout
+ */
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie('jwt');
   res.status(200).json({ message: "Déconnexion réussie" })
 };
 
+/**
+ * Vérifie la validité de la session utilisateur via le JWT cookie
+ * Renouvelle automatiquement le cookie si la session est valide
+ * 
+ * @param req - Objet Request Express avec cookie JWT
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - username: Nom d'utilisateur si session valide (200) + cookie renouvelé
+ *   - error: Message d'erreur si non autorisé (401) ou session invalide (403)
+ * @throws {401} Si aucun token n'est fourni
+ * @throws {403} Si le token est invalide ou malformé
+ * 
+ * @example
+ * GET /api/users/verify
+ */
 export const verifyUser = (req: Request, res: Response) => {
   const token = req.cookies?.jwt;
   
