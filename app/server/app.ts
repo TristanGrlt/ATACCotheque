@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
 import courseRouter from './routes/course.route.js';
+import examTypeRouter from './routes/examType.route.js';
 
 import cookieParser from 'cookie-parser';
 
@@ -25,6 +26,7 @@ app.use(cookieParser());
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
 app.use('/course', courseRouter);
+app.use('/examType',examTypeRouter)
 
 
 // JWT_SECRET
