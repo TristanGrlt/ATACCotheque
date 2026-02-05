@@ -37,11 +37,11 @@ model Level{
 
 model Course{
 	  id       Int       @id @default(autoincrement())
-    name String @unique
+    name String 
     semestre String
     level Level  @relation(fields: [levelId], references: [id])
       
-    levelId Int @unique
+    levelId Int
     examType  ExamType[]
 
     pastExam PastExam[]
@@ -60,10 +60,9 @@ model PastExam{
     path String @unique
     year Int 
     course Course  @relation(fields: [courseId], references: [id])
-    courseId Int @unique
+    courseId Int 
     examtype ExamType  @relation(fields: [examTypeId], references: [id])
-    examTypeId  Int @unique
-
+    examTypeId  Int
 }
 
 model Annexe{
