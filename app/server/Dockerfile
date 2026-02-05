@@ -5,7 +5,7 @@ WORKDIR /app
 FROM base AS builder
 COPY package.json bun.lock tsconfig.json ./
 COPY prisma ./prisma
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --backend=copyfile
 RUN bunx prisma generate
 COPY . .
 RUN bun run build
@@ -18,7 +18,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/dist ./dist
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile --production --backend=copyfile
 
 EXPOSE 3000
 
