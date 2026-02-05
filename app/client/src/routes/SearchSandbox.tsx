@@ -64,8 +64,8 @@ export function SearchSandbox() {
         {isSearching && <Spinner className="h-6 w-6 text-muted-foreground" />}
       </div>
 
-      /* Filter Controls - Added simple selects for now */
-      /* TODO: Replace custom styling with shadcn component */
+      {/* Filter Controls - Added simple selects for now */
+      /* TODO: Replace custom styling with shadcn component */}
       <div className="flex gap-4">
         <select
           className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
