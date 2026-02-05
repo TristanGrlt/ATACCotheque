@@ -48,6 +48,7 @@ services:
       JWT_SECRET: changeMe
       API_ENDPOINT: http://localhost:3000
       CORS_ORIGIN: http://localhost:5173
+      FORCE_SEED: true
     ports:
       - "3000:3000"
     volumes:
