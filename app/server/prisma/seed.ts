@@ -11,19 +11,19 @@ async function main() {
 
   if (!existingAdmin) {
     const hashedPassword = await bcrypt.hash('admin', 10);
-    
+
     const admin = await prisma.user.create({
       data: {
         username: 'admin',
         password: hashedPassword
       }
     });
-    
+
     console.log('✅ Admin user created:', admin.username);
   } else {
     console.log('ℹ️  Admin user already exists');
   }
-  await seedMajor();
+  // await seedMajor();
   // await seedLevel();
 }
 
@@ -36,25 +36,26 @@ main()
     await prisma.$disconnect();
   });
 
-  async function seedMajor(){
+async function seedMajor() {
 
-    const defaultMajor = [
-      { name: "Mathématique" },
-      { name: "Informatique" },
+  const defaultMajor = [
+    { name: "Mathématique" },
+    { name: "Informatique" },
 
-    ];
-    for(const major of defaultMajor){
-      const exist = await prisma.major.findUnique({
-        where: {
-          name : major.name
-        }
-      });
-      if(!exist){
-        await prisma.major.create({data:major})
+  ];
+  for (const major of defaultMajor) {
+    const exist = await prisma.major.findUnique({
+      where: {
+        name: major.name
       }
+    });
+    if (!exist) {
+      await prisma.major.create({ data: major })
+    }
 
   }
 }
+
 
 // async function seedLevel(){
 //       const defaultLevel = [
@@ -85,8 +86,8 @@ main()
 
 //         } 
 //      }
-     
 
-    
+
+
 
 //   }
