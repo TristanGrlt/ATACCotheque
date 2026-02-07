@@ -66,7 +66,11 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
       const { password: _pw, userRoles, ...userData } = user;
       return {
         ...userData,
-        roles: userRoles.map(ur => ur.role.name)
+        roles: userRoles.map(ur => ({
+          id: ur.role.id,
+          name: ur.role.name,
+          color: ur.role.color
+        }))
       };
     });
 
