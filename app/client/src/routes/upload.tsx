@@ -18,6 +18,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { ChevronsUpDown } from "lucide-react";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+
 import { apiRequest, getRequestMessage } from "@/services/api";
 
 import {
@@ -42,6 +50,9 @@ type Course = {
   major: string;
 };
 
+import { Skeleton } from "@/components/ui/skeleton"
+
+
 type Exam = {
   id: number;
   name: string;
@@ -62,6 +73,8 @@ export function Upload() {
   const [selectedSemester, setSelectedSemester] = useState("");
 
   const [inputValue, setInputValue] = useState("");
+
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -129,7 +142,18 @@ export function Upload() {
   }, [all_course, inputValue]);
 
   return (
+
+    
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+      {loading ?  <Card className="w-full max-w-xs">
+      <CardHeader>
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-4 w-1/2" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="aspect-video w-full" />
+      </CardContent>
+    </Card> : 
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <div className="flex flex-col items-center gap-2 text-center">
@@ -250,6 +274,42 @@ export function Upload() {
                   </p>
                 </div>
               </div>
+              <Collapsible
+                open={isOpen}
+                onOpenChange={setIsOpen}
+                className="w-full flex flex-col gap-2"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold">
+                    Ajouter une annexe optionnelle
+                  </h4>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8">
+                      <ChevronsUpDown className="h-4 w-4" />
+                      <span className="sr-only">Toggle details</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+
+                <CollapsibleContent className="grid gap-4 mt-2">
+                  <div className="grid gap-2">
+                    <p className="text-sm font-medium">Fichier annexe</p>
+                    <Input type="file" accept=".pdf" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <p className="text-sm font-medium">Commentaire</p>
+                      <Input type="text" />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <p className="text-sm font-medium">Url annexe</p>
+                      <Input type="text" placeholder="https://...pdf" />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <div className="flex justify-center space-x-3 mt-8">
                 <Button type="submit">Submit</Button>
@@ -257,7 +317,7 @@ export function Upload() {
             </FieldGroup>
           </form>
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }
