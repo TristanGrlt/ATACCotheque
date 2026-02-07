@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import { AppPermission } from '../generated/prisma/client.js';
 import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 
@@ -16,9 +17,18 @@ async function isFirstStartup() {
 
 async function seedDefaultRoles() {
   const defaultRoles = [
-    { name: 'Admin' },
-    { name: 'User' },
-    { name: 'Reviewer' }
+    { 
+      name: 'Admin', 
+      permissions: ['MANAGE_USERS', 'MANAGE_ROLES', 'REVIEW_ANNALES'] as AppPermission[]
+    },
+    { 
+      name: 'User',
+      permissions: [] as AppPermission[]
+    },
+    { 
+      name: 'Reviewer',
+      permissions: ['REVIEW_ANNALES'] as AppPermission[]
+    }
   ];
 
   for (const role of defaultRoles) {
@@ -29,30 +39,11 @@ async function seedDefaultRoles() {
     if (!existingRole) {
       await prisma.role.create({ data: role });
       console.log(`✅ Role created: ${role.name}`);
-    }
-  }
-}
-
-async function seedDefaultAccesRights() {
-  const defaultRights = [
-    { 
-      name: 'CAN_MANAGE_USER',
-      description: "Donne le droit de gérer les utilisateurs et les rôles"
-    },
-    { 
-      name: 'CAN_REVIEW_ANNALE',
-      description: "Donne le droit d'accepter de nouveau documents"
-    }
-  ];
-
-  for (const right of defaultRights) {
-    const existingRight = await prisma.accesRight.findUnique({
-      where: { name: right.name }
-    });
-    
-    if (!existingRight) {
-      await prisma.accesRight.create({ data: right });
-      console.log(`✅ AccesRight created: ${right.name}`);
+    } else {
+      await prisma.role.update({
+        where: { name: role.name },
+        data: { permissions: role.permissions }
+      });
     }
   }
 }
@@ -83,46 +74,12 @@ async function seedAdminUser() {
           roleId: adminRole.id
         }
       });
-
-      const allAccesRights = await prisma.accesRight.findMany();
-      
-      for (const right of allAccesRights) {
-        await prisma.roleAccesRight.create({
-          data: {
-            roleId: adminRole.id,
-            accesRightId: right.id
-          }
-        });
-      }
-      
-      console.log(`✅ Admin role granted ${allAccesRights.length} access rights`);
+      // Permissions are now on the role directly
     }
     
     console.log('✅ Admin user created:', admin.username);
   } else {
     console.log('ℹ️  Admin user already exists');
-  }
-}
-
-async function seedAdminRoleAccesRights() {
-  const adminRole = await prisma.role.findUnique({
-    where: { name: 'Admin' },
-    include: { accesRights: true }
-  });
-
-  if (adminRole && adminRole.accesRights.length === 0) {
-    const allAccesRights = await prisma.accesRight.findMany();
-    
-    for (const right of allAccesRights) {
-      await prisma.roleAccesRight.create({
-        data: {
-          roleId: adminRole.id,
-          accesRightId: right.id
-        }
-      });
-    }
-    
-    console.log(`✅ Admin role granted ${allAccesRights.length} access rights`);
   }
 }
 
@@ -138,9 +95,7 @@ async function main() {
     console.log('▶️  Applying seed configuration...\n');
     
     await seedDefaultRoles();
-    await seedDefaultAccesRights();
     await seedAdminUser();
-    await seedAdminRoleAccesRights();
     
     console.log('\n✨ Seed completed successfully!');
   } else {
