@@ -53,7 +53,7 @@ export function UserFormDialog({
     onOpenChange(newOpen);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
 
