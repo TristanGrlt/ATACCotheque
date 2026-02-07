@@ -85,3 +85,12 @@ export const deleteRole = async (req: Request<{ roleId: string }>, res: Response
     return res.status(500).json({ error: "Erreur lors de la suppression du rôle" });
   }
 }
+
+export const getAccesRight = async (req: Request, res: Response) => {
+  try {
+    const acces = await prisma.accesRight.findMany();
+    return res.status(200).json(acces);
+  } catch(error) {
+    return res.status(500).json({ error: "Erreur lors de la récupération des droits d'acès" });
+  }
+}
