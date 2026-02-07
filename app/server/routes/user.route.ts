@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { signupUser, loginUser, logoutUser, verifyUser, getUsers, deleteUser } from '../controllers/user.controller.js';
+import { signupUser, loginUser, logoutUser, verifyUser, getUsers, deleteUser, updateUser } from '../controllers/user.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 
 const router = Router();
 
 router.get('/', verifyToken, getUsers);
-router.delete('/:userId', verifyToken, deleteUser)
+router.delete('/:userId', verifyToken, deleteUser);
+
+router.put('/:userId', verifyToken, updateUser);
 
 router.post('/signup', verifyToken, signupUser);
 router.post('/login', loginUser);

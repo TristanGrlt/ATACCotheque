@@ -242,3 +242,61 @@ export const verifyUser = (req: Request, res: Response) => {
     res.status(401).json({ error: 'Session invalide' });
   }
 }
+
+/**
+ * Met à jour un utilisateur existant
+ * 
+ * @param req - Objet Request Express avec param :
+ *   - userId: Identifiant de l'utilisateur à modifier (string)
+ *   - body: { username?: string, password?: string }
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - Données de l'utilisateur mis à jour sans mot de passe (200)
+ *   - error: Message d'erreur si le nom existe déjà (400) ou erreur serveur (500)
+ * @throws {400} Si le nom d'utilisateur existe déjà
+ * @throws {500} Erreur serveur lors de la mise à jour de l'utilisateur
+ * 
+ * @example
+ * PUT /api/users/abc123
+ * Body: { "username": "john.doe", "password": "newPass123" }
+ */
+export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IUser>>, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { username, password } = req.body;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({ error: "L'utilisateur n'existe pas" });
+    }
+
+    const updateData: any = {};
+    
+    if (username !== undefined) {
+      updateData.username = username;
+    }
+    
+    if (password !== undefined) {
+      const saltRounds = 10;
+      updateData.password = await bcrypt.hash(password, saltRounds);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    const { password: _pw, ...userData } = user;
+    return res.status(200).json(userData);
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return res.status(400).json({
+        error: `Le nom d'utilisateur "${req.body.username}" existe déjà`
+      });
+    }
+    return res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'utilisateur' });
+  }
+};
