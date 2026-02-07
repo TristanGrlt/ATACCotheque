@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+import { UserBadge } from "@/components/userBadge"
 
 export type Role = {
   id: number
@@ -63,7 +63,7 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Ro
     cell: ({ row }) => {
       const role = row.original
       return (
-        <Badge key={role.id}>{role.name}</Badge>
+        <UserBadge key={role.id} text={role.name} color={role.color} />
       )
     },
   },
