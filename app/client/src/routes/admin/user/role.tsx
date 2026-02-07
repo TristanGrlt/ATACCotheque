@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
+import { AddRole } from "@/components/admin/user/addRole"
 
 export function Role() {
   
@@ -109,11 +110,18 @@ export function Role() {
             {pagination.totalCount} rôle{pagination.totalCount > 1 ? 's' : ''} au total
           </p>
         </div>
-        {selectedRows.length > 0 && (
+        {selectedRows.length > 0 ? (
           <Button variant="destructive" onClick={handleDeleteSelected}>
             <Trash2 />
             Supprimer la sélection ({selectedRows.length})
           </Button>
+        ) : (
+          <AddRole 
+            onRoleCreated={(role) => {
+              setData((prev) => [...prev, role])
+              refetch()
+            }}
+          />
         )}
       </div>
         
