@@ -5,7 +5,7 @@ import { SideBar } from './components/admin/sideBar.tsx'
 import { Login } from './routes/login.tsx'
 import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
-import { AddUser } from './components/admin/addUser.tsx'
+import { AddUser } from './components/admin/user/addUser.tsx'
 
 function App() {
   return (
