@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge"
 export type Role = {
   id: number
   name: string
+  color: string
 }
 
 type ColumnActions = {
