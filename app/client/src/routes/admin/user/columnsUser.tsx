@@ -12,11 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import type { Role } from "./columnsRole"
+import { UserBadge } from "@/components/userBadge"
 
 export type User = {
   id: number
   username: string
-  roles: string[]
+  roles: Role[]
 }
 
 type ColumnActions = {
@@ -65,14 +67,14 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
     accessorKey: "roles",
     header: "Rôles",
     cell: ({ row }) => {
-      const roles = row.getValue("roles") as string[]
+      const roles = row.getValue("roles") as Role[]
       return (
         <div className="flex gap-1 flex-wrap">
           {roles.length === 0 ? (
             <span className="text-muted-foreground">aucun</span>
           ) : null}
           {roles.map(role => (
-            <Badge key={role}>{role}</Badge>
+            <UserBadge key={role.id} text={role.name} color={role.color} />
           ))}
         </div>
       )
