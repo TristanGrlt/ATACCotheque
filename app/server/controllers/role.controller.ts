@@ -86,11 +86,51 @@ export const deleteRole = async (req: Request<{ roleId: string }>, res: Response
   }
 }
 
-export const getAccesRight = async (req: Request, res: Response) => {
+export const createRole = async (req: Request, res: Response) => {
+  const { name, color, permissions } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: "Le nom du rôle est obligatoire" });
+  }
+
   try {
-    const acces = await prisma.accesRight.findMany();
-    return res.status(200).json(acces);
-  } catch(error) {
-    return res.status(500).json({ error: "Erreur lors de la récupération des droits d'acès" });
+    const role = await prisma.role.create({
+      data: {
+        name,
+        color: color || '#e94e1b',
+        permissions: permissions || []
+      }
+    });
+
+    return res.status(201).json(role);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "Un rôle avec ce nom existe déjà" });
+    }
+    return res.status(500).json({ error: "Erreur lors de la création du rôle" });
   }
 }
+
+export const updateRole = async (req: Request<{ roleId: string }>, res: Response) => {
+  const { roleId } = req.params;
+  const { name, color, permissions } = req.body;
+
+  try {
+    const role = await prisma.role.update({
+      where: { id: parseInt(roleId) },
+      data: {
+        name,
+        color,
+        permissions
+      }
+    });
+
+    return res.status(200).json(role);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "Un rôle avec ce nom existe déjà" });
+    }
+    return res.status(500).json({ error: "Erreur lors de la modification du rôle" });
+  }
+}
+
