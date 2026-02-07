@@ -21,11 +21,17 @@ model User {
 }
 
 model Role {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique
-  color       String           @default("#e94e1b")
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  color       String          @default("#e94e1b")
   userRoles   UserRole[]
-  accesRights RoleAccesRight[]
+  permissions AppPermission[]
+}
+
+enum AppPermission {
+  MANAGE_USERS
+  MANAGE_ROLES
+  REVIEW_ANNALES
 }
 
 model UserRole {
@@ -36,21 +42,4 @@ model UserRole {
   role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
-}
-
-model AccesRight {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique
-  description String           @default("")
-  roles       RoleAccesRight[]
-}
-
-model RoleAccesRight {
-  id           Int        @id @default(autoincrement())
-  roleId       Int
-  accesRightId Int
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  accesRight   AccesRight @relation(fields: [accesRightId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, accesRightId])
 }
