@@ -1,19 +1,21 @@
 import { useState, useCallback, useMemo } from "react"
 import { DataTableServer } from "@/components/dataTable/dataTableServer"
 import { createColumns, type User } from "./columnsUser"
-import { AddUser } from "@/components/admin/addUser"
+import { AddUser } from "@/components/admin/user/addUser"
 import { usePaginatedData } from "@/hooks/usePaginatedData"
 import { apiRequest, getRequestMessage } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
+import { UserFormDialog } from "@/components/admin/user/UserFormDialog"
 
 export function User() {
   
   const [selectedRows, setSelectedRows] = useState<User[]>([])
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [usersToDelete, setUsersToDelete] = useState(false)
+  const [openEditUser, setOpenEditUser] = useState<User | null>(null);
 
   const {
     data,
@@ -31,8 +33,8 @@ export function User() {
   })
 
   // -----  EDIT  -----
-  const handleEdit = useCallback((_user: User) => {
-    console.log("Édit");
+  const handleEdit = useCallback((user: User) => {
+    setOpenEditUser(user)
   }, [])
 
   // -----  DELETE  -----
@@ -155,6 +157,19 @@ export function User() {
         title={`Supprimer ${selectedRows.length} utilisateur${selectedRows.length > 1 ? 's' : ''} ?`}
         description="Cette action est irréversible. La sélection sera définitivement supprimée"
       />
+
+      <UserFormDialog
+          mode="edit"
+          user={openEditUser ?? undefined}
+          open={openEditUser != null}
+          onOpenChange={() => setOpenEditUser(null)}
+          onUserSaved={(user) => {
+            setData((prev) => [...prev, user])
+            refetch()
+          }}
+          title={`Modifier l'utilisateur "${openEditUser?.username?? ""}"`}
+          description={`Modifier les champs si dessous de l'utilisateur "${openEditUser?.username?? ""}". Le mot de passe renseigné devra être changer par l'utilisateur lors de sa première connexion`}
+        />
     </div>
   )
 }
