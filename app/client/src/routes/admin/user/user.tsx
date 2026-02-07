@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
-import { UserFormDialog } from "@/components/admin/user/UserFormDialog"
+import { UserFormDialog } from "@/components/admin/user/userFormDialog"
 
 export function User() {
   

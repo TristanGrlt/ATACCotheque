@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "../../ui/button";
-import { UserFormDialog } from "./UserFormDialog";
+import { UserFormDialog } from "./userFormDialog";
 import type { User } from "@/routes/admin/user/columnsUser";
 
 type AddUserProps = {
