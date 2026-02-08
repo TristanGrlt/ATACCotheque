@@ -112,23 +112,43 @@ export const createRole = async (req: Request, res: Response) => {
 }
 
 export const updateRole = async (req: Request<{ roleId: string }>, res: Response) => {
-  const { roleId } = req.params;
-  const { name, color, permissions } = req.body;
-
   try {
+    const { roleId } = req.params;
+    const { name, color, permissions } = req.body;
+
+    const existingRole = await prisma.role.findUnique({
+      where: { id: parseInt(roleId) }
+    });
+
+    if (!existingRole) {
+      return res.status(404).json({ error: "Le rôle n'existe pas" });
+    }
+
+    const updateData: any = {};
+    
+    if (name !== undefined && name !== existingRole.name) {
+      updateData.name = name;
+    }
+    
+    if (color !== undefined) {
+      updateData.color = color;
+    }
+    
+    if (permissions !== undefined) {
+      updateData.permissions = permissions;
+    }
+
     const role = await prisma.role.update({
       where: { id: parseInt(roleId) },
-      data: {
-        name,
-        color,
-        permissions
-      }
+      data: updateData,
     });
 
     return res.status(200).json(role);
   } catch (error: any) {
-    if (error.code === 'P2002') {
-      return res.status(409).json({ error: "Un rôle avec ce nom existe déjà" });
+    if (error?.code === 'P2002') {
+      return res.status(409).json({
+        error: `Un rôle avec le nom "${req.body.name}" existe déjà`
+      });
     }
     return res.status(500).json({ error: "Erreur lors de la modification du rôle" });
   }
