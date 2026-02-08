@@ -59,13 +59,13 @@ Les routes suivantes sont disponibles :
 
 ```bash
 # Lancer l'environnement de développement
-docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up --force-recreate --renew-anon-volumes
 
 # Ou avec reconstruction des images si vous modifiez les Dockerfile ou les dépendances
-docker compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --force-recreate --renew-anon-volumes --build
 
 # En arrière-plan (détaché)
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d --force-recreate --renew-anon-volumes
 ```
 
 #### 2. Configuration
@@ -213,6 +213,15 @@ Afin que votre IDE de choix parvienne à faire de l'auto-complétion et l'affich
 ```bash
 # Installer les dépendances localement
 bun install
+```
+
+### Instalation de nouvelles dépendance
+
+Pour installer de nouvelles dépendance, utilisisait la commande `bun` correspondante à l'ajout de votre dépendance et éxécuter la localement sur votre machine. L'instalaltion de la dépendance de cette manière n'est pas répercuté sur le serveur qui est éxéctué dans docker. Pour que la nouvelle dépendance soit prise en compte, il faut recompiler l'image du frontend ou du backend celon l'endroit ou la nouvelle dépendance à été instalé et redémarer le container et recréer le volume anonyme associé. Pour cela, éxécuter la commande suivante :
+
+```bash
+# Recompile et recréer les conteneur et les volumes anonymes
+docker compose -f docker-compose.dev.yml up -d --force-recreate --renew-anon-volumes --build
 ```
 
 ### Utilisation de Prisma
