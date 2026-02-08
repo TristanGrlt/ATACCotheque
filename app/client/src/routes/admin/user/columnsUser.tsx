@@ -11,7 +11,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import type { Role } from "./columnsRole"
 import { UserBadge } from "@/components/userBadge"
 
