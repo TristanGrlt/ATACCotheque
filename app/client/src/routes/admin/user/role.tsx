@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
 import { AddRole } from "@/components/admin/user/addRole"
+import { RoleFormDialog } from "@/components/admin/user/roleFormDialog"
 
 export function Role() {
   
   const [selectedRows, setSelectedRows] = useState<Role[]>([])
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
   const [rolesToDelete, setRolesToDelete] = useState(false)
+  const [openEditRole, setOpenEditRole] = useState<Role | null>(null);
+  
 
   const {
     data,
@@ -31,8 +34,8 @@ export function Role() {
   })
 
   // -----  EDIT  -----
-  const handleEdit = useCallback((_role: Role) => {
-    console.log("Édit")
+  const handleEdit = useCallback((role: Role) => {
+    setOpenEditRole(role)
   }, [])
 
   // -----  DELETE  -----
@@ -154,6 +157,19 @@ export function Role() {
         onConfirm={confirmDeleteSelected}
         title={`Supprimer ${selectedRows.length} rôle${selectedRows.length > 1 ? 's' : ''} ?`}
         description="Cette action est irréversible. La sélection sera définitivement supprimée"
+      />
+
+      <RoleFormDialog
+        mode="edit"
+        role={openEditRole ?? undefined}
+        open={openEditRole != null}
+        onOpenChange={() => setOpenEditRole(null)}
+        onRoleSaved={(role) => {
+            setData((prev) => [...prev, role])
+            refetch()
+          }}
+        title={`Modifier le rôle "${openEditRole?.name?? ""}"`}
+        description={`Remplisez les champs si dessous pour modifier le rôle ${openEditRole?.name?? ""}`}
       />
     </div>
   )
