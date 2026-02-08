@@ -72,14 +72,14 @@ docker compose -f docker-compose.dev.yml up -d --force-recreate --renew-anon-vol
 
 Un élément en particulier nécessite une configuration pour être utilisé dans l'environnement d'exécution. En effet, l'ORM _Prisma_ doit être configuré afin de gérer les migrations de base de données (ses tables) ainsi que son "client" pour les interactions avec la base de données. Cette configuration se fait par l'intermédiaire de l'exécution de quelques commandes.
 
-Lors du **premier démarage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, les modifications qui ont été apportées doivent être répercutées sur votre serveur de développement. On appelle cette action "appliquer les migrations de la base de données". Ces migrations sont disponibles dans le dossier du même nom sous la forme de fichiers SQL. Afin de réaliser cette migration, exécuter la commande suivante :
+Lors du **premier démarrage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, les modifications qui ont été apportées doivent être répercutées sur votre serveur de développement. On appelle cette action "appliquer les migrations de la base de données". Ces migrations sont disponibles dans le dossier du même nom sous la forme de fichiers SQL. Afin de réaliser cette migration, exécuter la commande suivante :
 
 ```bash
 # Appliquer les migrations à la base de données.
 docker compose -f docker-compose.dev.yml exec backend bunx prisma migrate dev
 ```
 
-L'utilisation de _Prisma_ repose aussi sur son "client" qui est généré en fonction des schémas définis. Lors du **premier démarage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, un nouveau "client" doit être généré. Pour cela, exécuter la commande suivante :
+L'utilisation de _Prisma_ repose aussi sur son "client" qui est généré en fonction des schémas définis. Lors du **premier démarrage** de l'environnement d'exécution ou à **chaque modification** des schémas pour la base de données, un nouveau "client" doit être généré. Pour cela, exécuter la commande suivante :
 
 ```bash
 # Générer le client Prisma.
@@ -215,12 +215,12 @@ Afin que votre IDE de choix parvienne à faire de l'auto-complétion et l'affich
 bun install
 ```
 
-### Instalation de nouvelles dépendance
+### Installation de nouvelles dépendances
 
-Pour installer de nouvelles dépendance, utilisisait la commande `bun` correspondante à l'ajout de votre dépendance et éxécuter la localement sur votre machine. L'instalaltion de la dépendance de cette manière n'est pas répercuté sur le serveur qui est éxéctué dans docker. Pour que la nouvelle dépendance soit prise en compte, il faut recompiler l'image du frontend ou du backend celon l'endroit ou la nouvelle dépendance à été instalé et redémarer le container et recréer le volume anonyme associé. Pour cela, éxécuter la commande suivante :
+Pour installer de nouvelles dépendances, utilisez la commande `bun` correspondante à l'ajout de votre dépendance et exécutez-la localement sur votre machine. L'installation de la dépendance de cette manière n'est pas répercutée sur le serveur qui est exécuté dans docker. Pour que la nouvelle dépendance soit prise en compte, il faut recompiler l'image du frontend ou du backend selon l'endroit où la nouvelle dépendance a été installée et redémarrer le container et recréer le volume anonyme associé. Pour cela, exécuter la commande suivante :
 
 ```bash
-# Recompile et recréer les conteneur et les volumes anonymes
+# Recompile et recrée les conteneurs et les volumes anonymes
 docker compose -f docker-compose.dev.yml up -d --force-recreate --renew-anon-volumes --build
 ```
 
