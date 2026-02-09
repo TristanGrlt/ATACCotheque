@@ -10,6 +10,7 @@ export function UserBadge({ text, color }: UserBadgeProps) {
     <Badge variant="outline"
       style={{
         borderColor: color,
+        backgroundColor: `${color}25`,
       }}
     >
       {text}
