@@ -100,10 +100,10 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
  */
 export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res: Response) => {
   const { userId } = req.params;
+  const currentUserId = req.userId;
 
-  const nUsers = await prisma.user.count();
-  if (nUsers <= 1) {
-    return res.status(403).json({ error: "Le nombre d'utilisateurs doit ne peut pas être nul" });
+  if (userId === currentUserId) {
+    return res.status(401).json({ error: "Vous ne pouvez pas supprimer votre propre compte" })
   }
   
   try {
