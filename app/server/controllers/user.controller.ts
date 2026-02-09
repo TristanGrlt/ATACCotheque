@@ -12,6 +12,7 @@ import { getPaginationParams, createPaginationResponse, getSkip } from '../utils
 interface IUser {
   username: string;
   password: string;
+  roleIds:  Number[];
 }
 
 /**
@@ -134,7 +135,11 @@ export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res
  */
 export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, roleIds } = req.body;
+
+    if (!roleIds || roleIds.length === 0) {
+      return res.status(403).json({ error : "L'utilisateur doit poséder au moins un role"})
+    }
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -143,11 +148,27 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       data: {
         username,
         password: hashedPassword,
+        userRoles: {
+          create: roleIds.map((id) => ({
+            roleId: Number(id)
+          })),
+        },
+      },
+      include: {
+        userRoles: { include: { role: true} }
       }
     });
 
-    const { password: _pw, ...userData } = user;
-    return res.status(201).json(userData);
+    const { password: _pw, userRoles, ...userData } = user;
+    const response = {
+      ...userData,
+      roles: userRoles.map(ur => ({
+        id: ur.role.id,
+        name: ur.role.name,
+        color: ur.role.color,
+      }))
+    }
+    return res.status(201).json(response);
   } catch (error : any) {
     if (error?.code === 'P2002') {
       return res.status(400).json({
@@ -267,34 +288,85 @@ export const verifyUser = (req: Request, res: Response) => {
 export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IUser>>, res: Response) => {
   try {
     const { userId } = req.params;
-    const { username, password } = req.body;
+    const { username, password, roleIds } = req.body;
+    const currentUserId = req.userId;
 
+    // réupère l'utilisateur entrain d'être modifier
     const existingUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      include: {
+        userRoles: { include: { role: true } }
+      }
     });
 
+    // si l'utilisateur modifié existe pas erreur
     if (!existingUser) {
       return res.status(404).json({ error: "L'utilisateur n'existe pas" });
     }
 
     const updateData: any = {};
-    
-    if (username !== undefined) {
+    // Si username modifier, l'appliqué
+    if (username) {
       updateData.username = username;
     }
-    
-    if (password !== undefined) {
+    // Si mot de passe donné, le hashé et appliqué
+    if (password) {
       const saltRounds = 10;
       updateData.password = await bcrypt.hash(password, saltRounds);
+    }
+
+    // si roles modifier, appliqué avec vérification
+    if (roleIds) {
+      // si plus aucun role, erreur
+      if (roleIds.length === 0) {
+        return res.status(400).json({ error: "Un utilisateur doit avoir au moins un rôle" });
+      }
+
+      // si l'utilisateur se modifie lui-même
+      if (userId === currentUserId) {
+        // détails des nouveaux rôles demandés
+        const requestedRoles = await prisma.role.findMany({
+          where: { id: { in: roleIds.map(id => Number(id)) } }
+        });
+
+        // vérifier si au moins un de ces rôles possède la permission MANAGE_USERS
+        const hasAdminPermission = requestedRoles.some(role => 
+          role.permissions.includes('MANAGE_USERS')
+        );
+
+        // Si il était admin et qu'il essaie de retirer son propre accès, erreur
+        if (!hasAdminPermission) {
+          return res.status(403).json({ 
+            error: "Vous ne pouvez pas vous retirer la permission de gérer les utilisateurs." 
+          });
+        }
+      }
+
+      updateData.userRoles = {
+        deleteMany: {},
+        create: roleIds.map((id) => ({ roleId: Number(id) })),
+      };
     }
 
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,
+      include: {
+        userRoles: { include: { role: true } }
+      }
     });
 
-    const { password: _pw, ...userData } = user;
-    return res.status(200).json(userData);
+    const { password: _pw, userRoles, ...userData } = user;
+    const response = {
+      ...userData,
+      roles: userRoles.map(ur => ({ 
+        id: ur.role.id, 
+        name: ur.role.name, 
+        color: ur.role.color 
+      }))
+    };
+
+    return res.status(200).json(response);
   } catch (error: any) {
     if (error?.code === 'P2002') {
       return res.status(400).json({
