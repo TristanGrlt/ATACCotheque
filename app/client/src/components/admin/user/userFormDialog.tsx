@@ -65,7 +65,7 @@ export function UserFormDialog({
           hasLoadedRoles.current = true;
         })
         .catch(err => {
-          console.error('Failed to fetch roles:', err);
+          toast.error(`Une erreur est survenue lors du chargement des rôles : ${getRequestMessage(err)}`);
         });
     }
   }, []);
@@ -277,7 +277,6 @@ export function UserFormDialog({
                 items={Array.isArray(availableRoles) ? availableRoles.map(role => role.name) : []}
                 value={selectedRoles}
                 onValueChange={(newValue) => {
-                  console.log('Value changed:', newValue);
                   setSelectedRoles(newValue as string[]);
                 }}
               >
