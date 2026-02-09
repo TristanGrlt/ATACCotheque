@@ -115,6 +115,12 @@ export function UserFormDialog({
         setLoading(false);
         return;
       }
+
+      if(selectedRoles.length === 0) {
+        setError('Veuillez sélectionner au moins un rôle.');
+        setLoading(false);
+        return;
+      }
     } else {
       if (!username) {
         setError('Veuillez entrer un nom d\'utilisateur.');
@@ -134,6 +140,12 @@ export function UserFormDialog({
           setLoading(false);
           return;
         }
+      }
+
+      if(selectedRoles.length === 0) {
+        setError('Veuillez sélectionner au moins un rôle.');
+        setLoading(false);
+        return;
       }
     }
 
