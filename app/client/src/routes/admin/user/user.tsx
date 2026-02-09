@@ -162,9 +162,9 @@ export function User() {
           mode="edit"
           user={openEditUser ?? undefined}
           open={openEditUser != null}
-          onOpenChange={() => setOpenEditUser(null)}
+          onOpenChange={(open) => !open && setOpenEditUser(null)}
           onUserSaved={(user) => {
-            setData((prev) => [...prev, user])
+            setData((prev) => prev.map(u => u.id === user.id ? user : u))
             refetch()
           }}
           title={`Modifier l'utilisateur "${openEditUser?.username?? ""}"`}
