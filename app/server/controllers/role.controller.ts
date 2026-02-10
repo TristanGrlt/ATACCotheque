@@ -115,6 +115,7 @@ export const updateRole = async (req: Request<{ roleId: string }>, res: Response
   try {
     const { roleId } = req.params;
     const { name, color, permissions } = req.body;
+    const currentUserId = req.userId;
 
     const existingRole = await prisma.role.findUnique({
       where: { id: parseInt(roleId) }
@@ -122,6 +123,42 @@ export const updateRole = async (req: Request<{ roleId: string }>, res: Response
 
     if (!existingRole) {
       return res.status(404).json({ error: "Le rôle n'existe pas" });
+    }
+
+    // Vérification : si on supprime MANAGE_USERS de ce rôle, que l'utilisateur courant possède ce rôle
+    // et qu'il n'a plus MANAGE_USERS via d'autres rôles, on refuse la modification.
+    if (permissions !== undefined && currentUserId) {
+      const removedManage = existingRole.permissions.includes('MANAGE_USERS') && !permissions.includes('MANAGE_USERS');
+      if (removedManage) {
+        // vérifier si l'utilisateur courant a ce rôle
+        const userHasThisRole = await prisma.userRole.findUnique({
+          where: {
+            userId_roleId: {
+              userId: currentUserId,
+              roleId: parseInt(roleId)
+            }
+          }
+        });
+
+        if (userHasThisRole) {
+          // possède MANAGE_USERS via un autre rôle
+          const otherCount = await prisma.userRole.count({
+            where: {
+              userId: currentUserId,
+              roleId: { not: parseInt(roleId) },
+              role: {
+                permissions: { has: 'MANAGE_USERS' }
+              }
+            }
+          });
+
+          if (otherCount === 0) {
+            return res.status(403).json({
+              error: "Impossible de retirer MANAGE_USERS : vous perdriez totalement la permission MANAGE_USERS."
+            });
+          }
+        }
+      }
     }
 
     const updateData: any = {};
