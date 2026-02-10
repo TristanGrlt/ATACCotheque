@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "../../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "../../ui/field";
 import { Input } from "../../ui/input";
 import { Spinner } from "../../ui/spinner";
+import { Toggle } from "../../ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
 import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
 import { apiRequest, getRequestMessage } from "@/services/api";
@@ -11,19 +12,8 @@ import { ButtonGroup } from "../../ui/button-group";
 import { toast } from "sonner";
 import type { User } from "@/routes/admin/user/columnsUser";
 import type { Role } from "@/routes/admin/user/columnsRole";
-import { 
-  Combobox, 
-  ComboboxChip, 
-  ComboboxChips, 
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue, 
-  useComboboxAnchor 
-} from "@/components/ui/combobox";
 import { UserBadge } from "@/components/userBadge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type UserFormDialogProps = {
   mode: 'create' | 'edit';
@@ -53,51 +43,30 @@ export function UserFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const hasLoadedRoles = useRef(false);
-  const isResettingRef = useRef(false);
 
-  // Charger les rôles une seule fois
+  // Charger les rôles une seule fois au montage
   useEffect(() => {
-    if (!hasLoadedRoles.current) {
-      apiRequest.get('/role')
-        .then(response => {
-          setAvailableRoles(response.data.data || []);
-          hasLoadedRoles.current = true;
-        })
-        .catch(err => {
-          toast.error(`Une erreur est survenue lors du chargement des rôles : ${getRequestMessage(err)}`);
-        });
-    }
+    apiRequest.get('/role')
+      .then(response => {
+        setAvailableRoles(response.data.data || []);
+      })
+      .catch(err => {
+        toast.error(`Une erreur est survenue lors du chargement des rôles : ${getRequestMessage(err)}`);
+      });
   }, []);
 
-  // Réinitialiser le formulaire quand la modale s'ouvre (ou que l'utilisateur change)
+  // Réinitialiser le formulaire quand la modale s'ouvre ou que l'utilisateur change
   useEffect(() => {
     if (open) {
-      isResettingRef.current = true;
       setUsername(user?.username || '');
       setPassword('');
       setPassword2('');
       setPasswordVisible(false);
       setPasswordVisible2(false);
       setError(null);
-      const roles = user?.roles ? user.roles.map(role => role.name) : [];
-      setSelectedRoles(roles);
-      // Marquer la fin du reset après un court délai pour éviter fermetures involontaires
-      setTimeout(() => {
-        isResettingRef.current = false;
-      }, 100);
+      setSelectedRoles(user?.roles?.map(role => role.name) || []);
     }
   }, [open, user?.id]);
-
-  const handleOpenChange = (newOpen: boolean) => {
-    // Ignorer les appels à handleOpenChange pendant la réinitialisation
-    if (isResettingRef.current && !newOpen) {
-      return;
-    }
-    onOpenChange(newOpen);
-  };
-
-  const anchor = useComboboxAnchor()
 
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -174,7 +143,7 @@ export function UserFormDialog({
 
       const { data } = response;
       onUserSaved?.(data);
-      handleOpenChange(false);
+      onOpenChange(false);
       toast(`L'utilisateur "${data.username}" à bien été ${mode === 'create' ? 'ajouté' : 'modifié'}`);
     } catch (err) {
       setError(getRequestMessage(err));
@@ -184,7 +153,7 @@ export function UserFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange} modal={false}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -268,45 +237,29 @@ export function UserFormDialog({
               </ButtonGroup>
             </Field>
             <Field>
-              <FieldLabel>Rôle
+              <FieldLabel>Rôles
                 <span className="text-destructive">*</span>
               </FieldLabel>
-              <Combobox
-                multiple
-                openOnInputClick
-                items={Array.isArray(availableRoles) ? availableRoles.map(role => role.name) : []}
-                value={selectedRoles}
-                onValueChange={(newValue) => {
-                  setSelectedRoles(newValue as string[]);
-                }}
-              >
-                <ComboboxChips ref={anchor} className="w-full">
-                  <ComboboxValue>
-                    {selectedRoles.map((value: string) => {
-                      const role = availableRoles.find(r => r.name === value);
-                      return (
-                        <ComboboxChip key={value} className="bg-transparent p-0 border-0 h-auto">
-                          <UserBadge text={value} color={role?.color || '#808080'} />
-                        </ComboboxChip>
-                      );
-                    })}
-                  </ComboboxValue>
-                  <ComboboxChipsInput placeholder={selectedRoles.length === 0 ? "Sélectionner des rôles..." : undefined} />
-                </ComboboxChips>
-                <ComboboxContent anchor={anchor}>
-                  <ComboboxEmpty>Aucun rôle trouvé.</ComboboxEmpty>
-                  <ComboboxList>
-                    {(item) => {
-                      const role = availableRoles.find(r => r.name === item);
-                      return (
-                        <ComboboxItem key={item} value={item}>
-                          <UserBadge text={item} color={role?.color || '#808080'} />
-                        </ComboboxItem>
-                      );
-                    }}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+              <ScrollArea className="h-32">
+                <div className="flex flex-wrap gap-2">
+                  {availableRoles.map((role) => (
+                    <Toggle
+                      key={role.id}
+                      pressed={selectedRoles.includes(role.name)}
+                      onPressedChange={(pressed) => {
+                        if (pressed) {
+                          setSelectedRoles([...selectedRoles, role.name]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter(r => r !== role.name));
+                        }
+                      }}
+                      variant="outline"
+                    >
+                      <UserBadge text={role.name} color={role.color || '#808080'} />
+                    </Toggle>
+                  ))}
+                </div>
+              </ScrollArea>
             </Field>
             <Field>
               <Button type="submit" disabled={isLoading}>
