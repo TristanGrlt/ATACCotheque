@@ -6,8 +6,11 @@ import { Login } from './routes/login.tsx'
 import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
 import { AddUser } from './components/admin/user/addUser.tsx'
+import { useAuth } from './contexts/AuthContext.tsx'
 
 function App() {
+  const { perms } = useAuth();
+
   return (
     <Routes>
       <Route index element={<LandingPage />} />
@@ -17,8 +20,8 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='dashboard' element={<AddUser></AddUser>} />
-          <Route path='users' element={<UserIndex />} />
+          <Route path='dashboard' element={<AddUser />} />
+          {perms.includes('MANAGE_ROLES') ? <Route path='users' element={<UserIndex />} /> : null}
           <Route path='toto' element={<LandingPage />} />
         </Route>
       </Route>
