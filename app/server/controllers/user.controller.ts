@@ -199,7 +199,21 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   const { username, password } = req.body;
 
   const user = await prisma.user.findUnique({ 
-    where: { username } 
+    where: { username },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              permissions: true
+            }
+          }
+        }
+      }
+    }
   });
   
   if (!user) {
@@ -211,8 +225,12 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
     const jsToken = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET);
     res.cookie('jwt', jsToken, cookieOptions);
 
-    const { password: _pw, ...userData } = user;
-    return res.status(200).json(userData)
+    const { password: _pw, userRoles, ...userData } = user;
+    const sanitizedUser = {
+      ...userData,
+      roles: userRoles.map(ur => ur.role)
+    };
+    return res.status(200).json(sanitizedUser)
   } else {
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect` });
   }
@@ -248,7 +266,7 @@ export const logoutUser = (req: Request, res: Response) => {
  * @example
  * GET /api/users/verify
  */
-export const verifyUser = (req: Request, res: Response) => {
+export const verifyUser = async (req: Request, res: Response) => {
   const token = req.cookies?.jwt;
   
   if (!token) {
@@ -260,8 +278,39 @@ export const verifyUser = (req: Request, res: Response) => {
     if (typeof decoded !== 'object' || !decoded.userId) {
       return res.status(403).json({ error: 'Session invalide' });
     }
+
+    // Récupérer l'utilisateur complet avec ses rôles et permissions
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                permissions: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      res.clearCookie('jwt');
+      return res.status(401).json({ error: 'Utilisateur non trouvé' });
+    }
+
     res.cookie('jwt', token, cookieOptions);
-    res.status(200).json({ username: decoded.username })
+    
+    const { password: _pw, userRoles, ...userData } = user;
+    const sanitizedUser = {
+      ...userData,
+      roles: userRoles.map(ur => ur.role)
+    };
+    res.status(200).json(sanitizedUser)
   } catch (error) {
     res.clearCookie('jwt');
     res.status(401).json({ error: 'Session invalide' });
