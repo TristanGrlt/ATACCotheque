@@ -13,10 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserBadge } from "@/components/userBadge"
 
+import type { PermValue } from '@/contexts/AuthContext'
+
 export type Role = {
   id: number
   name: string
   color: string
+  permissions?: PermValue[]
 }
 
 type ColumnActions = {
