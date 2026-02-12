@@ -1,73 +1,70 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
-import { DataTable } from "@/components/dataTable/dataTable"
-import { createColumns, type User } from "./columns"
-import { AddUser } from "@/components/admin/addUser"
+import { useState, useCallback, useMemo } from "react"
+import { DataTableServer } from "@/components/dataTable/dataTableServer"
+import { createColumns, type User } from "./columnsUser"
+import { AddUser } from "@/components/admin/user/addUser"
+import { usePaginatedData } from "@/hooks/usePaginatedData"
 import { apiRequest, getRequestMessage } from "@/services/api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
+import { UserFormDialog } from "@/components/admin/user/userFormDialog"
 
 export function User() {
   
-  const [data, setData] = useState<User[]>([])
   const [selectedRows, setSelectedRows] = useState<User[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [usersToDelete, setUsersToDelete] = useState(false)
+  const [openEditUser, setOpenEditUser] = useState<User | null>(null);
 
-  useEffect(() => {
-
-    // -----  LOAD  -----
-    const loadUsers = async () => {
-      try {
-        const { data: users } = await apiRequest.get('/user')
-        setData(users)
-      } catch (err) {
-        toast.error("Erreur lors du chargement de la page", {
-          description: getRequestMessage(err)
-        })
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadUsers()
-  }, [])
+  const {
+    data,
+    pagination,
+    isLoading,
+    setData,
+    handlePageChange,
+    handlePageSizeChange,
+    handleSearchChange,
+    handleSortChange,
+    refetch,
+  } = usePaginatedData<User>({
+    endpoint: '/user',
+    initialPageSize: 20,
+  })
 
   // -----  EDIT  -----
-  const handleEdit = useCallback((_user: User) => {
-    console.log("Édit")
+  const handleEdit = useCallback((user: User) => {
+    setOpenEditUser(user)
   }, [])
 
   // -----  DELETE  -----
   const handleDelete = useCallback((user: User) => {
-    setUserToDelete(user)
+    setUserToDelete(user);
   }, [])
 
   const confirmDelete = useCallback(async () => {
     if (userToDelete) {
       try {
-        await apiRequest.delete(`/user/${userToDelete.id}`)
+        await apiRequest.delete(`/user/${userToDelete.id}`);
+        setData(prev => prev.filter(u => u.id !== userToDelete.id));
+        setUserToDelete(null);
+        toast.success(`${userToDelete.username} a été supprimé(e)`);
+        refetch();
       } catch (err) {
-        toast.error(`Une erreur est survenue lors de la supression : ${getRequestMessage(err)}`);
-        return;
+        toast.error(`Une erreur est survenue lors de la suppression : ${getRequestMessage(err)}`);
       }
-      setData(data.filter(u => u.id !== userToDelete.id))
-      setUserToDelete(null)
-      toast.success(`${userToDelete.username} a été supprimé(e)`)
     }
-  }, [data, userToDelete])
+  }, [userToDelete, setData, refetch])
 
-  // -----  ROW SELECTION DEL  -----
+  // -----  ROW SELECTION  -----
   const handleRowSelection = useCallback((rows: User[]) => {
-    setSelectedRows(rows)
+    setSelectedRows(rows);
   }, [])
 
   const handleDeleteSelected = useCallback(() => {
-    if (selectedRows.length === 0) return
-    setUsersToDelete(true);    
-  }, [selectedRows, data, setData])
+    if (selectedRows.length === 0) return;
+    setUsersToDelete(true);
+  }, [selectedRows])
 
   const confirmDeleteSelected = useCallback(async () => {
     if (selectedRows.length === 0) return
@@ -87,9 +84,10 @@ export function User() {
 
     if (deletedIds.length > 0) {
       setData(prev => prev.filter(u => !deletedIds.includes(u.id)))
-      setSelectedRows(prev => prev.filter(u => !deletedIds.includes(u.id)))
+      setSelectedRows([])
       const successCount = deletedIds.length
       toast.success(`${successCount} utilisateur${successCount > 1 ? 's ont' : ' a'} été supprimé${successCount > 1 ? 's' : ''}`)
+      refetch()
     }
 
     if (errors.length > 0) {
@@ -97,7 +95,7 @@ export function User() {
     }
 
     setUsersToDelete(false)
-  }, [selectedRows])
+  }, [selectedRows, setData, refetch])
 
   // -----  MEMO  -----
   const columns = useMemo(() => createColumns({
@@ -106,58 +104,72 @@ export function User() {
   }), [handleEdit, handleDelete])
 
   return (
-    <div className="mx-auto pt-6">
+    <div className="mx-auto mt-2">
       <div className="mb-6 flex justify-between">
-        <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
+          <p className="text-muted-foreground mt-2">
+            {pagination.totalCount} utilisateur{pagination.totalCount > 1 ? 's' : ''} au total
+          </p>
+        </div>
         {selectedRows.length > 0 ? (
           <Button variant="destructive" onClick={handleDeleteSelected}>
             <Trash2 />
-            Supprimer la sélection
-          </Button>) : (
-            <AddUser 
-              onUserCreated={(user) => setData((prev) => [...prev, user])}
-            />
-          )}
+            Supprimer la sélection ({selectedRows.length})
+          </Button>
+        ) : (
+          <AddUser 
+            onUserCreated={(user) => {
+              setData((prev) => [...prev, user])
+              refetch()
+            }}
+          />
+        )}
       </div>
         
-      {isLoading ? (
-        <div className="flex w-full max-w-sm flex-col gap-2">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div className="flex gap-4" key={index}>
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-20" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <DataTable 
-            columns={columns} 
-            data={data}
-            searchKey="username"
-            searchPlaceholder="Filtrer par nom d'utilisateurs..."
-            onRowSelectionChange={handleRowSelection}
-          />
+      <DataTableServer
+        columns={columns}
+        data={data}
+        pagination={pagination}
+        searchKey="username"
+        searchPlaceholder="Rechercher par nom d'utilisateur..."
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onSearchChange={handleSearchChange}
+        onSortChange={handleSortChange}
+        onRowSelectionChange={handleRowSelection}
+        isLoading={isLoading}
+      />
 
-          <DeleteConfirmDialog
-            open={!!userToDelete}
-            onOpenChange={(open) => !open && setUserToDelete(null)}
-            onConfirm={confirmDelete}
-            title="Supprimer cet utilisateur ?"
-            description="Cette action est irréversible. L'utilisateur"
-            itemName={userToDelete?.username}
-          />
+      <DeleteConfirmDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer cet utilisateur ?"
+        description="Cette action est irréversible. L'utilisateur"
+        itemName={userToDelete?.username}
+      />
 
-          <DeleteConfirmDialog
-            open={!!usersToDelete}
-            onOpenChange={(open) => !open && setUsersToDelete(false)}
-            onConfirm={confirmDeleteSelected}
-            title={`Supprimer la sélection de ${selectedRows.length} utilisateur${selectedRows.length > 1 ? 's' : ''} ?`}
-            description="Cette action est irréversible. La sélection sera définitivement supprimée"
-          />
-        </>
-      )}
+      <DeleteConfirmDialog
+        open={usersToDelete}
+        onOpenChange={(open) => !open && setUsersToDelete(false)}
+        onConfirm={confirmDeleteSelected}
+        title={`Supprimer ${selectedRows.length} utilisateur${selectedRows.length > 1 ? 's' : ''} ?`}
+        description="Cette action est irréversible. La sélection sera définitivement supprimée"
+      />
+
+      <UserFormDialog
+          mode="edit"
+          user={openEditUser ?? undefined}
+          open={openEditUser != null}
+          onOpenChange={(open) => !open && setOpenEditUser(null)}
+          onUserSaved={(user) => {
+            setData((prev) => prev.map(u => u.id === user.id ? user : u))
+            refetch()
+          }}
+          title={`Modifier l'utilisateur "${openEditUser?.username?? ""}"`}
+          description={`Modifier les champs si dessous de l'utilisateur "${openEditUser?.username?? ""}". Le mot de passe renseigné devra être changer par l'utilisateur lors de sa première connexion`}
+        />
     </div>
   )
 }

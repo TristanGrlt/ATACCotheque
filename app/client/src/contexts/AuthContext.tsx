@@ -1,13 +1,37 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { apiRequest } from '@/services/api'
+import type { User } from "@/routes/admin/user/columnsUser";
+import { PERMISSIONS } from '@/config/permissions'
+
+// element type of PERMISSIONS object (e.g. 'MANAGE_USERS')
+export type PermValue = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
+// exported type requested by the user: list of permission values
+export type perms = PermValue[]
+
+/**
+ * Extrait et normalise les permissions à partir des rôles d'un utilisateur
+ * @param user - L'utilisateur avec ses rôles
+ * @returns Un tableau unique de permissions valides
+ */
+const extractPermissions = (user: User | null): perms => {
+  if (!user?.roles) return []
+  
+  const allPermissions = user.roles.flatMap(role => role.permissions || [])
+  const uniquePermissions = Array.from(new Set(allPermissions))
+  const validPermissions = uniquePermissions.filter(perm => 
+    Object.values(PERMISSIONS).includes(perm)
+  ) as perms
+  
+  return validPermissions
+}
 
 interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
-  username: string | null
   login: (credentials?: { username: string; password: string } | null) => Promise<void>
   logout: () => Promise<void>
-  setUsername?: (name: string | null) => void
+  user: User | null
+  perms: perms
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -16,19 +40,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [username, setUsername] = useState<string | null>(null)
+  const [user, setUser]= useState<User | null>(null)
+  const [perms, setPerms] = useState<perms>([])
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data } = await apiRequest.get('/user/verify')
+        
         if (data?.username) {
-          setUsername(data.username)
+          setUser(data)
+          setPerms(extractPermissions(data))
+          setIsAuthenticated(true)
         }
-        setIsAuthenticated(true)
       } catch (err) {
         setIsAuthenticated(false)
-        setUsername(null)
       } finally {
         setIsLoading(false)
       }
@@ -39,13 +65,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (credentials?: { username: string; password: string } | null) => {
     try {
-      if (credentials) {
-        const { data } = await apiRequest.post('/user/login', credentials)
-        setUsername(data?.username ?? credentials.username ?? null)
-      } else {
-        const { data } = await apiRequest.get('/user/verify')
-        setUsername(data?.username ?? null)
-      }
+      const { data } = credentials 
+        ? await apiRequest.post('/user/login', credentials)
+        : await apiRequest.get('/user/verify')
+      
+      setUser(data)
+      setPerms(extractPermissions(data))
       setIsAuthenticated(true)
     } catch (err) {
       console.error('Erreur lors de la connexion', err)
@@ -57,16 +82,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await apiRequest.post('/user/logout')
       setIsAuthenticated(false)
-      setUsername(null)
+      setUser(null)
+      setPerms([])
     } catch (err) {
       console.error('Erreur lors de la déconnexion', err)
       setIsAuthenticated(false)
-      setUsername(null)
+      setUser(null)
+      setPerms([])
     }
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, username, login, logout, setUsername }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, user, perms }}>
       {children}
     </AuthContext.Provider>
   )
