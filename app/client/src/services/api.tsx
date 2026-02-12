@@ -6,6 +6,8 @@ export const apiRequest = axios.create({
   withCredentials: true
 });
 
+
+
 export const getRequestMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { error?: string } | undefined;

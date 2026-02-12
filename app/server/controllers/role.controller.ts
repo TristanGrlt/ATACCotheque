@@ -1,0 +1,193 @@
+import { Request, Response } from 'express';
+import prisma from '../lib/prisma.js';
+import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
+
+/**
+ * Récupère la liste des rôles avec pagination, recherche et tri
+ * 
+ * @param req - Objet Request Express avec query params optionnels :
+ *   - page: Numéro de la page (défaut: 1)
+ *   - pageSize: Nombre d'éléments par page (défaut: 20)
+ *   - search: Terme de recherche pour filtrer par nom de rôle
+ *   - sortBy: Champ de tri (défaut: 'name')
+ *   - sortOrder: Ordre de tri 'asc' ou 'desc' (défaut: 'asc')
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - data: Tableau des rôles
+ *   - pagination: Métadonnées de pagination
+ * @throws {500} Erreur serveur lors de la récupération des rôles
+ * 
+ * @example
+ * GET /api/roles?page=1&pageSize=10&search=admin&sortBy=name&sortOrder=asc
+ */
+export const getRole = async (req: Request, res: Response) => {
+  const params = getPaginationParams(req, { sortBy: 'name' });
+  const { search, sortBy, sortOrder, pageSize } = params;
+  const skip = getSkip(params.page, params.pageSize);
+
+  const whereClause = search ? {
+    name: { contains: search, mode: 'insensitive' as const }
+  } : {};
+
+  try {
+    const totalCount = await prisma.role.count({ where: whereClause });
+
+    const roles = await prisma.role.findMany({
+      where: whereClause,
+      skip,
+      take: pageSize,
+      orderBy: { [sortBy]: sortOrder },
+    });
+
+    const response = createPaginationResponse(roles, totalCount, params);
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erreur lors de la récupération des rôles' });
+  }
+}
+
+/**
+ * Supprime un rôle spécifique après vérification qu'il n'est pas attribué à des utilisateurs
+ * 
+ * @param req - Objet Request Express avec param :
+ *   - roleId: Identifiant du rôle à supprimer (string converti en number)
+ * @param res - Objet Response Express
+ * @returns Réponse JSON avec :
+ *   - message: Confirmation de la suppression (200)
+ *   - error: Message d'erreur si le rôle est utilisé (403) ou erreur serveur (500)
+ * @throws {403} Si le rôle est attribué à un ou plusieurs utilisateurs
+ * @throws {500} Erreur serveur lors de la suppression du rôle
+ * 
+ * @example
+ * DELETE /api/roles/5
+ */
+export const deleteRole = async (req: Request<{ roleId: string }>, res: Response) => {
+  const { roleId } = req.params;
+
+  try {
+    const usersWithRole = await prisma.userRole.count({
+      where: { roleId: parseInt(roleId) }
+    });
+
+    if (usersWithRole > 0) {
+      return res.status(403).json({ 
+        error: `Ce rôle est attribué à ${usersWithRole} utilisateur${usersWithRole > 1 ? 's' : ''}. Impossible de le supprimer.` 
+      });
+    }
+
+    // Supprimer le rôle
+    await prisma.role.delete({
+      where: { id: parseInt(roleId) }
+    });
+
+    return res.status(200).json({ message: "Le rôle a bien été supprimé" });
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de la suppression du rôle" });
+  }
+}
+
+export const createRole = async (req: Request, res: Response) => {
+  const { name, color, permissions } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: "Le nom du rôle est obligatoire" });
+  }
+
+  try {
+    const role = await prisma.role.create({
+      data: {
+        name,
+        color: color || '#e94e1b',
+        permissions: permissions || []
+      }
+    });
+
+    return res.status(201).json(role);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "Un rôle avec ce nom existe déjà" });
+    }
+    return res.status(500).json({ error: "Erreur lors de la création du rôle" });
+  }
+}
+
+export const updateRole = async (req: Request<{ roleId: string }>, res: Response) => {
+  try {
+    const { roleId } = req.params;
+    const { name, color, permissions } = req.body;
+    const currentUserId = req.userId;
+
+    const existingRole = await prisma.role.findUnique({
+      where: { id: parseInt(roleId) }
+    });
+
+    if (!existingRole) {
+      return res.status(404).json({ error: "Le rôle n'existe pas" });
+    }
+
+    // Vérification : si on supprime MANAGE_USERS de ce rôle, que l'utilisateur courant possède ce rôle
+    // et qu'il n'a plus MANAGE_USERS via d'autres rôles, on refuse la modification.
+    if (permissions !== undefined && currentUserId) {
+      const removedManage = existingRole.permissions.includes('MANAGE_USERS') && !permissions.includes('MANAGE_USERS');
+      if (removedManage) {
+        // vérifier si l'utilisateur courant a ce rôle
+        const userHasThisRole = await prisma.userRole.findUnique({
+          where: {
+            userId_roleId: {
+              userId: currentUserId,
+              roleId: parseInt(roleId)
+            }
+          }
+        });
+
+        if (userHasThisRole) {
+          // possède MANAGE_USERS via un autre rôle
+          const otherCount = await prisma.userRole.count({
+            where: {
+              userId: currentUserId,
+              roleId: { not: parseInt(roleId) },
+              role: {
+                permissions: { has: 'MANAGE_USERS' }
+              }
+            }
+          });
+
+          if (otherCount === 0) {
+            return res.status(403).json({
+              error: "Impossible de retirer MANAGE_USERS : vous perdriez totalement la permission MANAGE_USERS."
+            });
+          }
+        }
+      }
+    }
+
+    const updateData: any = {};
+    
+    if (name !== undefined && name !== existingRole.name) {
+      updateData.name = name;
+    }
+    
+    if (color !== undefined) {
+      updateData.color = color;
+    }
+    
+    if (permissions !== undefined) {
+      updateData.permissions = permissions;
+    }
+
+    const role = await prisma.role.update({
+      where: { id: parseInt(roleId) },
+      data: updateData,
+    });
+
+    return res.status(200).json(role);
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return res.status(409).json({
+        error: `Un rôle avec le nom "${req.body.name}" existe déjà`
+      });
+    }
+    return res.status(500).json({ error: "Erreur lors de la modification du rôle" });
+  }
+}
+
