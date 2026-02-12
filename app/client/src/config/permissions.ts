@@ -9,7 +9,7 @@ export type PermissionKey = keyof typeof PERMISSIONS;
 export const PERMISSION_DETAILS: Record<PermissionKey, { label: string; description: string }> = {
   MANAGE_USERS: {
     label: "Gestion des utilisateurs",
-    description: "Permet de voir, modifier, bannir ou supprimer des utilisateurs."
+    description: "Permet de voir, modifier ou supprimer des utilisateurs."
   },
   MANAGE_ROLES: {
     label: "Gestion des rôles",
