@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
 import { AddUser } from './components/admin/user/addUser.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
+import { NotFound } from './routes/notFound.tsx'
 
 function App() {
   const { perms } = useAuth();
@@ -25,6 +26,8 @@ function App() {
           <Route path='toto' element={<LandingPage />} />
         </Route>
       </Route>
+
+      <Route path='*' element={<NotFound />} />
     </Routes>
   )
 }
