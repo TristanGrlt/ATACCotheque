@@ -161,6 +161,9 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       data: {
         username,
         password: hashedPassword,
+        isFirstLogin: true,
+        passwordChangeRequired: true,
+        mfaSetupRequired: true, 
         userRoles: {
           create: roleIds.map((id) => ({
             roleId: Number(id)
@@ -172,16 +175,16 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       }
     });
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const response = {
-      ...userData,
-      roles: userRoles.map(ur => ({
-        id: ur.role.id,
-        name: ur.role.name,
-        color: ur.role.color,
-      }))
-    }
-    return res.status(201).json(response);
+    const sanitizedUser: LoginResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
+    };
+
+    return res.status(201).json(sanitizedUser);
   } catch (error : any) {
     if (error?.code === 'P2002') {
       return res.status(400).json({
