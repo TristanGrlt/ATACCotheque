@@ -193,3 +193,90 @@ export const initTOTPSetup = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Erreur lors de l'initialisation de la configuration MFA" });
  }
 }
+
+/*
+* Permet à l'utilisateur de vérifier le code TOTP et d'activer MFA pour son compte
+* @param req - Objet Request Express avec userId attaché par verifyToken et body contenant le code TOTP à vérifier
+* @param res - Objet Response Express
+* @returns Réponse JSON avec :
+*  - message: Confirmation de l'activation de MFA (200)
+*  - backupCodes: Les codes de secours générés pour l'utilisateur (uniquement retournés lors de l'activation réussie)
+*  - error: Message d'erreur
+* @throws {400} Si les données sont invalides (code TOTP manquant ou de longueur incorrecte) ou si la configuration MFA n'est pas initialisée pour l'utilisateur
+* @throws {403} Si le code TOTP est incorrect
+* @throws {404} Si l'utilisateur n'est pas trouvé
+* @throws {500} Erreur serveur lors de la vérification du code TOTP ou de l'activation de MFA
+*/
+export const verifyAndEnableTOTP = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body;
+
+    if (!code || code.length !== 6) {
+      return res.status(400).json({ error: "Le code est invalide" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        totpSecret: true,
+        mfaSetupRequired: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    // Vérifier que la configuration MFA est requise pour cet utilisateur et que le secret TOTP est bien initialisé
+    if (!user.mfaSetupRequired || !user.totpSecret) {
+      return res.status(400).json({ error: "La configuration MFA n'est pas initialisée pour cet utilisateur" });
+    }
+
+    // Vérifier que le code TOTP fourni est correct
+    const verified = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+
+    if (!verified) {
+      return res.status(403).json({ error: "Le code MFA est incorrect" });
+    }
+
+    // Générer des codes de secours pour le cas où l'utilisateur perdrait l'accès à son application d'authentification
+    const backupCodes = Array.from({ length: 10 }, () => 
+      Math.random().toString(36).substring(2, 8).toUpperCase()
+    );
+
+    // Activer MFA pour l'utilisateur et enregistrer les codes de secours (hashés) dans la base de données
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        mfaEnabled: true,
+        mfaMethod: 'totp',
+        mfaSetupRequired: false,
+        mfaSetupDate: new Date(),
+        totpBackupCodes: backupCodes.map(code => bcrypt.hashSync(code, 10))
+      }
+    });
+
+    // Régénérer le token pour mettre à jour le payload avec onboardingCompleted si nécessaire
+    const newToken = await regenerateAuthTokenForUser(req.userId as string);
+    res.cookie('jwt', newToken, cookieOptions);
+
+    return res.status(200).json({ 
+      message: "MFA TOTP activé avec succès",
+      backupCodes // Les codes de secours sont retournés en clair une seule fois.
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de la vérification du code MFA" });
+  }
+}
+
+export const initWebAuthnSetup = async (req: Request, res: Response) => {
+  return res.status(501).json({ 
+    error: 'WebAuthn non implémenté' 
+  });
+};
