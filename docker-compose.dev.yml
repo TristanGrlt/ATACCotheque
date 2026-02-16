@@ -53,6 +53,7 @@ services:
     volumes:
       - ./app/server:/app
       - /app/node_modules
+      - ./files:/app/files
     depends_on:
       - postgresql
       - meilisearch
