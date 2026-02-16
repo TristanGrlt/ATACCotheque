@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
 import roleRouter from './routes/role.route.js';
+import onboardingRouter from './routes/onboarding.route.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use(cookieParser());
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
 app.use('/role', roleRouter);
+app.use('/onboarding', onboardingRouter)
 
 
 // JWT_SECRET
