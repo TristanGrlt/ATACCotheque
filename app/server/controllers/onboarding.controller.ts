@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from "../lib/prisma.js"
 import bcrypt from 'bcryptjs';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
 import { regenerateAuthTokenForUser } from '../utils/jwtHelper.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 
@@ -131,4 +133,63 @@ export const changeFirstPassword = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(500).json({ error: "Erreur lors du changement de mot de passe" });
   }
+}
+
+
+/*
+* Permet à l'utilisateur d'initialiser la configuration MFA TOTP
+* @param req - Objet Request Express avec userId attaché par verifyToken
+* @param res - Objet Response Express
+* @returns Réponse JSON avec :
+*  - secret: Le secret
+*  - qrCode: Le QR code encodé en base32 pour configurer l'application d'authentification
+*  - message: Instructions pour l'utilisateur
+* @throws {400} Si la configuration MFA n'est pas requise pour l'utilisateur
+* @throws {404} Si l'utilisateur n'est pas trouvé
+* @throws {500} Erreur serveur lors de l'initialisation de la configuration MFA
+*/
+export const initTOTPSetup = async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        username: true,
+        mfaSetupRequired: true,
+        totpSecret: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    // Vérifier que la configuration MFA est requise pour cet utilisateur
+    if (!user.mfaSetupRequired) {
+      return res.status(400).json({ error: "La configuration MFA n'est pas requise pour cet utilisateur" });
+    }
+
+    // Générer un secret TOTP pour l'utilisateur
+    const secret = speakeasy.generateSecret({
+      name: `ATACCothèque (${user.username})`
+    });
+
+    // Générer un QR code à partir de l'URL otpauth
+    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url || '');
+
+    // Enregistrer le secret TOTP dans la base de données pour l'utilisateur mais n'active pas encore MFA tant que l'utilisateur n'a pas confirmé la configuration
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        totpSecret: secret.base32
+      }
+    });
+
+    return res.status(200).json({
+      secret: secret.base32,
+      qrCode: qrCodeUrl,
+      message: `Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy, etc.) pour configurer votre MFA.`
+    });
+ } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de l'initialisation de la configuration MFA" });
+ }
 }
