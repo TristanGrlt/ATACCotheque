@@ -5,6 +5,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
+import { generateAuthToken } from '../utils/jwtHelper.js';
 
 /**
  * Interface pour les données utilisateur dans les requêtes
@@ -14,6 +15,18 @@ interface IUser {
   password: string;
   roleIds:  Number[];
 }
+
+type LoginResponse = {
+  id: string;
+  username: string;
+  roles: {
+    id: number;
+    name: string;
+    color: string;
+    permissions: string[];
+  }[];
+  requiredOnboarding: boolean;
+};
 
 /**
  * Récupère la liste des utilisateurs avec pagination, recherche et tri
@@ -198,11 +211,18 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
 export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   const { username, password } = req.body;
 
-  const user = await prisma.user.findUnique({ 
+  const user = await prisma.user.findUnique({
     where: { username },
-    include: {
+    select: {
+      id: true,
+      username: true,
+      password: true,
+      passwordChangeRequired: true,
+      mfaSetupRequired: true,
+      mfaEnabled: true,
+
       userRoles: {
-        include: {
+        select: {
           role: {
             select: {
               id: true,
@@ -215,25 +235,37 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
       }
     }
   });
-  
+
   if (!user) {
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
 
   const match = await bcrypt.compare(password, user.password);
-  if (match) {
-    const jsToken = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET);
-    res.cookie('jwt', jsToken, cookieOptions);
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const sanitizedUser = {
-      ...userData,
-      roles: userRoles.map(ur => ur.role)
-    };
-    return res.status(200).json(sanitizedUser)
-  } else {
-    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect` });
+  if (!match) {
+    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
+
+  const token = generateAuthToken({
+    id: user.id,
+    username: user.username,
+    passwordChangeRequired: user.passwordChangeRequired,
+    mfaSetupRequired: user.mfaSetupRequired,
+    mfaEnabled: user.mfaEnabled
+  });
+
+  res.cookie('jwt', token, cookieOptions);
+
+  const sanitizedUser: LoginResponse = {
+    id: user.id,
+    username: user.username,
+    roles: user.userRoles.map(ur => ur.role),
+    requiredOnboarding:
+      user.passwordChangeRequired ||
+      (user.mfaSetupRequired && !user.mfaEnabled)
+  };
+
+  return res.status(200).json(sanitizedUser)
 };
 
 /**
