@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { apiRequest } from '@/services/api'
+import { useNavigate } from 'react-router-dom'
+import { apiRequest, setUnauthorizedHandler } from '@/services/api'
 import type { User } from "@/routes/admin/user/columnsUser";
 import { PERMISSIONS } from '@/config/permissions'
 
@@ -30,6 +31,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (credentials?: { username: string; password: string } | null) => Promise<void>
   logout: () => Promise<void>
+  forceLogout: () => void
   user: User | null
   perms: perms
 }
@@ -42,8 +44,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser]= useState<User | null>(null)
   const [perms, setPerms] = useState<perms>([])
+  const navigate = useNavigate()
+
+  /**
+   * Déconnexion forcée sans appel API
+   * Utilisée par l'intercepteur Axios quand la session est expirée (401)
+   */
+  const forceLogout = () => {
+    setIsAuthenticated(false)
+    setUser(null)
+    setPerms([])
+  }
 
   useEffect(() => {
+    // Configure l'intercepteur pour qu'il gère les 401 automatiquement
+    setUnauthorizedHandler((currentPath: string) => {
+      console.warn('Session expirée (401) - déconnexion automatique')
+      forceLogout()
+      // Redirige vers login en sauvegardant la page actuelle
+      navigate('/login', { 
+        state: { from: currentPath },
+        replace: true 
+      })
+    })
+
     const checkAuth = async () => {
       try {
         const { data } = await apiRequest.get('/user/verify')
@@ -52,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(data)
           setPerms(extractPermissions(data))
           setIsAuthenticated(true)
-        }
+      navigate  }
       } catch (err) {
         setIsAuthenticated(false)
       } finally {
@@ -93,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, user, perms }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, forceLogout, user, perms }}>
       {children}
     </AuthContext.Provider>
   )
