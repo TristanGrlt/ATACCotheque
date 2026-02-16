@@ -14,9 +14,25 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  username  String     @unique
-  password  String
+  id                     String    @id @default(cuid())
+  username               String    @unique
+  password               String
+  // Onboarding
+  isFirstLogin           Boolean   @default(true)
+  passwordChangeRequired Boolean   @default(true)
+  mfaSetupRequired       Boolean   @default(true)
+  mfaMethod              String? // 'totp' or 'webauthn'
+  mfaEnabled             Boolean   @default(false)
+  //TOTP
+  totpSecret             String?
+  totpBackupCodes        String[]
+  // WebAuthn
+  // Audit
+  lastPasswordChange     DateTime?
+  mfaSetupDate           DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @default(now()) @updatedAt
+
   userRoles UserRole[]
 }
 
@@ -44,64 +60,60 @@ model UserRole {
   @@unique([userId, roleId])
 }
 
-model Major{
-	  id       Int       @id @default(autoincrement())
-    name String @unique
-    level Level[]
+model Major {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  level Level[]
 }
 
+model Level {
+  id   Int    @id @default(autoincrement())
+  name String
 
-model Level{
-	  id       Int       @id @default(autoincrement())
-    name String 
-
-    major Major  @relation(fields: [majorId], references: [id])
-    majorId  Int 
-    course Course[]
+  major   Major    @relation(fields: [majorId], references: [id])
+  majorId Int
+  course  Course[]
 }
 
-model Course{
-	  id       Int       @id @default(autoincrement())
-    name String
-    semestre String
-    level Level  @relation(fields: [LevelId], references: [id])
-      
-    LevelId Int
-    examType  ExamType[]
+model Course {
+  id       Int    @id @default(autoincrement())
+  name     String
+  semestre String
+  level    Level  @relation(fields: [LevelId], references: [id])
 
-    pastExam PastExam[]
+  LevelId  Int
+  examType ExamType[]
 
-}
-
-model ExamType{
-	id       Int       @id @default(autoincrement())
-  name String @unique
-  course Course[]
   pastExam PastExam[]
 }
 
-model PastExam{
-	id       Int       @id @default(autoincrement())
-    path String @unique
-    year Int 
-    course Course  @relation(fields: [courseId], references: [id])
-    courseId Int
-    examtype ExamType  @relation(fields: [examTypeId], references: [id])
-    examTypeId  Int
+model ExamType {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique
+  course   Course[]
+  pastExam PastExam[]
+}
 
+model PastExam {
+  id         Int      @id @default(autoincrement())
+  path       String   @unique
+  year       Int
+  course     Course   @relation(fields: [courseId], references: [id])
+  courseId   Int
+  examtype   ExamType @relation(fields: [examTypeId], references: [id])
+  examTypeId Int
 }
 
 model Annexe {
-  	id       Int       @id @default(autoincrement())
-    name String 
-    type Type
-    isVerifed Boolean
-    path String?
-    url String? 
+  id        Int     @id @default(autoincrement())
+  name      String
+  type      Type
+  isVerifed Boolean
+  path      String?
+  url       String?
 }
 
-
 enum Type {
-	FILE
-	URL
+  FILE
+  URL
 }
