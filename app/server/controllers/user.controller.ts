@@ -340,10 +340,13 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     res.cookie('jwt', token, cookieOptions);
     
-    const { password: _pw, userRoles, ...userData } = user;
-    const sanitizedUser = {
-      ...userData,
-      roles: userRoles.map(ur => ur.role)
+    const sanitizedUser: LoginResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
     };
     res.status(200).json(sanitizedUser)
   } catch (error) {
