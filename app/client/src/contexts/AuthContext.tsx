@@ -34,6 +34,7 @@ interface AuthContextType {
   forceLogout: () => void
   user: User | null
   perms: perms
+  requiresOnboarding: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser]= useState<User | null>(null)
   const [perms, setPerms] = useState<perms>([])
+  const [requiresOnboarding, setRequiresOnboarding] = useState(false)
   const navigate = useNavigate()
 
   /**
@@ -96,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(data)
       setPerms(extractPermissions(data))
       setIsAuthenticated(true)
+      setRequiresOnboarding(data.requiredOnboarding)
     } catch (err) {
       console.error('Erreur lors de la connexion', err)
       throw err
@@ -117,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, forceLogout, user, perms }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, forceLogout, user, perms, requiresOnboarding }}>
       {children}
     </AuthContext.Provider>
   )
