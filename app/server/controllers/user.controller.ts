@@ -3,9 +3,9 @@ import prisma from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
-import { cookieOptions } from '../utils/cookieOptions.js';
+import { cookieOptions, preAuthCookieOptions } from '../utils/cookieOptions.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
-import { generateAuthToken } from '../utils/jwtHelper.js';
+import { generateSessionToken, generatePreAuthToken } from '../utils/jwtHelper.js';
 
 /**
  * Interface pour les données utilisateur dans les requêtes
@@ -223,6 +223,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
       passwordChangeRequired: true,
       mfaSetupRequired: true,
       mfaEnabled: true,
+      mfaMethod: true,
 
       userRoles: {
         select: {
@@ -240,6 +241,8 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   });
 
   if (!user) {
+    // Délai constant pour empêcher l'énumération d'utilisateurs par timing attack
+    await bcrypt.compare(password, '$2b$10$invalidhashXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
 
@@ -249,12 +252,24 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
 
-  const token = generateAuthToken({
+  // MFA activé : émettre un pre-auth toke
+  if (user.mfaEnabled && user.mfaMethod) {
+    const preAuthToken = generatePreAuthToken(user.id, user.username);
+    res.cookie('pre_auth_jwt', preAuthToken, preAuthCookieOptions);
+
+    return res.status(200).json({
+      requiresMfa: true,
+      mfaMethod: user.mfaMethod,
+    });
+  }
+
+  // Pas de MFA 
+  const token = generateSessionToken({
     id: user.id,
     username: user.username,
     passwordChangeRequired: user.passwordChangeRequired,
     mfaSetupRequired: user.mfaSetupRequired,
-    mfaEnabled: user.mfaEnabled
+    mfaEnabled: user.mfaEnabled,
   });
 
   res.cookie('jwt', token, cookieOptions);
@@ -268,7 +283,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
       (user.mfaSetupRequired && !user.mfaEnabled)
   };
 
-  return res.status(200).json(sanitizedUser)
+  return res.status(200).json(sanitizedUser);
 };
 
 /**
@@ -283,6 +298,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
  */
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie('jwt');
+  res.clearCookie('pre_auth_jwt', preAuthCookieOptions);
   res.status(200).json({ message: "Déconnexion réussie" })
 };
 
