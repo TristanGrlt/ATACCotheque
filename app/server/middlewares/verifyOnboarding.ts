@@ -10,7 +10,7 @@ export const verifyOnboardingCompleted = async (
     const jwtPayload = req.jwtPayload;
 
     // Si le payload JWT indique que l'onboarding est terminé, on autorise l'accès
-    if (jwtPayload?.onboardingCompleted === true) {
+    if (jwtPayload?.onboardingComplete === true) {
       return next();
     }
 
