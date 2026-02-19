@@ -4,6 +4,7 @@ import { verifyToken } from '../middlewares/verifyToken.js';
 import { verifyPerms } from '../middlewares/verifyPerms.js';
 import { AppPermission } from '../generated/prisma/enums.js';
 import { verifyOnboardingCompleted } from '../middlewares/verifyOnboarding.js';
+import { loginLimiter } from '../lib/rateLimiter.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.delete('/:userId', verifyToken, verifyOnboardingCompleted, verifyPerms(Ap
 router.put('/:userId', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), updateUser);
 
 router.post('/signup', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), signupUser);
-router.post('/login', loginUser);
+router.post('/login', loginLimiter, loginUser);
 router.post('/logout', logoutUser);
 router.get('/verify', verifyUser);
 
