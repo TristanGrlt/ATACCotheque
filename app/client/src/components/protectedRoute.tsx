@@ -11,8 +11,7 @@ export const ProtectedRoute = () => {
   const location = useLocation()
 
   if (isLoading) {
-    return "toto"
-    // return <Loading />
+    return <Loading />
   }
 
   if (requiresOnboarding) {
