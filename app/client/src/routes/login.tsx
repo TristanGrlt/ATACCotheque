@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, useLocation } from "react-router-dom"
 import { startAuthentication } from "@simplewebauthn/browser"
 import { apiRequest } from "@/services/api"
-import { Separator } from "@/components/ui/separator"
 
 export function Login() {
   const [username, setUsername] = useState('');
