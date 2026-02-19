@@ -313,8 +313,8 @@ export const initWebAuthnSetup = async (req: Request, res: Response) => {
       rpID: RP_ID,
       userName: user.username,
       authenticatorSelection: {
-        residentKey: 'preferred',
-        userVerification: 'preferred',
+        residentKey: 'required',
+        userVerification: 'required',
       },
       // Exclure les clés déjà enregistrées (évite les doublons)
       excludeCredentials: user.webauthnCredentials.map(cred => ({
