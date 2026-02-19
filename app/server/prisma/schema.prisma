@@ -74,6 +74,16 @@ model WebAuthnChallenge {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/**
+ * Challenge WebAuthn pour le login sans mot de passe (passkey / discoverable credential).
+ * Aucun userId à ce stade — l'identité est révélée après vérification.
+ */
+model PasskeyLoginChallenge {
+  id        String   @id @default(cuid())
+  challenge String
+  expiresAt DateTime
+}
+
 model Role {
   id          Int             @id @default(autoincrement())
   name        String          @unique
