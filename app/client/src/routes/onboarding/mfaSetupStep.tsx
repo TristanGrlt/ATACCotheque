@@ -5,9 +5,10 @@ import { Separator } from "@/components/ui/separator"
 import { apiRequest, getRequestMessage } from "@/services/api"
 import { useState } from "react"
 import { toast } from "sonner"
+import { WebAuthnSetup } from "@/components/mfa/WebAuthnSetup"
 
 export default function MFASetupStep({ onSuccess }: { onSuccess: () => void }) {
-  const [step, setStep] = useState<'choice' | 'totp-scan' | 'totp-verify'>('choice')
+  const [step, setStep] = useState<'choice' | 'totp-scan' | 'totp-verify' | 'webauthn'>('choice')
   const [qrCode, setQrCode] = useState('')
   const [secret, setSecret] = useState('')
   const [code, setCode] = useState('')
@@ -54,7 +55,7 @@ export default function MFASetupStep({ onSuccess }: { onSuccess: () => void }) {
             📱 Application d'authentification (TOTP)
           </Button>
           
-          <Button variant="outline" className="w-full" disabled>
+          <Button className="w-full" onClick={() => setStep('webauthn')}>
             🔑 Clé de sécurité (WebAuthn)
           </Button>
         </div>
@@ -124,6 +125,15 @@ export default function MFASetupStep({ onSuccess }: { onSuccess: () => void }) {
       <Button onClick={onSuccess} className="w-full">
         J'ai sauvegardé mes codes
       </Button>
+      </>
+    )
+  }
+
+  if (step === 'webauthn') {
+    return (
+      <>
+        <h2 className="text-xl font-semibold mb-4">Étape 2 : Clé de sécurité</h2>
+        <WebAuthnSetup onSuccess={onSuccess} onBack={() => setStep('choice')} />
       </>
     )
   }
