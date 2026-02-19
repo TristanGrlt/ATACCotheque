@@ -14,6 +14,7 @@ import { useAuth } from './contexts/AuthContext.tsx'
 import { Loading } from './components/loading.tsx'
 import { PERMISSIONS } from './config/permissions.ts'
 import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
+import { MfaChallenge } from './routes/mfaChallenge.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -37,6 +38,9 @@ function App() {
 
       { /* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
       <Route path="onboarding" element={<OnboardingPage />} />
+
+      {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
+      <Route path="mfa-challenge" element={<MfaChallenge />} />
 
       {/* Routes protégées par authentification */}
       <Route element={<ProtectedRoute />}>
