@@ -63,6 +63,7 @@ model PastExam{
     courseId Int 
     examtype ExamType  @relation(fields: [examTypeId], references: [id])
     examTypeId  Int
+    annexe Annexe[]
 }
 
 model Annexe{
@@ -72,6 +73,8 @@ model Annexe{
     isVerifed Boolean
     path String?
     url String? 
+    pastExam PastExam  @relation(fields: [pastExamId], references: [id])
+    pastExamId Int
 
 
 
