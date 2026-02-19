@@ -8,7 +8,7 @@ import { verifyOnboardingCompleted } from '../middlewares/verifyOnboarding.js';
 
 const router = Router();
 
-router.get('/', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_ROLES), getRole);
+router.get('/', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), getRole);
 router.post('/', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), createRole);
 router.put('/:roleId', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), updateRole);
 router.delete('/:roleId', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), deleteRole);
