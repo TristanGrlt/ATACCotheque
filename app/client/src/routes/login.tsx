@@ -37,9 +37,15 @@ export function Login() {
     }
 
     try {
-      await login({username, password})
-      
-      // Redirige vers la page demandée initialement ou /admin par défaut
+      const result = await login({ username, password })
+
+      if (result.requiresMfa) {
+        // Rediriger vers le challenge MFA en passant la méthode et la destination
+        const from = (location.state as { from?: string })?.from || '/admin'
+        navigate('/mfa-challenge', { state: { method: result.mfaMethod, from } })
+        return
+      }
+
       const from = (location.state as { from?: string })?.from || '/admin'
       navigate(from, { replace: true })
     } catch (err) {
