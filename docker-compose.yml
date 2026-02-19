@@ -37,6 +37,8 @@ services:
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN}
     depends_on:
       - meilisearch
       - postgresql
