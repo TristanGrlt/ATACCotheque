@@ -6,6 +6,7 @@ import userRouter from './routes/user.route.js';
 import roleRouter from './routes/role.route.js';
 import onboardingRouter from './routes/onboarding.route.js';
 import mfaRouter from './routes/mfa.route.js';
+import passkeyRouter from './routes/passkey.route.js';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use(cookieParser());
 
 // Routes
 app.use('/health', healthRouter);
+app.use('/auth/passkey', passkeyRouter);
 app.use('/user/mfa', mfaRouter);
 app.use('/user', userRouter);
 app.use('/role', roleRouter);
