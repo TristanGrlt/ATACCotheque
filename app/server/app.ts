@@ -7,6 +7,7 @@ import courseRouter from './routes/course.route.js';
 import examTypeRouter from './routes/examType.route.js';
 
 import cookieParser from 'cookie-parser';
+import  pastExam  from './routes/pastExam.route.js';
 
 dotenv.config();
 
@@ -26,7 +27,9 @@ app.use(cookieParser());
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
 app.use('/course', courseRouter);
-app.use('/examType',examTypeRouter)
+app.use('/examType',examTypeRouter);
+app.use('/pastExam',pastExam);
+
 
 
 // JWT_SECRET
