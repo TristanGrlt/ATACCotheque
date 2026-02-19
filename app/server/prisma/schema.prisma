@@ -14,26 +14,64 @@ datasource db {
 }
 
 model User {
-  id                     String    @id @default(cuid())
-  username               String    @unique
+  id                     String               @id @default(cuid())
+  username               String               @unique
   password               String
   // Onboarding
-  isFirstLogin           Boolean   @default(true)
-  passwordChangeRequired Boolean   @default(true)
-  mfaSetupRequired       Boolean   @default(true)
+  isFirstLogin           Boolean              @default(true)
+  passwordChangeRequired Boolean              @default(true)
+  mfaSetupRequired       Boolean              @default(true)
   mfaMethod              String? // 'totp' or 'webauthn'
-  mfaEnabled             Boolean   @default(false)
+  mfaEnabled             Boolean              @default(false)
   //TOTP
   totpSecret             String?
   totpBackupCodes        String[]
   // WebAuthn
+  webauthnCredentials    WebAuthnCredential[]
+  webauthnChallenge      WebAuthnChallenge?
   // Audit
   lastPasswordChange     DateTime?
   mfaSetupDate           DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @default(now()) @updatedAt
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @default(now()) @updatedAt
 
   userRoles UserRole[]
+}
+
+/**
+ * Clé WebAuthn enregistrée par l'utilisateur
+ */
+model WebAuthnCredential {
+  // ID fourni par l'authentificateur
+  id         String    @id
+  userId     String
+  // Clé publique COSE encodée en Uint8Array
+  publicKey  Bytes
+  // Compteur de signatures — incrémenté à chaque authentification (anti-replay)
+  counter    BigInt
+  // 'singleDevice' (clé matérielle) | 'multiDevice' (passkey synchronisée)
+  deviceType String
+  // true si la passkey est sauvegardée dans un cloud (Google, iCloud, etc.)
+  backedUp   Boolean
+  // Canaux de transport supportés : 'usb' | 'nfc' | 'ble' | 'internal' | 'hybrid'
+  transports String[]
+  // Nom lisible choisi par l'utilisateur (ex : "MacBook Touch ID")
+  name       String    @default("Clé de sécurité")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * Challenge WebAuthn éphémère stocké côté serveur.
+ */
+model WebAuthnChallenge {
+  userId    String   @id
+  challenge String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Role {
