@@ -7,11 +7,16 @@ import { useAuth } from '@/contexts/AuthContext'
  * Redirige vers /login en sauvegardant la destination demandée
  */
 export const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, requiresOnboarding } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
-    return <Loading />
+    return "toto"
+    // return <Loading />
+  }
+
+  if (requiresOnboarding) {
+    return <Navigate to="/onboarding" state={{ from: location.pathname }} replace />
   }
 
   if (!isAuthenticated) {

@@ -26,7 +26,7 @@ export function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true)
 

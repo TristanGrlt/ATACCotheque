@@ -13,6 +13,7 @@ import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
 import { Loading } from './components/loading.tsx'
 import { PERMISSIONS } from './config/permissions.ts'
+import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -33,6 +34,9 @@ function App() {
       <Route element={<GuestRoute />}>
         <Route path='login' element={<Login />} />
       </Route>
+
+      { /* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
+      <Route path="onboarding" element={<OnboardingPage />} />
 
       {/* Routes protégées par authentification */}
       <Route element={<ProtectedRoute />}>
