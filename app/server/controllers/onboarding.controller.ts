@@ -3,8 +3,19 @@ import prisma from "../lib/prisma.js"
 import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
-import { regenerateAuthTokenForUser } from '../utils/jwtHelper.js';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  type AuthenticatorTransportFuture,
+  type RegistrationResponseJSON,
+} from '@simplewebauthn/server';
+import { regenerateSessionTokenForUser } from '../utils/jwtHelper.js';
 import { cookieOptions } from '../utils/cookieOptions.js';
+
+const RP_ID = process.env.WEBAUTHN_RP_ID ?? 'localhost';
+const ORIGIN = process.env.WEBAUTHN_ORIGIN ?? 'http://localhost:5173';
+const RP_NAME = 'ATACCothèque';
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 /*
  * Récupère les informations d'onboarding de l'utilisateur connecté
@@ -125,7 +136,7 @@ export const changeFirstPassword = async (req: Request, res: Response) => {
     });
 
     // Régénérer le token pour mettre à jour le payload avec onboardingCompleted si nécessaire
-    const newToken = await regenerateAuthTokenForUser(req.userId as string);
+    const newToken = await regenerateSessionTokenForUser(req.userId as string);
     res.cookie('jwt', newToken, cookieOptions);
 
     return res.status(200).json({ message: "Mot de passe changé avec succès" });
@@ -262,7 +273,7 @@ export const verifyAndEnableTOTP = async (req: Request, res: Response) => {
     });
 
     // Régénérer le token pour mettre à jour le payload avec onboardingCompleted si nécessaire
-    const newToken = await regenerateAuthTokenForUser(req.userId as string);
+    const newToken = await regenerateSessionTokenForUser(req.userId as string);
     res.cookie('jwt', newToken, cookieOptions);
 
     return res.status(200).json({ 
@@ -275,8 +286,128 @@ export const verifyAndEnableTOTP = async (req: Request, res: Response) => {
   }
 }
 
+/*
+ * Génère les options d'enregistrement WebAuthn et persiste le challenge
+ * éphémère en base. Le client doit passer ces options à startRegistration(),
+ * puis soumettre la réponse à POST /onboarding/webauthn/verify.
+ */
 export const initWebAuthnSetup = async (req: Request, res: Response) => {
-  return res.status(501).json({ 
-    error: 'WebAuthn non implémenté' 
-  });
+  try {
+    const userId = req.userId as string;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        username: true,
+        mfaSetupRequired: true,
+        webauthnCredentials: { select: { id: true, transports: true } },
+      },
+    });
+
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    if (!user.mfaSetupRequired)
+      return res.status(400).json({ error: "La configuration MFA n'est pas requise" });
+
+    const options = await generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID: RP_ID,
+      userName: user.username,
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      },
+      // Exclure les clés déjà enregistrées (évite les doublons)
+      excludeCredentials: user.webauthnCredentials.map(cred => ({
+        id: cred.id,
+        transports: cred.transports as AuthenticatorTransportFuture[],
+      })),
+    });
+
+    // Persister le challenge — un seul actif par utilisateur
+    await prisma.webAuthnChallenge.upsert({
+      where: { userId },
+      create: { userId, challenge: options.challenge, expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS) },
+      update: { challenge: options.challenge, expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS) },
+    });
+
+    return res.status(200).json(options);
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de l'initialisation WebAuthn" });
+  }
+};
+
+/*
+ * Vérifie la réponse d'enregistrement WebAuthn, crée le credential en base
+ * et active MFA pour l'utilisateur.
+ *
+ * Body attendu : RegistrationResponseJSON + optionnel credentialName: string
+ */
+export const verifyAndEnableWebAuthn = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId as string;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { mfaSetupRequired: true, webauthnChallenge: true },
+    });
+
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    if (!user.mfaSetupRequired)
+      return res.status(400).json({ error: "La configuration MFA n'est pas requise" });
+
+    const stored = user.webauthnChallenge;
+    if (!stored || stored.expiresAt < new Date()) {
+      return res.status(400).json({ error: "Challenge expiré. Recommencez l'enregistrement." });
+    }
+
+    const { credentialName, ...registrationBody } = req.body as RegistrationResponseJSON & { credentialName?: string };
+
+    const { verified, registrationInfo } = await verifyRegistrationResponse({
+      response: registrationBody as RegistrationResponseJSON,
+      expectedChallenge: stored.challenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      requireUserVerification: false,
+    });
+
+    if (!verified || !registrationInfo) {
+      return res.status(403).json({ error: "L'enregistrement WebAuthn a échoué" });
+    }
+
+    const { credential, credentialDeviceType, credentialBackedUp } = registrationInfo;
+
+    // Transaction atomique : créer le credential + activer MFA + supprimer le challenge
+    await prisma.$transaction([
+      prisma.webAuthnCredential.create({
+        data: {
+          id: credential.id,
+          userId,
+          publicKey: Buffer.from(credential.publicKey),
+          counter: BigInt(credential.counter),
+          deviceType: credentialDeviceType,
+          backedUp: credentialBackedUp,
+          transports: credential.transports ?? [],
+          name: credentialName ?? 'Clé de sécurité',
+        },
+      }),
+      prisma.webAuthnChallenge.delete({ where: { userId } }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          mfaEnabled: true,
+          mfaMethod: 'webauthn',
+          mfaSetupRequired: false,
+          mfaSetupDate: new Date(),
+        },
+      }),
+    ]);
+
+    const newToken = await regenerateSessionTokenForUser(userId);
+    res.cookie('jwt', newToken, cookieOptions);
+
+    return res.status(200).json({ message: 'Clé de sécurité enregistrée avec succès' });
+  } catch (error) {
+    console.error('[WebAuthn register] error:', error);
+    return res.status(500).json({ error: 'Erreur lors de la vérification WebAuthn' });
+  }
 };
