@@ -170,7 +170,7 @@ export function UserFormDialog({
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="username">
-                Nom d'utilisation
+                Nom d'utilisateur
                 <span className="text-destructive">*</span>
               </FieldLabel>
               <Input
