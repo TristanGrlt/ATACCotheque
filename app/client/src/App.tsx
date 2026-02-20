@@ -15,6 +15,7 @@ import { Loading } from './components/loading.tsx'
 import { PERMISSIONS } from './config/permissions.ts'
 import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 import { MfaChallenge } from './routes/mfaChallenge.tsx'
+import Dashboard from './routes/admin/dashboard/dashboard.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -46,7 +47,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='dashboard' element={<AddUser />} />
+          <Route path='dashboard' element={<Dashboard />} />
           <Route path='toto' element={<LandingPage />} />
           
           {/* Routes protégées par permissions */}
