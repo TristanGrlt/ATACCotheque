@@ -35,7 +35,6 @@ export const getOnboardingStatus = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
-        isFirstLogin: true,
         passwordChangeRequired: true,
         mfaSetupRequired: true,
         mfaEnabled: true,
@@ -50,7 +49,6 @@ export const getOnboardingStatus = async (req: Request, res: Response) => {
     const onboardingComplete = !user.passwordChangeRequired && (!user.mfaSetupRequired || user.mfaEnabled);
 
     return res.status(200).json({
-      isFirstLogin: user.isFirstLogin,
       onboardingComplete,
       Steps: {
         passwordChange: {
@@ -130,7 +128,6 @@ export const changeFirstPassword = async (req: Request, res: Response) => {
       data: {
         password: hashedPassword,
         passwordChangeRequired: false,
-        isFirstLogin: false,
         lastPasswordChange: new Date()
       }
     });
