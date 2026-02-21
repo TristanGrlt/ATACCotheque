@@ -1,10 +1,11 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { apiRequest, getRequestMessage } from "@/services/api"
-import { AlertCircleIcon } from "lucide-react"
+import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react"
 import { useState } from "react"
 
 export default function ChangePasswordStep({ onSuccess }: { onSuccess: () => void }) {
@@ -13,6 +14,9 @@ export default function ChangePasswordStep({ onSuccess }: { onSuccess: () => voi
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const [isPasswordVisible, setPasswordVisible] = useState(false);
+  const [isPasswordVisible2, setPasswordVisible2] = useState(false);
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault()
@@ -69,24 +73,48 @@ export default function ChangePasswordStep({ onSuccess }: { onSuccess: () => voi
           </Field>
           <Field>
             <FieldLabel>Nouveau mot de passe</FieldLabel>
-            <Input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={8}
-            />
+            <ButtonGroup>
+              <Input
+                id="newPassword"
+                type={isPasswordVisible ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+              <Button
+                variant="outline"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPasswordVisible(!isPasswordVisible);
+                }}
+              >
+                {!isPasswordVisible ? <EyeClosed /> : <Eye />}
+              </Button>
+            </ButtonGroup>
           </Field>
           <Field>
             <FieldLabel>Confirmer le mot de passe</FieldLabel>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <ButtonGroup>
+              <Input
+                id="confirmPassword"
+                type={isPasswordVisible2 ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <Button
+                variant="outline"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPasswordVisible2(!isPasswordVisible2);
+                }}
+              >
+                {!isPasswordVisible2 ? <EyeClosed /> : <Eye />}
+              </Button>
+            </ButtonGroup>
           </Field>
           <Field>
             <Button 
