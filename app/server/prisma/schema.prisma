@@ -18,7 +18,6 @@ model User {
   username               String               @unique
   password               String
   // Onboarding
-  isFirstLogin           Boolean              @default(true)
   passwordChangeRequired Boolean              @default(true)
   mfaSetupRequired       Boolean              @default(true)
   mfaMethod              String? // 'totp' or 'webauthn'
