@@ -6,6 +6,7 @@ import { JWT_SECRET } from '../app.js';
 import { cookieOptions, preAuthCookieOptions } from '../utils/cookieOptions.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
 import { generateSessionToken, generatePreAuthToken } from '../utils/jwtHelper.js';
+import { Prisma } from '../generated/prisma/client.js';
 
 /**
  * Interface pour les données utilisateur dans les requêtes
@@ -154,14 +155,27 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       return res.status(403).json({ error : "L'utilisateur doit poséder au moins un role"})
     }
 
+    if(!username || !password) {
+      return res.status(400).json({ error: "Le nom d'utilisateur et le mot de passe sont requis" });
+    }
+
+    const tusername = username.trim();
+    if (tusername.length <= 3) {
+      return res.status(400).json({ error: "Le nom d'utilisateur doit contenir au moins 4 caratères" });
+    }
+
+    const tpassword = password.trim();
+    if (tpassword.length < 8) {
+      return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+    }
+
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(tpassword, saltRounds);
 
     const user = await prisma.user.create({
       data: {
-        username,
+        username: tusername,
         password: hashedPassword,
-        isFirstLogin: true,
         passwordChangeRequired: true,
         mfaSetupRequired: true, 
         userRoles: {
@@ -186,7 +200,7 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
 
     return res.status(201).json(sanitizedUser);
   } catch (error : any) {
-    if (error?.code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return res.status(400).json({
         error: `Le nom d'utilisateur "${req.body.username}" existe déjà`
       });
@@ -408,14 +422,27 @@ export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IU
     }
 
     const updateData: any = {};
+    let shouldDeleteMfaCredentials = false;
     // Si username modifier, l'appliqué
     if (username) {
-      updateData.username = username;
+      const tusername = username.trim();
+      if (tusername.length <= 3) {
+        return res.status(400).json({ error: "Le nom d'utilisateur doit contenir au moins 4 caratères" });
+      }
+      updateData.username = tusername;
+      updateData.mfaSetupRequired = true;
+      updateData.mfaEnabled = false;
+      shouldDeleteMfaCredentials = true;
     }
     // Si mot de passe donné, le hashé et appliqué
     if (password) {
+      const tpassword = password.trim();
+      if (tpassword.length < 8) {
+        return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+      }
       const saltRounds = 10;
-      updateData.password = await bcrypt.hash(password, saltRounds);
+      updateData.password = await bcrypt.hash(tpassword, saltRounds);
+      updateData.passwordChangeRequired = true;
     }
 
     // si roles modifier, appliqué avec vérification
@@ -451,13 +478,36 @@ export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IU
       };
     }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      include: {
-        userRoles: { include: { role: true } }
-      }
-    });
+    // Si le username change, supprimer les credentials MFA existants en transaction
+    let user;
+    if (shouldDeleteMfaCredentials) {
+      user = await prisma.$transaction(async (tx) => {
+        // Supprimer les credentials WebAuthn
+        await tx.webAuthnCredential.deleteMany({
+          where: { userId }
+        });
+        // Supprimer les challenges WebAuthn en attente
+        await tx.webAuthnChallenge.deleteMany({
+          where: { userId }
+        });
+        // Mettre à jour l'utilisateur
+        return tx.user.update({
+          where: { id: userId },
+          data: updateData,
+          include: {
+            userRoles: { include: { role: true } }
+          }
+        });
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: {
+          userRoles: { include: { role: true } }
+        }
+      });
+    }
 
     const { password: _pw, userRoles, ...userData } = user;
     const response = {
