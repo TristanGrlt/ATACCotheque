@@ -117,7 +117,7 @@ export default function MFASetupStep({ onSuccess }: { onSuccess: () => void }) {
       <p className="mb-6 text-muted-foreground">
         Voici vos codes de secours. <strong>Sauvegardez-les dans un endroit sûr</strong>.
       </p>
-      <div className="bg-gray-100 p-4 rounded mb-4 font-mono text-sm grid grid-cols-2 gap-2">
+      <div className="bg-muted p-4 rounded mb-4 font-mono text-sm grid grid-cols-2 gap-2">
         {backupCodes.map((code, i) => (
           <div key={i}>{code}</div>
         ))}
