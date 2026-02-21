@@ -84,7 +84,7 @@ export const changeFirstPassword = async (req: Request, res: Response) => {
   try {
     const { oldPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 8) {
+    if (!newPassword || newPassword.trim().length < 8) {
       return res.status(400).json({ error: "Le nouveau mot de passe doit contenir au moins 8 caractères" });
     }
 
@@ -109,18 +109,18 @@ export const changeFirstPassword = async (req: Request, res: Response) => {
     }
     
     // Vérifier que l'ancien mot de passe est correct
-    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    const isOldPasswordValid = await bcrypt.compare(oldPassword.trim(), user.password);
     if (!isOldPasswordValid) {
       return res.status(403).json({ error: "L'ancien mot de passe est incorrect" });
     }
 
     // Vérifier que le nouveau mot de passe est différent de l'ancien
-    const isNewPasswordSameAsOld = await bcrypt.compare(newPassword, user.password);
+    const isNewPasswordSameAsOld = await bcrypt.compare(newPassword.trim(), user.password);
     if (isNewPasswordSameAsOld) {
       return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'ancien" });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
 
     // Mettre à jour le mot de passe et marquer le changement de mot de passe comme terminé
     await prisma.user.update({
