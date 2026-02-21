@@ -46,7 +46,8 @@ export function UserFormDialog({
 
   // Charger les rôles une seule fois au montage
   useEffect(() => {
-    apiRequest.get('/role')
+    // Récupérer tous les rôles en utilisant un pageSize très grand
+    apiRequest.get('/role?pageSize=999999')
       .then(response => {
         setAvailableRoles(response.data.data || []);
       })
