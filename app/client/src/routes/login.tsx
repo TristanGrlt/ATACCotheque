@@ -15,7 +15,7 @@ import type { AxiosError } from "axios";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircleIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 
 export function Login() {
   const [username, setUsername] = useState('');
@@ -24,6 +24,7 @@ export function Login() {
   const [isLoading, setLoading] = useState(false);
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,7 +38,10 @@ export function Login() {
 
     try {
       await login({username, password})
-      navigate('/admin')
+      
+      // Redirige vers la page demandée initialement ou /admin par défaut
+      const from = (location.state as { from?: string })?.from || '/admin'
+      navigate(from, { replace: true })
     } catch (err) {
       const error = err as AxiosError<{ error?: string }>;
       setError(error.response?.data?.error || "Erreur de connexion");
