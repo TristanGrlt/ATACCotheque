@@ -93,8 +93,6 @@ model Role {
 
 enum AppPermission {
   MANAGE_USERS
-  MANAGE_ROLES
-  REVIEW_ANNALES
 }
 
 model UserRole {

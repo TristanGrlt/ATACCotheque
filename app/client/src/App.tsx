@@ -51,7 +51,7 @@ function App() {
           <Route path='toto' element={<LandingPage />} />
           
           {/* Routes protégées par permissions */}
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ROLES]} />}>
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
             <Route path='users' element={<UserIndex />} />
           </Route>
         </Route>
