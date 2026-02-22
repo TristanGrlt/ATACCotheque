@@ -508,17 +508,15 @@ export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IU
       });
     }
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const response = {
-      ...userData,
-      roles: userRoles.map(ur => ({ 
-        id: ur.role.id, 
-        name: ur.role.name, 
-        color: ur.role.color 
-      }))
+    const sanitizedUser: SessionUserResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
     };
-
-    return res.status(200).json(response);
+    res.status(200).json(sanitizedUser)
   } catch (error: any) {
     if (error?.code === 'P2002') {
       return res.status(400).json({
