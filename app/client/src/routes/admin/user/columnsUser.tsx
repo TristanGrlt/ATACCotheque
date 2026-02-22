@@ -1,7 +1,7 @@
 "use client"
 
 import { type ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { ArrowUpDown, Key, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -23,9 +23,10 @@ export type User = {
 type ColumnActions = {
   onEdit: (user: User) => void
   onDelete: (user: User) => void
+  onReinitMfa: (user: User) => void
 }
 
-export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<User>[] => [
+export const createColumns = ({ onEdit, onDelete, onReinitMfa }: ColumnActions): ColumnDef<User>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -95,6 +96,10 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onReinitMfa(user)}>
+              <Key />
+              Réinitialiser 2FA
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(user)}>
               <Pencil />
               Modifier
