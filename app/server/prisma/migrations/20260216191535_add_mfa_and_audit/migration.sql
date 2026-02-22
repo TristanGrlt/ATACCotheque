@@ -1,0 +1,12 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "isFirstLogin" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "lastPasswordChange" TIMESTAMP(3),
+ADD COLUMN     "mfaEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "mfaMethod" TEXT,
+ADD COLUMN     "mfaSetupDate" TIMESTAMP(3),
+ADD COLUMN     "mfaSetupRequired" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "passwordChangeRequired" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "totpBackupCodes" TEXT[],
+ADD COLUMN     "totpSecret" TEXT,
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -49,12 +49,14 @@ services:
       API_ENDPOINT: http://localhost:3000
       CORS_ORIGIN: http://localhost:5173
       FORCE_SEED: true
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_ORIGIN: http://localhost:5173
     ports:
       - "3000:3000"
     volumes:
       - ./app/server:/app
       - /app/node_modules
-      # 
+      #
       - ../files:/app/data/exams
     depends_on:
       - postgresql

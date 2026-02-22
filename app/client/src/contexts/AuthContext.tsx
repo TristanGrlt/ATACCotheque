@@ -29,11 +29,13 @@ const extractPermissions = (user: User | null): perms => {
 interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
-  login: (credentials?: { username: string; password: string } | null) => Promise<void>
+  login: (credentials?: { username: string; password: string } | null) => Promise<{ requiresMfa: boolean; mfaMethod?: string }>
+  refreshAuth: () => Promise<{ requiresOnboarding: boolean }>
   logout: () => Promise<void>
   forceLogout: () => void
   user: User | null
   perms: perms
+  requiresOnboarding: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser]= useState<User | null>(null)
   const [perms, setPerms] = useState<perms>([])
+  const [requiresOnboarding, setRequiresOnboarding] = useState(false)
   const navigate = useNavigate()
 
   /**
@@ -76,7 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(data)
           setPerms(extractPermissions(data))
           setIsAuthenticated(true)
-      navigate  }
+          setRequiresOnboarding(data.requiredOnboarding ?? false)
+        }
       } catch (err) {
         setIsAuthenticated(false)
       } finally {
@@ -87,19 +91,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth()
   }, [])
 
-  const login = async (credentials?: { username: string; password: string } | null) => {
+  const login = async (credentials?: { username: string; password: string } | null): Promise<{ requiresMfa: boolean; mfaMethod?: string }> => {
     try {
       const { data } = credentials 
         ? await apiRequest.post('/user/login', credentials)
         : await apiRequest.get('/user/verify')
       
+      // Credentials valides mais MFA requis : ne pas encore authentifier
+      if (data?.requiresMfa === true) {
+        return { requiresMfa: true, mfaMethod: data.mfaMethod }
+      }
+
       setUser(data)
       setPerms(extractPermissions(data))
       setIsAuthenticated(true)
+      setRequiresOnboarding(data.requiredOnboarding ?? false)
+      return { requiresMfa: false }
     } catch (err) {
       console.error('Erreur lors de la connexion', err)
       throw err
     }
+  }
+
+  /**
+   * Rafraîchit l'état d'authentification depuis le serveur.
+   * Utilisé après la validation MFA pour hydrater le contexte avec le session token.
+   */
+  const refreshAuth = async (): Promise<{ requiresOnboarding: boolean }> => {
+    const { data } = await apiRequest.get('/user/verify')
+    setUser(data)
+    setPerms(extractPermissions(data))
+    setIsAuthenticated(true)
+    const needsOnboarding = data.requiredOnboarding ?? false
+    setRequiresOnboarding(needsOnboarding)
+    return { requiresOnboarding: needsOnboarding }
   }
 
   const logout = async () => {
@@ -117,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, forceLogout, user, perms }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, refreshAuth, logout, forceLogout, user, perms, requiresOnboarding }}>
       {children}
     </AuthContext.Provider>
   )

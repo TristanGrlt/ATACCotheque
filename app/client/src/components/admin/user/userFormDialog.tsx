@@ -6,7 +6,7 @@ import { Input } from "../../ui/input";
 import { Spinner } from "../../ui/spinner";
 import { Toggle } from "../../ui/toggle";
 import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
-import { AlertCircleIcon, Eye, EyeClosed } from "lucide-react";
+import { AlertCircleIcon, Drama, Eye, EyeClosed } from "lucide-react";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { ButtonGroup } from "../../ui/button-group";
 import { toast } from "sonner";
@@ -46,7 +46,8 @@ export function UserFormDialog({
 
   // Charger les rôles une seule fois au montage
   useEffect(() => {
-    apiRequest.get('/role')
+    // Récupérer tous les rôles en utilisant un pageSize très grand
+    apiRequest.get('/role?pageSize=999999')
       .then(response => {
         setAvailableRoles(response.data.data || []);
       })
@@ -170,7 +171,7 @@ export function UserFormDialog({
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="username">
-                Nom d'utilisation
+                Nom d'utilisateur
                 <span className="text-destructive">*</span>
               </FieldLabel>
               <Input
@@ -247,14 +248,15 @@ export function UserFormDialog({
                       key={role.id}
                       pressed={selectedRoles.includes(role.name)}
                       onPressedChange={(pressed) => {
-                        if (pressed) {
-                          setSelectedRoles([...selectedRoles, role.name]);
-                        } else {
-                          setSelectedRoles(selectedRoles.filter(r => r !== role.name));
-                        }
+                      if (pressed) {
+                        setSelectedRoles([...selectedRoles, role.name]);
+                      } else {
+                        setSelectedRoles(selectedRoles.filter(r => r !== role.name));
+                      }
                       }}
                       variant="outline"
                     >
+                      <Drama className={selectedRoles.includes(role.name) ? "opacity-100" : "opacity-50"} />
                       <UserBadge text={role.name} color={role.color || '#808080'} />
                     </Toggle>
                   ))}

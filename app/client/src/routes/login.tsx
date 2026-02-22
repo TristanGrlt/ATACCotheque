@@ -6,6 +6,7 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -16,17 +17,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircleIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, useLocation } from "react-router-dom"
+import { startAuthentication } from "@simplewebauthn/browser"
+import { apiRequest } from "@/services/api"
 
 export function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(false);
-  const { login } = useAuth()
+  const [isPasskeyLoading, setPasskeyLoading] = useState(false);
+  const { login, refreshAuth } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true)
 
@@ -37,9 +41,15 @@ export function Login() {
     }
 
     try {
-      await login({username, password})
-      
-      // Redirige vers la page demandée initialement ou /admin par défaut
+      const result = await login({ username, password })
+
+      if (result.requiresMfa) {
+        // Rediriger vers le challenge MFA en passant la méthode et la destination
+        const from = (location.state as { from?: string })?.from || '/admin'
+        navigate('/mfa-challenge', { state: { method: result.mfaMethod, from } })
+        return
+      }
+
       const from = (location.state as { from?: string })?.from || '/admin'
       navigate(from, { replace: true })
     } catch (err) {
@@ -47,6 +57,37 @@ export function Login() {
       setError(error.response?.data?.error || "Erreur de connexion");
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePasskeyLogin = async () => {
+    setPasskeyLoading(true)
+    setError(null)
+
+    try {
+      // Obtenir le challenge discoverable
+      const { data } = await apiRequest.get('/auth/passkey/challenge')
+      const { challengeId, ...optionsJSON } = data
+
+      // Déclencher le sélecteur natif de passkeys
+      const assertion = await startAuthentication({ optionsJSON })
+
+      // Envoyer la réponse signée + challengeId au serveur
+      await apiRequest.post('/auth/passkey/verify', { challengeId, ...assertion })
+
+      //  Session cookie posé — hydrater le contexte
+      const from = (location.state as { from?: string })?.from || '/admin'
+      const { requiresOnboarding } = await refreshAuth()
+      navigate(requiresOnboarding ? '/onboarding' : from, { replace: true })
+    } catch (err: any) {
+      if (err?.name === 'NotAllowedError') {
+        setError('Authentification annulée.')
+      } else {
+        const axiosErr = err as AxiosError<{ error?: string }>
+        setError(axiosErr.response?.data?.error ?? 'Authentification passkey échouée. Réessayez.')
+      }
+    } finally {
+      setPasskeyLoading(false)
     }
   }
 
@@ -101,6 +142,20 @@ export function Login() {
                   {isLoading
                     ? <Spinner />
                   :"Se connecter"}
+                </Button>
+              </Field>
+              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                Ou continuer avec
+              </FieldSeparator>
+              <Field>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handlePasskeyLogin}
+                  disabled={isPasskeyLoading}
+                >
+                  {isPasskeyLoading ? <Spinner /> : '🔑 Se connecter avec une passkey'}
                 </Button>
               </Field>
             </FieldGroup>
