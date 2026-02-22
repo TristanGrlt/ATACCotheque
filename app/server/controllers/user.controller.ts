@@ -17,7 +17,7 @@ interface IUser {
   roleIds:  Number[];
 }
 
-type LoginResponse = {
+type SessionUserResponse = {
   id: string;
   username: string;
   roles: {
@@ -78,14 +78,13 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
     });
 
     const sanitizedUsers = usersList.map(user => {
-      const { password: _pw, userRoles, ...userData } = user;
       return {
-        ...userData,
-        roles: userRoles.map(ur => ({
-          id: ur.role.id,
-          name: ur.role.name,
-          color: ur.role.color
-        }))
+        id: user.id,
+        username: user.username,
+        roles: user.userRoles.map(ur => ur.role),
+        requiredOnboarding:
+          user.passwordChangeRequired ||
+          (user.mfaSetupRequired && !user.mfaEnabled)
       };
     });
 
@@ -189,7 +188,7 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       }
     });
 
-    const sanitizedUser: LoginResponse = {
+    const sanitizedUser: SessionUserResponse = {
       id: user.id,
       username: user.username,
       roles: user.userRoles.map(ur => ur.role),
@@ -288,7 +287,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
 
   res.cookie('jwt', token, cookieOptions);
 
-  const sanitizedUser: LoginResponse = {
+  const sanitizedUser: SessionUserResponse = {
     id: user.id,
     username: user.username,
     roles: user.userRoles.map(ur => ur.role),
@@ -370,7 +369,7 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     res.cookie('jwt', token, cookieOptions);
     
-    const sanitizedUser: LoginResponse = {
+    const sanitizedUser: SessionUserResponse = {
       id: user.id,
       username: user.username,
       roles: user.userRoles.map(ur => ur.role),
