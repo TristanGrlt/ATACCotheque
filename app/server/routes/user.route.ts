@@ -5,6 +5,7 @@ import { verifyPerms } from '../middlewares/verifyPerms.js';
 import { AppPermission } from '../generated/prisma/enums.js';
 import { verifyOnboardingCompleted } from '../middlewares/verifyOnboarding.js';
 import { loginLimiter } from '../lib/rateLimiter.js';
+import { reinitMfa } from '../controllers/mfa.controller.js';
 
 const router = Router();
 
@@ -12,6 +13,8 @@ router.get('/', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermissio
 router.delete('/:userId', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), deleteUser);
 
 router.put('/:userId', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), updateUser);
+
+router.put('/:userId/reinit-mfa', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), reinitMfa)
 
 router.post('/signup', verifyToken, verifyOnboardingCompleted, verifyPerms(AppPermission.MANAGE_USERS), signupUser);
 router.post('/login', loginLimiter, loginUser);

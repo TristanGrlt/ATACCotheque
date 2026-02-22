@@ -142,3 +142,52 @@ export const verifyMfaLogin = async (req: Request, res: Response) => {
     requiresOnboarding: user.passwordChangeRequired,
   });
 };
+
+export const reinitMfa = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({ error: 'ID utilisateur requis.' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, mfaEnabled: true, mfaMethod: true },
+  });
+
+  if (!user) {
+    return res.status(404).json({ error: 'Utilisateur non trouvé.' });
+  }
+
+  if (!user.mfaEnabled || !user.mfaMethod) {
+    return res.status(400).json({ error: 'MFA non configuré pour cet utilisateur.' });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Supprimer les credentials WebAuthn
+        await tx.webAuthnCredential.deleteMany({
+          where: { userId }
+        });
+        // Supprimer les challenges WebAuthn en attente
+        await tx.webAuthnChallenge.deleteMany({
+          where: { userId }
+        });
+        // Mettre à jour l'utilisateur
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            mfaEnabled: false,
+            mfaMethod: null,
+            totpSecret: null,
+            totpBackupCodes: [],
+            mfaSetupRequired: true,
+            mfaSetupDate: null,
+          }
+        });
+    });
+    return res.status(200).json({ message: 'MFA réinitialisé avec succès.' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erreur lors de la réinitialisation MFA.' });
+  }
+}
