@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma.js';
-import { isArray } from 'node:util';
 
 
 export const getLevel = async (req: Request, res: Response) => {
