@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
-import { EllipsisVertical, Home, Inbox, LogOut, Monitor, Moon, Sun, User } from "lucide-react"
+import { EllipsisVertical, GraduationCap, Home, Inbox, LogOut, Monitor, Moon, Sun, User } from "lucide-react"
  
 import {
   Sidebar,
@@ -59,6 +59,11 @@ const items = [
     url: "users",
     icon: User,
     permission: PERMISSIONS.MANAGE_USERS,
+  },
+  {
+    title: "Maquette pédagogique",
+    url: "pedago",
+    icon: GraduationCap,
   },
 ]
 

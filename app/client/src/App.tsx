@@ -13,6 +13,7 @@ import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
 import { Loading } from './components/loading.tsx'
 import { PERMISSIONS } from './config/permissions.ts'
+import { Pedago } from './routes/admin/pedago/pedago.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -40,6 +41,7 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<AddUser />} />
           <Route path='toto' element={<LandingPage />} />
+          <Route path='pedago' element={<Pedago />} />
           
           {/* Routes protégées par permissions */}
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ROLES]} />}>

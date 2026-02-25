@@ -1,0 +1,407 @@
+import { Button } from "@/components/ui/button"
+import { EditableDeletableItemList, type ListItem } from "@/components/admin/pedago/EditableDeletableItemList"
+import { ParcoursForm, type ParcoursFormData, type Major } from "@/components/admin/pedago/ParcoursForm"
+import { LevelForm, type LevelFormData, type Level } from "@/components/admin/pedago/LevelForm"
+import { CourseForm, type CourseFormData, type ExamType } from "@/components/admin/pedago/CourseForm"
+import { RefDialog } from "@/components/admin/pedago/refDialog"
+import { ArrowLeft, BookOpen, Layers, Network, Plus, Settings, X } from "lucide-react"
+import { useMemo, useState } from "react"
+
+// ── Data types ─────────────────────────────────────────
+
+interface Parcours {
+  id: number;
+  name: string;
+  majorIds: number[];
+  levelIds: number[];
+}
+
+interface Course {
+  id: number;
+  name: string;
+  semestre: number;
+  levelId: number;
+  parcoursIds: number[];
+  examTypeIds: number[];
+}
+
+// ── Main page ──────────────────────────────────────────
+
+export function Pedago() {
+
+  // --- Référentiels ---
+  const [majors, setMajors] = useState<Major[]>([
+    { id: 1, name: 'Informatique', color: 'bg-blue-100 text-blue-800' },
+    { id: 2, name: 'Mathématiques', color: 'bg-emerald-100 text-emerald-800' },
+    { id: 3, name: 'Physique', color: 'bg-amber-100 text-amber-800' },
+    { id: 4, name: 'EEEA', color: 'bg-purple-100 text-purple-800' }
+  ]);
+
+  const [levels, setLevels] = useState<Level[]>([
+    { id: 1, name: 'L1' }, { id: 2, name: 'L2' }, { id: 3, name: 'L3' },
+    { id: 4, name: 'M1' }, { id: 5, name: 'M2' }
+  ]);
+
+  const [examTypes, setExamTypes] = useState<ExamType[]>([
+    { id: 1, name: 'cc1' }, { id: 2, name: 'cc2' },
+    { id: 3, name: 'cctp' }, { id: 4, name: 'SC' }
+  ]);
+
+  const [showRefDialog, setShowRefDialog] = useState(false);
+
+  // --- Données Métier ---
+  const [parcours, setParcours] = useState<Parcours[]>([
+    { id: 1, name: 'Portail IEEEA', majorIds: [1, 4], levelIds: [1] },
+    { id: 2, name: 'Informatique', majorIds: [1], levelIds: [2, 3, 4] }
+  ]);
+
+  const [courses, setCourses] = useState<Course[]>([
+    { id: 1, name: 'Algorithmique', semestre: 1, levelId: 1, parcoursIds: [1], examTypeIds: [1, 2, 4] },
+    { id: 2, name: 'Algèbre', semestre: 1, levelId: 1, parcoursIds: [1], examTypeIds: [1, 4] },
+    { id: 3, name: 'Base de données', semestre: 3, levelId: 2, parcoursIds: [2], examTypeIds: [1, 3, 4] }
+  ]);
+
+  // --- Sélection ---
+  const [selectedParcoursId, setSelectedParcoursId] = useState<number | null>(null);
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
+
+  const selectedParcours = parcours.find((p) => p.id === selectedParcoursId) ?? null;
+  const selectedLevel = levels.find((l) => l.id === selectedLevelId) ?? null;
+
+  // ── Helpers pour mapper les items avec badges ────────
+
+  const parcoursItems = useMemo<(ListItem & Parcours)[]>(
+    () =>
+      parcours.map((p) => ({
+        ...p,
+        badges: p.majorIds
+          .map((mId) => {
+            const major = majors.find((m) => m.id === mId);
+            return major ? { id: major.id, label: major.name, className: major.color } : null;
+          })
+          .filter(Boolean) as { id: number; label: string; className: string }[],
+      })),
+    [parcours, majors]
+  );
+
+  const filteredLevels = useMemo(() => {
+    if (!selectedParcours) return [];
+    return levels.filter((l) => selectedParcours.levelIds.includes(l.id));
+  }, [selectedParcours, levels]);
+
+  const levelItems = useMemo<(ListItem & Level)[]>(
+    () => filteredLevels.map((l) => ({ ...l, badges: [] })),
+    [filteredLevels]
+  );
+
+  const filteredCourses = useMemo(() => {
+    if (!selectedParcoursId || !selectedLevelId) return [];
+    return courses.filter(
+      (c) => c.parcoursIds.includes(selectedParcoursId) && c.levelId === selectedLevelId
+    );
+  }, [courses, selectedParcoursId, selectedLevelId]);
+
+  const courseItems = useMemo<(ListItem & Course)[]>(
+    () =>
+      filteredCourses.map((c) => ({
+        ...c,
+        badges: c.examTypeIds
+          .map((eId) => {
+            const et = examTypes.find((e) => e.id === eId);
+            return et ? { id: et.id, label: et.name } : null;
+          })
+          .filter(Boolean) as { id: number; label: string }[],
+      })),
+    [filteredCourses, examTypes]
+  );
+
+  // ── CRUD handlers ────────────────────────────────────
+
+  const handleAddParcours = (data: ParcoursFormData) => {
+    const newId = Math.max(0, ...parcours.map((p) => p.id)) + 1;
+    setParcours((prev) => [...prev, { id: newId, name: data.name, majorIds: data.majorIds, levelIds: [] }]);
+  };
+
+  const handleEditParcours = (id: number, data: ParcoursFormData) => {
+    setParcours((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name: data.name, majorIds: data.majorIds } : p))
+    );
+  };
+
+  const handleDeleteParcours = (item: ListItem) => {
+    setParcours((prev) => prev.filter((p) => p.id !== item.id));
+    if (selectedParcoursId === item.id) {
+      setSelectedParcoursId(null);
+      setSelectedLevelId(null);
+    }
+  };
+
+  const handleAddLevel = (data: LevelFormData) => {
+    if (!selectedParcours || data.levelId == null) return;
+    setParcours((prev) =>
+      prev.map((p) =>
+        p.id === selectedParcours.id && !p.levelIds.includes(data.levelId!)
+          ? { ...p, levelIds: [...p.levelIds, data.levelId!] }
+          : p
+      )
+    );
+  };
+
+  const handleDeleteLevel = (item: ListItem) => {
+    if (!selectedParcours) return;
+    setParcours((prev) =>
+      prev.map((p) =>
+        p.id === selectedParcours.id
+          ? { ...p, levelIds: p.levelIds.filter((id) => id !== item.id) }
+          : p
+      )
+    );
+    if (selectedLevelId === item.id) setSelectedLevelId(null);
+  };
+
+  const handleAddCourse = (data: CourseFormData) => {
+    if (!selectedParcoursId || !selectedLevelId) return;
+    const newId = Math.max(0, ...courses.map((c) => c.id)) + 1;
+    setCourses((prev) => [
+      ...prev,
+      {
+        id: newId,
+        name: data.name,
+        semestre: data.semestre,
+        levelId: selectedLevelId,
+        parcoursIds: [selectedParcoursId],
+        examTypeIds: data.examTypeIds,
+      },
+    ]);
+  };
+
+  const handleEditCourse = (id: number, data: CourseFormData) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, name: data.name, semestre: data.semestre, examTypeIds: data.examTypeIds } : c
+      )
+    );
+  };
+
+  const handleDeleteCourse = (item: ListItem) => {
+    setCourses((prev) => prev.filter((c) => c.id !== item.id));
+  };
+
+  // ── Columns ──────────────────────────────────────────
+
+  const ParcoursColumn = () => {
+    const [isAdding, setIsAdding] = useState(false);
+    const visibilityClass = selectedParcoursId ? 'hidden lg:flex' : 'flex';
+
+    return (
+      <div className={`${visibilityClass} w-full lg:w-1/3 xl:w-1/4 rounded-2xl border flex-col h-full`}>
+        <div className="p-2 border bg-muted rounded-t-xl flex justify-between items-center">
+          <h2 className="font-bold flex items-center gap-2 pl-2">
+            <Network size={18} />
+            Parcours
+          </h2>
+          <Button onClick={() => setIsAdding(!isAdding)} variant="outline">
+            {isAdding ? <X /> : <Plus />}
+          </Button>
+        </div>
+        <div className="p-3 flex-1 overflow-y-auto">
+          {isAdding && (
+            <ParcoursForm
+              mode="create"
+              majors={majors}
+              onSubmit={(data) => {
+                handleAddParcours(data);
+                setIsAdding(false);
+              }}
+              onCancel={() => setIsAdding(false)}
+            />
+          )}
+          <EditableDeletableItemList
+            items={parcoursItems}
+            selectedId={selectedParcoursId}
+            onSelect={(item) => {
+              setSelectedParcoursId(item.id as number);
+              setSelectedLevelId(null);
+            }}
+            onDelete={handleDeleteParcours}
+            deleteLabel="ce parcours"
+            emptyMessage="Aucun parcours"
+            renderForm={(item, onCancel) => (
+              <ParcoursForm
+                mode="edit"
+                majors={majors}
+                initialData={{ name: item.name, majorIds: item.majorIds }}
+                onSubmit={(data) => {
+                  handleEditParcours(item.id as number, data);
+                  onCancel();
+                }}
+                onCancel={onCancel}
+              />
+            )}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const LevelColumn = () => {
+    const [isAdding, setIsAdding] = useState(false);
+    const isVisibleOnMobile = selectedParcoursId && !selectedLevelId;
+    const visibilityClass = isVisibleOnMobile ? 'flex' : 'hidden lg:flex';
+
+    if (!selectedParcours) return (
+      <div className="hidden lg:flex w-1/4 bg-muted rounded-xl border flex-col items-center justify-center space-y-3 h-full">
+        <Layers size={32} />
+        <p className="text-sm font-medium text-center px-4">Sélectionnez un parcours<br />pour gérer ses niveaux</p>
+      </div>
+    );
+
+    return (
+      <div className={`${visibilityClass} w-full lg:w-1/3 xl:w-1/4 rounded-2xl border flex-col h-full`}>
+        <div className="p-2 border bg-muted rounded-t-xl flex justify-between items-center">
+          <h2 className="font-bold flex items-center gap-2 pl-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden p-1 h-auto"
+              onClick={() => { setSelectedParcoursId(null); setSelectedLevelId(null); }}
+            >
+              <ArrowLeft size={18} />
+            </Button>
+            <Layers size={18} />
+            Niveaux
+          </h2>
+          <Button onClick={() => setIsAdding(!isAdding)} variant="outline">
+            {isAdding ? <X /> : <Plus />}
+          </Button>
+        </div>
+        <div className="p-3 flex-1 overflow-y-auto">
+          {isAdding && (
+            <LevelForm
+              mode="create"
+              levels={levels}
+              onSubmit={(data) => {
+                handleAddLevel(data);
+                setIsAdding(false);
+              }}
+              onCancel={() => setIsAdding(false)}
+            />
+          )}
+          <EditableDeletableItemList
+            items={levelItems}
+            selectedId={selectedLevelId}
+            onSelect={(item) => setSelectedLevelId(item.id as number)}
+            onDelete={handleDeleteLevel}
+            deleteLabel="ce niveau"
+            emptyMessage="Aucun niveau dans ce parcours"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const CourseColumn = () => {
+    const [isAdding, setIsAdding] = useState(false);
+    const isVisibleOnMobile = selectedLevelId !== null;
+    const visibilityClass = isVisibleOnMobile ? 'flex' : 'hidden lg:flex';
+
+    if (!selectedLevel) return (
+      <div className="hidden lg:flex bg-muted rounded-xl border flex-col items-center justify-center space-y-3 h-full w-full lg:w-1/3 xl:w-1/2">
+        <BookOpen size={32} />
+        <p className="text-sm font-medium text-center px-4">Sélectionnez un niveau <br /> pour voir ses cours</p>
+      </div>
+    );
+
+    return (
+      <div className={`${visibilityClass} w-full lg:w-1/3 xl:w-1/2 rounded-2xl border flex-col h-full`}>
+        <div className="p-2 border bg-muted rounded-t-xl flex justify-between items-center">
+          <h2 className="font-bold flex items-center gap-2 pl-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden p-1 h-auto"
+              onClick={() => setSelectedLevelId(null)}
+            >
+              <ArrowLeft size={18} />
+            </Button>
+            <BookOpen size={18} />
+            Cours
+          </h2>
+          <Button onClick={() => setIsAdding(!isAdding)} variant="outline">
+            {isAdding ? <X /> : <Plus />}
+          </Button>
+        </div>
+        <div className="p-3 flex-1 overflow-y-auto">
+          {isAdding && (
+            <CourseForm
+              mode="create"
+              examTypes={examTypes}
+              onSubmit={(data) => {
+                handleAddCourse(data);
+                setIsAdding(false);
+              }}
+              onCancel={() => setIsAdding(false)}
+            />
+          )}
+          <EditableDeletableItemList
+            items={courseItems}
+            selectedId={null}
+            onDelete={handleDeleteCourse}
+            deleteLabel="ce cours"
+            emptyMessage="Aucun cours pour ce niveau"
+            renderForm={(item, onCancel) => (
+              <CourseForm
+                mode="edit"
+                examTypes={examTypes}
+                initialData={{
+                  name: item.name,
+                  semestre: item.semestre,
+                  examTypeIds: item.examTypeIds,
+                }}
+                onSubmit={(data) => {
+                  handleEditCourse(item.id as number, data);
+                  onCancel();
+                }}
+                onCancel={onCancel}
+              />
+            )}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="m-3">
+      <div className="mb-6 flex justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Maquette pédagogique</h1>
+          <p className="text-muted-foreground mt-2">
+            Gestion des cours <br />
+          </p>
+        </div>
+          <Button onClick={() => setShowRefDialog(true)}>
+            <Settings />
+            Référenciels
+          </Button>
+      </div>
+
+      <div className="max-w-7xl mx-auto h-[75vh] min-h-125 flex flex-col lg:flex-row gap-1 lg:gap-2">
+        <ParcoursColumn />
+        <LevelColumn />
+        <CourseColumn />
+      </div>
+
+      <RefDialog
+        open={showRefDialog}
+        onOpenChange={setShowRefDialog}
+        majors={majors}
+        levels={levels}
+        examTypes={examTypes}
+        onMajorsChange={setMajors}
+        onLevelsChange={setLevels}
+        onExamTypesChange={setExamTypes}
+      />
+    </div>
+  )
+}
