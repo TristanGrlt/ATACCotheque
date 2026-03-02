@@ -12,7 +12,7 @@ import {
   EditableDeletableItemList,
   type ListItem,
 } from "@/components/admin/pedago/EditableDeletableItemList";
-import { FileText, Folder, Layers, Network, Plus } from "lucide-react";
+import { FileText, Folder, Layers, Plus } from "lucide-react";
 import { useState } from "react";
 
 // ── Types ──────────────────────────────────────────────
@@ -107,8 +107,6 @@ export function RefDialog({
 }: RefDialogProps) {
   const [newItemName, setNewItemName] = useState("");
   const [activeTab, setActiveTab] = useState("majors");
-
-  const generateId = () => Date.now() + Math.floor(Math.random() * 1000);
 
   // ── Add ──
 
