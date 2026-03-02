@@ -52,9 +52,10 @@ model Major {
 }
 
 model Level {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique // ex: L1, L2, L3, M1, M2
-  courses Course[]
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: L1, L2, L3, M1, M2
+  courses  Course[]
+  parcours Parcours[]
 }
 
 model Parcours {
@@ -62,6 +63,7 @@ model Parcours {
   name    String   @unique // ex: "Portail IEEEA", "Informatique", "Master SSI"
   majors  Major[]
   courses Course[]
+  levels  Level[]
 }
 
 model Course {
