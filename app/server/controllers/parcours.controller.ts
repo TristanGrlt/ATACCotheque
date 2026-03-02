@@ -13,16 +13,25 @@ export const getParcours = async (req: Request, res: Response) => {
 }
 
 export const createParcours = async (req: Request, res: Response) => {
-  const { name } = req.body;
+  const { name, levelIds } = req.body;
 
   const trimedName = name?.trim();
    if (!trimedName) {
     return res.status(400).json({ error: "Le nom du parcours est obligatoire" });
   }
 
+  if (!levelIds || levelIds.length === 0) {
+    return res.status(400).json({ error: "Au moins un niveau doit être associé au parcours" });
+  }
+
   try {
     const parcours = await prisma.parcours.create({
-      data: { name : trimedName }
+      data: { 
+        name : trimedName,
+        levels: {
+          connect : levelIds.map((id: number) => ({ id }))
+        }
+      }
     });
     return res.status(201).json(parcours);
   } catch (error: any) {
@@ -63,10 +72,14 @@ export const deleteParcours = async (req: Request, res: Response) => {
 
 export const updateParcours = async (req: Request, res: Response) => {
   const { parcoursId } = req.params;
-  const { name } = req.body;
+  const { name, levelIds } = req.body;
 
   if (!parcoursId || Array.isArray(parcoursId) ) {
     return res.status(400).json({ error: "ID du parcours manquant ou invalide" });
+  }
+
+  if (!levelIds || levelIds.length === 0) {
+    return res.status(400).json({ error: "Au moins un niveau doit être associé au parcours" });
   }
 
   const trimedName = name?.trim();
@@ -77,7 +90,12 @@ export const updateParcours = async (req: Request, res: Response) => {
   try {
     const updatedParcours = await prisma.parcours.update({
       where: { id: parseInt(parcoursId, 10) },
-      data: { name: trimedName }
+      data: { 
+        name: trimedName,
+        levels: {
+          set: levelIds.map((id: number) => ({ id }))
+        }
+      }
     });
     return res.status(200).json(updatedParcours);
   } catch (error: any) {
