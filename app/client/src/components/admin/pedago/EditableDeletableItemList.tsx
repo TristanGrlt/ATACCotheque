@@ -13,7 +13,7 @@ export interface ItemBadge {
 }
 
 export interface ListItem {
-  id: number | string;
+  id: number;
   name: string;
   badges?: ItemBadge[];
 }
@@ -86,11 +86,7 @@ export function EditableDeletableItemList<T extends ListItem>({
           const isEditing = editingId === item.id;
 
           if (isEditing && renderForm) {
-            return (
-              <li key={item.id}>
-                {renderForm(item, handleCancelEdit)}
-              </li>
-            );
+            return <li key={item.id}>{renderForm(item, handleCancelEdit)}</li>;
           }
 
           return (
@@ -105,7 +101,8 @@ export function EditableDeletableItemList<T extends ListItem>({
               className={cn(
                 "group relative flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors cursor-pointer select-none",
                 "hover:bg-accent",
-                isSelected && "bg-accent border-primary/30 ring-1 ring-primary/20"
+                isSelected &&
+                  "bg-accent border-primary/30 ring-1 ring-primary/20",
               )}
             >
               {/* Item name */}

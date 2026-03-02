@@ -1,8 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EditableDeletableItemList, type ListItem } from "@/components/admin/pedago/EditableDeletableItemList";
+import {
+  EditableDeletableItemList,
+  type ListItem,
+} from "@/components/admin/pedago/EditableDeletableItemList";
 import { FileText, Folder, Layers, Network, Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -11,7 +20,6 @@ import { useState } from "react";
 export interface RefMajor {
   id: number;
   name: string;
-  color: string;
 }
 
 export interface RefLevel {
@@ -30,26 +38,18 @@ interface RefDialogProps {
   majors: RefMajor[];
   levels: RefLevel[];
   examTypes: RefExamType[];
-  onMajorsChange: (majors: RefMajor[]) => void;
-  onLevelsChange: (levels: RefLevel[]) => void;
-  onExamTypesChange: (examTypes: RefExamType[]) => void;
-}
-
-// ── Couleurs cycliques pour les filières ───────────────
-
-const MAJOR_COLORS = [
-  "bg-blue-100 text-blue-800",
-  "bg-emerald-100 text-emerald-800",
-  "bg-amber-100 text-amber-800",
-  "bg-purple-100 text-purple-800",
-  "bg-rose-100 text-rose-800",
-  "bg-cyan-100 text-cyan-800",
-  "bg-orange-100 text-orange-800",
-  "bg-indigo-100 text-indigo-800",
-];
-
-function getMajorColor(index: number) {
-  return MAJOR_COLORS[index % MAJOR_COLORS.length];
+  // Majors
+  onMajorAdded: (major: string) => Promise<void>;
+  onMajorUpdated: (id: number, name: string) => Promise<void>;
+  onMajorDeleted: (id: number) => Promise<void>;
+  // Levels
+  onLevelAdded: (level: string) => Promise<void>;
+  onLevelUpdated: (id: number, name: string) => Promise<void>;
+  onLevelDeleted: (id: number) => Promise<void>;
+  // ExamTypes
+  onExamTypeAdded: (examType: string) => Promise<void>;
+  onExamTypeUpdated: (id: number, name: string) => Promise<void>;
+  onExamTypeDeleted: (id: number) => Promise<void>;
 }
 
 // ── Inline rename form (simple input + cancel) ────────
@@ -77,10 +77,7 @@ function RenameForm({
         }}
         placeholder="Nom..."
       />
-      <Button
-        size="sm"
-        onClick={() => name.trim() && onSubmit(name.trim())}
-      >
+      <Button size="sm" onClick={() => name.trim() && onSubmit(name.trim())}>
         OK
       </Button>
       <Button size="sm" variant="outline" onClick={onCancel}>
@@ -98,9 +95,15 @@ export function RefDialog({
   majors,
   levels,
   examTypes,
-  onMajorsChange,
-  onLevelsChange,
-  onExamTypesChange,
+  onMajorAdded,
+  onMajorUpdated,
+  onMajorDeleted,
+  onLevelAdded,
+  onLevelUpdated,
+  onLevelDeleted,
+  onExamTypeAdded,
+  onExamTypeUpdated,
+  onExamTypeDeleted,
 }: RefDialogProps) {
   const [newItemName, setNewItemName] = useState("");
   const [activeTab, setActiveTab] = useState("majors");
@@ -109,44 +112,56 @@ export function RefDialog({
 
   // ── Add ──
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const name = newItemName.trim();
     if (!name) return;
 
-    if (activeTab === "majors") {
-      onMajorsChange([
-        ...majors,
-        { id: generateId(), name, color: getMajorColor(majors.length) },
-      ]);
-    } else if (activeTab === "levels") {
-      onLevelsChange([...levels, { id: generateId(), name }]);
-    } else {
-      onExamTypesChange([...examTypes, { id: generateId(), name }]);
+    try {
+      if (activeTab === "majors") {
+        const newMajor = name;
+        await onMajorAdded(newMajor);
+      } else if (activeTab === "levels") {
+        const newLevel = name;
+        await onLevelAdded(newLevel);
+      } else {
+        const newExamType = name;
+        await onExamTypeAdded(newExamType);
+      }
+      setNewItemName("");
+    } catch (error) {
+      throw error;
     }
-    setNewItemName("");
   };
 
   // ── Rename ──
 
-  const handleRename = (id: number | string, name: string) => {
-    if (activeTab === "majors") {
-      onMajorsChange(majors.map((m) => (m.id === id ? { ...m, name } : m)));
-    } else if (activeTab === "levels") {
-      onLevelsChange(levels.map((l) => (l.id === id ? { ...l, name } : l)));
-    } else {
-      onExamTypesChange(examTypes.map((e) => (e.id === id ? { ...e, name } : e)));
+  const handleRename = async (id: number, name: string) => {
+    try {
+      if (activeTab === "majors") {
+        await onMajorUpdated(id, name);
+      } else if (activeTab === "levels") {
+        await onLevelUpdated(id, name);
+      } else {
+        await onExamTypeUpdated(id, name);
+      }
+    } catch (error) {
+      throw error;
     }
   };
 
   // ── Delete ──
 
-  const handleDelete = (item: ListItem) => {
-    if (activeTab === "majors") {
-      onMajorsChange(majors.filter((m) => m.id !== item.id));
-    } else if (activeTab === "levels") {
-      onLevelsChange(levels.filter((l) => l.id !== item.id));
-    } else {
-      onExamTypesChange(examTypes.filter((e) => e.id !== item.id));
+  const handleDelete = async (item: ListItem) => {
+    try {
+      if (activeTab === "majors") {
+        await onMajorDeleted(item.id);
+      } else if (activeTab === "levels") {
+        await onLevelDeleted(item.id);
+      } else {
+        await onExamTypeDeleted(item.id);
+      }
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -155,10 +170,13 @@ export function RefDialog({
   const majorItems: ListItem[] = majors.map((m) => ({
     id: m.id,
     name: m.name,
-    badges: [{ id: m.id, label: m.name, className: m.color }],
+    badges: [{ id: m.id, label: m.name }],
   }));
 
-  const levelItems: ListItem[] = levels.map((l) => ({ id: l.id, name: l.name }));
+  const levelItems: ListItem[] = levels.map((l) => ({
+    id: l.id,
+    name: l.name,
+  }));
 
   const examTypeItems: ListItem[] = examTypes.map((e) => ({
     id: e.id,
@@ -187,7 +205,8 @@ export function RefDialog({
             Référentiels Globaux
           </DialogTitle>
           <DialogDescription>
-            Gérez les filières, niveaux et types d'examen de votre établissement.
+            Gérez les filières, niveaux et types d'examen de votre
+            établissement.
           </DialogDescription>
         </DialogHeader>
 
@@ -216,7 +235,11 @@ export function RefDialog({
           </TabsList>
 
           {/* Single shared content area — rendered from the active tab */}
-          <TabsContent value={activeTab} className="flex-1 overflow-hidden flex flex-col" forceMount>
+          <TabsContent
+            value={activeTab}
+            className="flex-1 overflow-hidden flex flex-col"
+            forceMount
+          >
             {/* Add bar */}
             <div className="flex gap-2 px-6 py-4">
               <Input

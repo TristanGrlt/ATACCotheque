@@ -4,6 +4,11 @@ import dotenv from 'dotenv';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
 import roleRouter from './routes/role.route.js';
+import majorRouter from './routes/major.route.js';
+import levelRouter from './routes/level.route.js';
+import parcoursRouter from './routes/parcours.route.js';
+import examTypeRouter from './routes/examType.route.js';
+
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -24,6 +29,10 @@ app.use(cookieParser());
 app.use('/health', healthRouter);
 app.use('/user', userRouter);
 app.use('/role', roleRouter);
+app.use('/major', majorRouter);
+app.use('/level', levelRouter);
+app.use('/parcours', parcoursRouter);
+app.use('/exam-type', examTypeRouter);
 
 
 // JWT_SECRET

@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 export interface Major {
   id: number;
   name: string;
-  color: string;
 }
 
 export interface ParcoursFormData {
@@ -73,7 +72,7 @@ export function ParcoursForm({
                   pressed={selectedMajorIds.includes(major.id)}
                   onPressedChange={() => toggleMajor(major.id)}
                 >
-                  <span className={`${major.color} px-2 py-1 rounded-full text-xs`}>
+                  <span className={`px-2 py-1 rounded-full text-xs`}>
                     {major.name}
                   </span>
                 </Toggle>
