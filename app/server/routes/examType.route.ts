@@ -5,8 +5,8 @@ const router = Router();
 
 router.get('/', getExamType);
 router.post('/', createExamType);
-router.put('/:levelId', updateExamType);
-router.delete('/:levelId', deleteExamType);
+router.put('/:examTypeId', updateExamType);
+router.delete('/:examTypeId', deleteExamType);
 
 
 export default router;
