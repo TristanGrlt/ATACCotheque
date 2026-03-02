@@ -20,10 +20,6 @@ export const createParcours = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Le nom du parcours est obligatoire" });
   }
 
-  if (!levelIds || levelIds.length === 0) {
-    return res.status(400).json({ error: "Au moins un niveau doit être associé au parcours" });
-  }
-
   try {
     const parcours = await prisma.parcours.create({
       data: { 
@@ -76,10 +72,6 @@ export const updateParcours = async (req: Request, res: Response) => {
 
   if (!parcoursId || Array.isArray(parcoursId) ) {
     return res.status(400).json({ error: "ID du parcours manquant ou invalide" });
-  }
-
-  if (!levelIds || levelIds.length === 0) {
-    return res.status(400).json({ error: "Au moins un niveau doit être associé au parcours" });
   }
 
   const trimedName = name?.trim();
