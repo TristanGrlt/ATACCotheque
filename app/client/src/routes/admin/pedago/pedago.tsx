@@ -29,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { apiRequest } from "@/services/api";
+import { apiRequest, getRequestMessage } from "@/services/api";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
@@ -39,7 +39,6 @@ interface Parcours {
   id: number;
   name: string;
   majorIds: number[];
-  levelIds: number[];
 }
 
 interface Course {
@@ -78,12 +77,22 @@ export function Pedago() {
         const { data } = await apiRequest.get("/exam-type");
         setExamTypes(data);
       } catch (error) {
-        toast.error("Erreur lors du chargement des niveaux");
+        toast.error("Erreur lors du chargement des Examens");
       }
     };
+    const fetchParcours = async () => {
+      try {
+        const { data } = await apiRequest.get("/parcours");
+        setParcours(data);
+      } catch (error) {
+        toast.error("Erreur lors du chargement des parcours");
+      }
+    };
+
     fetchMajors();
     fetchLevel();
     fetchExamType();
+    fetchParcours();
   }, []);
 
   // --- Référentiels ---
@@ -94,10 +103,7 @@ export function Pedago() {
   const [examTypes, setExamTypes] = useState<ExamType[]>([]);
 
   // --- Données Métier ---
-  const [parcours, setParcours] = useState<Parcours[]>([
-    { id: 1, name: "Portail IEEEA", majorIds: [1, 4], levelIds: [1] },
-    { id: 2, name: "Informatique", majorIds: [1], levelIds: [2, 3, 4] },
-  ]);
+  const [parcours, setParcours] = useState<Parcours[]>([]);
 
   const [courses, setCourses] = useState<Course[]>([
     {
@@ -150,7 +156,6 @@ export function Pedago() {
           .filter(Boolean) as {
           id: number;
           label: string;
-          className: string;
         }[],
       })),
     [parcours, majors],
@@ -158,7 +163,7 @@ export function Pedago() {
 
   const filteredLevels = useMemo(() => {
     if (!selectedParcours) return [];
-    return levels.filter((l) => selectedParcours.levelIds.includes(l.id));
+    return levels.filter((l) => selectedParcours);
   }, [selectedParcours, levels]);
 
   const levelItems = useMemo<(ListItem & Level)[]>(
@@ -191,27 +196,54 @@ export function Pedago() {
 
   // ── CRUD handlers ────────────────────────────────────
 
-  const handleAddParcours = (data: ParcoursFormData) => {
-    const newId = Math.max(0, ...parcours.map((p) => p.id)) + 1;
-    setParcours((prev) => [
-      ...prev,
-      { id: newId, name: data.name, majorIds: data.majorIds, levelIds: [] },
-    ]);
+  const handleAddParcours = async (data: ParcoursFormData) => {
+    const elem = data;
+    try {
+      const { data } = await apiRequest.post("/parcours", {
+        name: elem.name,
+        majorIds: elem.majorIds,
+        levelIds: [],
+      });
+      setParcours((prev) => [...prev, data]);
+      toast.success("Parcours ajouté");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de l'ajout du parcours : ${getRequestMessage(error)}`,
+      );
+      throw error;
+    }
   };
 
-  const handleEditParcours = (id: number, data: ParcoursFormData) => {
-    setParcours((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, name: data.name, majorIds: data.majorIds } : p,
-      ),
-    );
+  const handleEditParcours = async (id: number, data: ParcoursFormData) => {
+    const elem = data;
+    try {
+      const { data } = await apiRequest.put(`/parcours/${id}`, {
+        name: elem.name,
+        majorIds: elem.majorIds,
+      });
+      setParcours((prev) => prev.map((p) => (p.id === id ? data : p)));
+      toast.success("Parcours mis à jour");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de la mise à jour du parcours : ${getRequestMessage(error)}`,
+      );
+    }
   };
 
   const handleDeleteParcours = (item: ListItem) => {
-    setParcours((prev) => prev.filter((p) => p.id !== item.id));
-    if (selectedParcoursId === item.id) {
-      setSelectedParcoursId(null);
-      setSelectedLevelId(null);
+    try {
+      apiRequest.delete(`/parcours/${item.id}`);
+      setParcours((prev) => prev.filter((p) => p.id !== item.id));
+      if (selectedParcoursId === item.id) {
+        setSelectedParcoursId(null);
+        setSelectedLevelId(null);
+      }
+      toast.success("Parcours supprimé");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de la suppression du parcours : ${getRequestMessage(error)}`,
+      );
+      throw error;
     }
   };
 
@@ -219,9 +251,7 @@ export function Pedago() {
     if (!selectedParcours || data.levelId == null) return;
     setParcours((prev) =>
       prev.map((p) =>
-        p.id === selectedParcours.id && !p.levelIds.includes(data.levelId!)
-          ? { ...p, levelIds: [...p.levelIds, data.levelId!] }
-          : p,
+        p.id === selectedParcours.id ? { ...p, levelIds: [data.levelId!] } : p,
       ),
     );
   };
@@ -229,11 +259,7 @@ export function Pedago() {
   const handleDeleteLevel = (item: ListItem) => {
     if (!selectedParcours) return;
     setParcours((prev) =>
-      prev.map((p) =>
-        p.id === selectedParcours.id
-          ? { ...p, levelIds: p.levelIds.filter((id) => id !== item.id) }
-          : p,
-      ),
+      prev.map((p) => (p.id === selectedParcours.id ? { ...p } : p)),
     );
     if (selectedLevelId === item.id) setSelectedLevelId(null);
   };
