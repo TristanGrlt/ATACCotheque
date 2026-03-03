@@ -54,6 +54,15 @@ interface Course {
 
 export function Pedago() {
   const [showRefDialog, setShowRefDialog] = useState(false);
+  const [majors, setMajors] = useState<Major[]>([]);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [examTypes, setExamTypes] = useState<ExamType[]>([]);
+  const [parcours, setParcours] = useState<Parcours[]>([]);
+  const [selectedParcoursId, setSelectedParcoursId] = useState<number | null>(
+    null,
+  );
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
+  const [filteredLevels, setFilteredLevels] = useState<Level[]>([]);
 
   useEffect(() => {
     const fetchMajors = async () => {
@@ -96,14 +105,6 @@ export function Pedago() {
   }, []);
 
   // --- Référentiels ---
-  const [majors, setMajors] = useState<Major[]>([]);
-
-  const [levels, setLevels] = useState<Level[]>([]);
-
-  const [examTypes, setExamTypes] = useState<ExamType[]>([]);
-
-  // --- Données Métier ---
-  const [parcours, setParcours] = useState<Parcours[]>([]);
 
   const [courses, setCourses] = useState<Course[]>([
     {
@@ -133,10 +134,6 @@ export function Pedago() {
   ]);
 
   // --- Sélection ---
-  const [selectedParcoursId, setSelectedParcoursId] = useState<number | null>(
-    null,
-  );
-  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
 
   const selectedParcours =
     parcours.find((p) => p.id === selectedParcoursId) ?? null;
@@ -161,10 +158,21 @@ export function Pedago() {
     [parcours, majors],
   );
 
-  const filteredLevels = useMemo(() => {
-    if (!selectedParcours) return [];
-    return levels.filter((l) => selectedParcours);
-  }, [selectedParcours, levels]);
+  useEffect(() => {
+    if (!selectedParcoursId) return;
+
+    const fetchParcoursLevels = async () => {
+      try {
+        const { data } = await apiRequest.get(
+          `/parcours/${selectedParcoursId}/levels`,
+        );
+        setFilteredLevels(data);
+      } catch (error) {
+        toast.error("Erreur lors du chargement des niveaux du parcours");
+      }
+    };
+    fetchParcoursLevels();
+  }, [selectedParcoursId]);
 
   const levelItems = useMemo<(ListItem & Level)[]>(
     () => filteredLevels.map((l) => ({ ...l, badges: [] })),
@@ -247,21 +255,34 @@ export function Pedago() {
     }
   };
 
-  const handleAddLevel = (data: LevelFormData) => {
+  const handleAddLevel = async (data: LevelFormData) => {
     if (!selectedParcours || data.levelId == null) return;
-    setParcours((prev) =>
-      prev.map((p) =>
-        p.id === selectedParcours.id ? { ...p, levelIds: [data.levelId!] } : p,
-      ),
-    );
+
+    try {
+      const { data: updatedLevels } = await apiRequest.post(
+        `/parcours/${selectedParcours.id}/levels/${data.levelId}`,
+        {},
+      );
+      setFilteredLevels(updatedLevels);
+      toast.success("Niveau ajouté");
+    } catch (error) {
+      toast.error(`Erreur: ${getRequestMessage(error)}`);
+    }
   };
 
-  const handleDeleteLevel = (item: ListItem) => {
+  const handleDeleteLevel = async (item: ListItem) => {
     if (!selectedParcours) return;
-    setParcours((prev) =>
-      prev.map((p) => (p.id === selectedParcours.id ? { ...p } : p)),
-    );
-    if (selectedLevelId === item.id) setSelectedLevelId(null);
+
+    try {
+      const { data: updatedLevels } = await apiRequest.delete(
+        `/parcours/${selectedParcours.id}/levels/${item.id}`,
+      );
+      setFilteredLevels(updatedLevels);
+      if (selectedLevelId === item.id) setSelectedLevelId(null);
+      toast.success("Niveau supprimé");
+    } catch (error) {
+      toast.error(`Erreur: ${getRequestMessage(error)}`);
+    }
   };
 
   const handleAddCourse = (data: CourseFormData) => {
@@ -331,7 +352,7 @@ export function Pedago() {
             />
           )}
           <EditableDeletableItemList
-            items={parcoursItems}
+            items={parcoursItems.sort((a, b) => a.name.localeCompare(b.name))}
             selectedId={selectedParcoursId}
             onSelect={(item) => {
               setSelectedParcoursId(item.id as number);
@@ -412,7 +433,7 @@ export function Pedago() {
             />
           )}
           <EditableDeletableItemList
-            items={levelItems}
+            items={levelItems.sort((a, b) => a.name.localeCompare(b.name))}
             selectedId={selectedLevelId}
             onSelect={(item) => setSelectedLevelId(item.id as number)}
             onDelete={handleDeleteLevel}
@@ -473,7 +494,7 @@ export function Pedago() {
             />
           )}
           <EditableDeletableItemList
-            items={courseItems}
+            items={courseItems.sort((a, b) => a.name.localeCompare(b.name))}
             selectedId={null}
             onDelete={handleDeleteCourse}
             deleteLabel="ce cours"

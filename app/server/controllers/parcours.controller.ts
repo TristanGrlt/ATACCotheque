@@ -127,3 +127,65 @@ export const updateParcours = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Erreur lors de la mise à jour du parcours" });
   }
 }
+
+export const addLevelToParcours = async (req: Request, res: Response) => {
+  const { parcoursId, levelId } = req.params;
+  if (!parcoursId || Array.isArray(parcoursId) || !levelId || Array.isArray(levelId)) {
+    return res.status(400).json({ error: "ID du parcours ou du niveau manquant ou invalide" });
+  }
+
+  try {
+    const updatedParcours = await prisma.parcours.update({
+      where: { id: parseInt(parcoursId, 10) },
+      data: { levels: { connect: { id: parseInt(levelId, 10) } } },
+      include: {
+        levels: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+    return res.status(200).json(updatedParcours.levels);
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de l'ajout du niveau au parcours" });
+  }
+}
+
+export const removeLevelFromParcours = async (req: Request, res: Response) => {
+  const { parcoursId, levelId } = req.params;
+  if (!parcoursId || Array.isArray(parcoursId) || !levelId || Array.isArray(levelId)) {
+    return res.status(400).json({ error: "ID du parcours ou du niveau manquant ou invalide" });
+  }
+
+  try {
+    const updatedParcours = await prisma.parcours.update({
+      where: { id: parseInt(parcoursId, 10) },
+      data: { levels: { disconnect: { id: parseInt(levelId, 10) } } },
+      include: {
+        levels: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+    return res.status(200).json(updatedParcours.levels);
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de la suppression du niveau du parcours" });
+  }
+}
+
+export const getParcoursLevels = async (req: Request, res: Response) => {
+  const { parcoursId } = req.params;
+
+  if (!parcoursId || Array.isArray(parcoursId) ) {
+    return res.status(400).json({ error: "ID du parcours manquant ou invalide" });
+  }
+
+  try {
+    const levels = await prisma.parcours.findUnique({
+      where: { id: parseInt(parcoursId, 10) },
+      select: { levels: true }
+    });
+    return res.status(200).json(levels?.levels || []);  
+  } catch (error) {
+    return res.status(500).json({ error: "Erreur lors de la récupération des niveaux du parcours" });
+  }
+}
