@@ -50,8 +50,14 @@ const items = [
     icon: Home,
   },
   {
+    title: "Annales",
+    url: "exams",
+    icon: Monitor,
+    permission: PERMISSIONS.MANAGE_ANNALES,
+  },
+  {
     title: "Annale en attente",
-    url: "toto",
+    url: "exams-review",
     icon: Inbox,
   },
   {

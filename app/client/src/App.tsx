@@ -9,6 +9,8 @@ import { PermissionRoute } from './components/permissionRoute.tsx'
 import { GuestRoute } from './components/guestRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
 import { AddUser } from './components/admin/user/addUser.tsx'
+import { ExamIndex } from './routes/admin/exam/examIndex.tsx'
+import { ExamsReview } from './routes/admin/exam/examsReview.tsx'
 import { NotFound } from './routes/notFound.tsx'
 import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
@@ -41,9 +43,14 @@ function App() {
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<AddUser />} />
-          <Route path='toto' element={<LandingPage />} />
           
           {/* Routes protégées par permissions */}
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ANNALES]} />}>
+            <Route path='exams' element={<ExamIndex />} />
+          </Route>
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.REVIEW_ANNALES]} />}>
+            <Route path='exams-review' element={<ExamsReview />} />
+          </Route>
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ROLES]} />}>
             <Route path='users' element={<UserIndex />} />
           </Route>
