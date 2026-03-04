@@ -1,6 +1,16 @@
-import { Link, Outlet, useLocation } from "react-router-dom"
-import { EllipsisVertical, GraduationCap, Home, Inbox, LogOut, Monitor, Moon, Sun, User } from "lucide-react"
- 
+import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+  EllipsisVertical,
+  GraduationCap,
+  Home,
+  Inbox,
+  LogOut,
+  Monitor,
+  Moon,
+  Sun,
+  User,
+} from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -15,33 +25,34 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-import logo from '/atacc_logo.png'
-import { Separator } from "../ui/separator"
-import { Button } from "../ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuGroup, 
-  DropdownMenuItem, 
-  DropdownMenuPortal, 
-  DropdownMenuRadioGroup, 
-  DropdownMenuRadioItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuSub, 
-  DropdownMenuSubContent, 
-  DropdownMenuSubTrigger, 
-  DropdownMenuTrigger 
-} from "../ui/dropdown-menu"
+import logo from "/atacc_logo.png";
+import { Separator } from "../ui/separator";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
-import { useIsMobile } from "@/hooks/use-mobile"
-import { useAuth } from "@/contexts/AuthContext"
-import { useTheme } from "../theme-provider"
-import type { Theme } from "../theme-provider"
-import { Toaster } from "../ui/sonner"
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "../theme-provider";
+import type { Theme } from "../theme-provider";
+import { Toaster } from "../ui/sonner";
 
-import { PERMISSIONS } from "@/config/permissions"
+import { PERMISSIONS } from "@/config/permissions";
 
 const items = [
   {
@@ -64,27 +75,27 @@ const items = [
     title: "Maquette pédagogique",
     url: "pedago",
     icon: GraduationCap,
+    permission: PERMISSIONS.MANAGE_PEDAGO,
   },
-]
+];
 
 export function SideBar() {
-
   const isMobile = useIsMobile();
   const { logout, user, perms } = useAuth();
   const { theme, setTheme } = useTheme();
 
   // Déduire le titre de la section depuis l'URL courante
   const location = useLocation();
-  const pathSegments = location.pathname.split('/').filter(Boolean);
-  const lastSegment = pathSegments[pathSegments.length - 1] ?? '';
-  const currentItem = items.find((i) => i.url === lastSegment || location.pathname.endsWith(`/${i.url}`));
-  const sectionTitle = currentItem
-    ? currentItem.title
-    : 'error'
+  const pathSegments = location.pathname.split("/").filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1] ?? "";
+  const currentItem = items.find(
+    (i) => i.url === lastSegment || location.pathname.endsWith(`/${i.url}`),
+  );
+  const sectionTitle = currentItem ? currentItem.title : "error";
 
   return (
-    <SidebarProvider 
-    style={
+    <SidebarProvider
+      style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
           "--header-height": "calc(var(--spacing) * 12)",
@@ -96,14 +107,14 @@ export function SideBar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-            >
-              <Link to="/">
-                <img src={logo} alt="logo" width={25} />
-                <span className="text-base font-semibold">Attacothèque.</span>
-              </Link>
-            </SidebarMenuButton>
+                asChild
+                className="data-[slot=sidebar-menu-button]:p-1.5!"
+              >
+                <Link to="/">
+                  <img src={logo} alt="logo" width={25} />
+                  <span className="text-base font-semibold">Attacothèque.</span>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -113,16 +124,19 @@ export function SideBar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {items
-                  .filter((item) => !item.permission || perms.includes(item.permission))
+                  .filter(
+                    (item) =>
+                      !item.permission || perms.includes(item.permission),
+                  )
                   .map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <Link to={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <Link to={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   ))}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -133,12 +147,14 @@ export function SideBar() {
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="h-8 w-8 rounded-lg">{user?.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="h-8 w-8 rounded-lg">
+                        {user?.username?.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <p>{user?.username}</p>
@@ -161,9 +177,15 @@ export function SideBar() {
                             value={theme}
                             onValueChange={(value) => setTheme(value as Theme)}
                           >
-                            <DropdownMenuRadioItem value="light"><Sun /> Claire</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="dark"><Moon /> Sombre</DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="system"><Monitor /> Système</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="light">
+                              <Sun /> Claire
+                            </DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="dark">
+                              <Moon /> Sombre
+                            </DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="system">
+                              <Monitor /> Système
+                            </DropdownMenuRadioItem>
                           </DropdownMenuRadioGroup>
                         </DropdownMenuGroup>
                       </DropdownMenuSubContent>
@@ -190,7 +212,12 @@ export function SideBar() {
             />
             <h1 className="text-base font-medium">{sectionTitle}</h1>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
+              <Button
+                variant="ghost"
+                asChild
+                size="sm"
+                className="hidden sm:flex"
+              >
                 <a
                   href="#"
                   rel="noopener noreferrer"
@@ -203,11 +230,11 @@ export function SideBar() {
             </div>
           </div>
         </header>
-          <div>
-            <Toaster />
-            <Outlet />
+        <div>
+          <Toaster />
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

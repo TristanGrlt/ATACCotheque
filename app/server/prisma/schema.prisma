@@ -93,6 +93,7 @@ model Role {
 
 enum AppPermission {
   MANAGE_USERS
+  MANAGE_PEDAGO
 }
 
 model UserRole {
