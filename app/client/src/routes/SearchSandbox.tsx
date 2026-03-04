@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { MeiliSearch } from 'meilisearch';
 import {
   Card,
@@ -35,7 +35,6 @@ interface SearchResult {
 }
 
 export function SearchSandbox() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -103,9 +102,7 @@ export function SearchSandbox() {
     performSearch();
   }, [performSearch]);
 
-  const handleCardClick = (examId: string) => {
-    navigate(`/exam/${examId}`, { state: { exam: results.find(r => r.id === examId) } });
-  };
+
 
   return (
     <div className="p-10 space-y-6 max-w-5xl mx-auto">
@@ -194,38 +191,43 @@ export function SearchSandbox() {
           </Alert>
         ) : (
           results.map((hit) => (
-            <Card 
+            <Link 
               key={hit.id} 
-              className="hover:shadow-lg transition-all border-l-4 border-l-primary cursor-pointer"
-              onClick={() => handleCardClick(hit.id)}
+              to={`/exam/${hit.id}`}
+              state={{ exam: hit }}
+              className="no-underline"
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-bold text-primary">{hit.course}</CardTitle>
-                    {hit.title && <p className="text-sm text-muted-foreground mt-1">{hit.title}</p>}
+              <Card 
+                className="hover:shadow-lg transition-all border-l-4 border-l-primary cursor-pointer"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-bold text-primary">{hit.course}</CardTitle>
+                      {hit.title && <p className="text-sm text-muted-foreground mt-1">{hit.title}</p>}
+                    </div>
+                    {hit.type && (
+                      <Badge variant="default" className="whitespace-nowrap">
+                        {hit.type}
+                      </Badge>
+                    )}
                   </div>
-                  {hit.type && (
-                    <Badge variant="default" className="whitespace-nowrap">
-                      {hit.type}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Badge variant="secondary" className="gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      {hit.major}
                     </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Badge variant="secondary" className="gap-1">
-                    <BookOpen className="h-3 w-3" />
-                    {hit.major}
-                  </Badge>
-                  <Badge variant="outline">{hit.level}</Badge>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground ml-auto">
-                    <Calendar className="h-4 w-4" />
-                    {hit.year}
+                    <Badge variant="outline">{hit.level}</Badge>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground ml-auto">
+                      <Calendar className="h-4 w-4" />
+                      {hit.year}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))
         )}
       </div>

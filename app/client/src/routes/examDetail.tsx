@@ -47,18 +47,20 @@ export function ExamDetail() {
       setError(null);
 
       const search = await client.index('exams').search('', {
-        filter: `id = "${examId}"`
+        limit: 1000
       });
 
-      if (search.hits.length === 0) {
+      const found = search.hits.find((hit: any) => hit.id === examId);
+      
+      if (!found) {
         setError('Examen non trouvé');
         return;
       }
 
-      setExam(search.hits[0] as ExamDetail);
+      setExam(found as ExamDetail);
     } catch (err) {
       console.error('Failed to fetch exam', err);
-      setError('Impossible de charger les détails de l\'examen');
+      setError('Impossible de charger les détails de l\'examen. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -145,45 +147,14 @@ export function ExamDetail() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Details Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Matière</p>
-              <p className="text-lg font-semibold">{exam.course}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Niveau</p>
-              <p className="text-lg font-semibold">{exam.level}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Filière</p>
-              <p className="text-lg font-semibold">{exam.major}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Année</p>
-              <p className="text-lg font-semibold">{exam.year}</p>
-            </div>
-          </div>
-
           {/* File Path */}
           <div className="space-y-2 p-4 bg-accent rounded-lg">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Archive className="h-4 w-4" />
               Chemin d'accès
             </div>
-            <p className="text-sm text-muted-foreground font-mono">{exam.path}</p>
+            <p className="text-sm text-muted-foreground font-mono break-all">{exam.path}</p>
           </div>
-
-          {/* Type Info */}
-          {exam.type && (
-            <div className="space-y-2 p-4 bg-accent rounded-lg">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="h-4 w-4" />
-                Type d'examen
-              </div>
-              <p className="text-sm">{exam.type}</p>
-            </div>
-          )}
 
           {/* Download Section */}
           <div className="pt-4 border-t">
