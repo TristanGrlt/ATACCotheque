@@ -18,7 +18,7 @@ import { getPaginationParams, createPaginationResponse, getSkip } from '../utils
  * @throws {500} Erreur serveur lors de la récupération des rôles
  * 
  * @example
- * GET /api/roles?page=1&pageSize=10&search=admin&sortBy=name&sortOrder=asc
+ * GET /api/roles?page=1&pageSize=20&search=admin&sortBy=name&sortOrder=asc
  */
 export const getRole = async (req: Request, res: Response) => {
   const params = getPaginationParams(req, { sortBy: 'name' });

@@ -3,8 +3,10 @@ import prisma from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { JWT_SECRET } from '../app.js';
-import { cookieOptions } from '../utils/cookieOptions.js';
+import { cookieOptions, preAuthCookieOptions } from '../utils/cookieOptions.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
+import { generateSessionToken, generatePreAuthToken } from '../utils/jwtHelper.js';
+import { Prisma } from '../generated/prisma/client.js';
 
 /**
  * Interface pour les données utilisateur dans les requêtes
@@ -14,6 +16,18 @@ interface IUser {
   password: string;
   roleIds:  Number[];
 }
+
+type SessionUserResponse = {
+  id: string;
+  username: string;
+  roles: {
+    id: number;
+    name: string;
+    color: string;
+    permissions: string[];
+  }[];
+  requiredOnboarding: boolean;
+};
 
 /**
  * Récupère la liste des utilisateurs avec pagination, recherche et tri
@@ -64,14 +78,13 @@ export const getUsers = async (req: Request<{}, {}, IUser>, res: Response) => {
     });
 
     const sanitizedUsers = usersList.map(user => {
-      const { password: _pw, userRoles, ...userData } = user;
       return {
-        ...userData,
-        roles: userRoles.map(ur => ({
-          id: ur.role.id,
-          name: ur.role.name,
-          color: ur.role.color
-        }))
+        id: user.id,
+        username: user.username,
+        roles: user.userRoles.map(ur => ur.role),
+        requiredOnboarding:
+          user.passwordChangeRequired ||
+          (user.mfaSetupRequired && !user.mfaEnabled)
       };
     });
 
@@ -103,7 +116,7 @@ export const deleteUser= async (req: Request<{ userId: string }, {}, IUser>, res
   const currentUserId = req.userId;
 
   if (userId === currentUserId) {
-    return res.status(401).json({ error: "Vous ne pouvez pas supprimer votre propre compte" })
+    return res.status(403).json({ error: "Vous ne pouvez pas supprimer votre propre compte" })
   }
   
   try {
@@ -141,13 +154,29 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       return res.status(403).json({ error : "L'utilisateur doit poséder au moins un role"})
     }
 
+    if(!username || !password) {
+      return res.status(400).json({ error: "Le nom d'utilisateur et le mot de passe sont requis" });
+    }
+
+    const tusername = username.trim();
+    if (tusername.length <= 3) {
+      return res.status(400).json({ error: "Le nom d'utilisateur doit contenir au moins 4 caratères" });
+    }
+
+    const tpassword = password.trim();
+    if (tpassword.length < 8) {
+      return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+    }
+
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(tpassword, saltRounds);
 
     const user = await prisma.user.create({
       data: {
-        username,
+        username: tusername,
         password: hashedPassword,
+        passwordChangeRequired: true,
+        mfaSetupRequired: true, 
         userRoles: {
           create: roleIds.map((id) => ({
             roleId: Number(id)
@@ -159,18 +188,18 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
       }
     });
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const response = {
-      ...userData,
-      roles: userRoles.map(ur => ({
-        id: ur.role.id,
-        name: ur.role.name,
-        color: ur.role.color,
-      }))
-    }
-    return res.status(201).json(response);
+    const sanitizedUser: SessionUserResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
+    };
+
+    return res.status(201).json(sanitizedUser);
   } catch (error : any) {
-    if (error?.code === 'P2002') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return res.status(400).json({
         error: `Le nom d'utilisateur "${req.body.username}" existe déjà`
       });
@@ -198,11 +227,19 @@ export const signupUser = async (req: Request<{}, {}, IUser>, res: Response) => 
 export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
   const { username, password } = req.body;
 
-  const user = await prisma.user.findUnique({ 
+  const user = await prisma.user.findUnique({
     where: { username },
-    include: {
+    select: {
+      id: true,
+      username: true,
+      password: true,
+      passwordChangeRequired: true,
+      mfaSetupRequired: true,
+      mfaEnabled: true,
+      mfaMethod: true,
+
       userRoles: {
-        include: {
+        select: {
           role: {
             select: {
               id: true,
@@ -215,25 +252,51 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
       }
     }
   });
-  
+
   if (!user) {
+    // Délai constant pour empêcher l'énumération d'utilisateurs par timing attack
+    await bcrypt.compare(password, '$2b$10$invalidhashXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
     return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
 
   const match = await bcrypt.compare(password, user.password);
-  if (match) {
-    const jsToken = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET);
-    res.cookie('jwt', jsToken, cookieOptions);
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const sanitizedUser = {
-      ...userData,
-      roles: userRoles.map(ur => ur.role)
-    };
-    return res.status(200).json(sanitizedUser)
-  } else {
-    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect` });
+  if (!match) {
+    return res.status(401).json({ error: `Nom d'utilisateur ou mot de passe incorrect.` });
   }
+
+  // MFA activé : émettre un pre-auth toke
+  if (user.mfaEnabled && user.mfaMethod) {
+    const preAuthToken = generatePreAuthToken(user.id, user.username);
+    res.cookie('pre_auth_jwt', preAuthToken, preAuthCookieOptions);
+
+    return res.status(200).json({
+      requiresMfa: true,
+      mfaMethod: user.mfaMethod,
+    });
+  }
+
+  // Pas de MFA 
+  const token = generateSessionToken({
+    id: user.id,
+    username: user.username,
+    passwordChangeRequired: user.passwordChangeRequired,
+    mfaSetupRequired: user.mfaSetupRequired,
+    mfaEnabled: user.mfaEnabled,
+  });
+
+  res.cookie('jwt', token, cookieOptions);
+
+  const sanitizedUser: SessionUserResponse = {
+    id: user.id,
+    username: user.username,
+    roles: user.userRoles.map(ur => ur.role),
+    requiredOnboarding:
+      user.passwordChangeRequired ||
+      (user.mfaSetupRequired && !user.mfaEnabled)
+  };
+
+  return res.status(200).json(sanitizedUser);
 };
 
 /**
@@ -248,6 +311,7 @@ export const loginUser = async (req: Request<{}, {}, IUser>, res: Response) => {
  */
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie('jwt');
+  res.clearCookie('pre_auth_jwt', preAuthCookieOptions);
   res.status(200).json({ message: "Déconnexion réussie" })
 };
 
@@ -305,10 +369,13 @@ export const verifyUser = async (req: Request, res: Response) => {
 
     res.cookie('jwt', token, cookieOptions);
     
-    const { password: _pw, userRoles, ...userData } = user;
-    const sanitizedUser = {
-      ...userData,
-      roles: userRoles.map(ur => ur.role)
+    const sanitizedUser: SessionUserResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
     };
     res.status(200).json(sanitizedUser)
   } catch (error) {
@@ -354,14 +421,27 @@ export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IU
     }
 
     const updateData: any = {};
+    let shouldDeleteMfaCredentials = false;
     // Si username modifier, l'appliqué
     if (username) {
-      updateData.username = username;
+      const tusername = username.trim();
+      if (tusername.length <= 3) {
+        return res.status(400).json({ error: "Le nom d'utilisateur doit contenir au moins 4 caratères" });
+      }
+      updateData.username = tusername;
+      updateData.mfaSetupRequired = true;
+      updateData.mfaEnabled = false;
+      shouldDeleteMfaCredentials = true;
     }
     // Si mot de passe donné, le hashé et appliqué
     if (password) {
+      const tpassword = password.trim();
+      if (tpassword.length < 8) {
+        return res.status(400).json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+      }
       const saltRounds = 10;
-      updateData.password = await bcrypt.hash(password, saltRounds);
+      updateData.password = await bcrypt.hash(tpassword, saltRounds);
+      updateData.passwordChangeRequired = true;
     }
 
     // si roles modifier, appliqué avec vérification
@@ -397,25 +477,46 @@ export const updateUser = async (req: Request<{ userId: string }, {}, Partial<IU
       };
     }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      include: {
-        userRoles: { include: { role: true } }
-      }
-    });
+    // Si le username change, supprimer les credentials MFA existants en transaction
+    let user;
+    if (shouldDeleteMfaCredentials) {
+      user = await prisma.$transaction(async (tx) => {
+        // Supprimer les credentials WebAuthn
+        await tx.webAuthnCredential.deleteMany({
+          where: { userId }
+        });
+        // Supprimer les challenges WebAuthn en attente
+        await tx.webAuthnChallenge.deleteMany({
+          where: { userId }
+        });
+        // Mettre à jour l'utilisateur
+        return tx.user.update({
+          where: { id: userId },
+          data: updateData,
+          include: {
+            userRoles: { include: { role: true } }
+          }
+        });
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: {
+          userRoles: { include: { role: true } }
+        }
+      });
+    }
 
-    const { password: _pw, userRoles, ...userData } = user;
-    const response = {
-      ...userData,
-      roles: userRoles.map(ur => ({ 
-        id: ur.role.id, 
-        name: ur.role.name, 
-        color: ur.role.color 
-      }))
+    const sanitizedUser: SessionUserResponse = {
+      id: user.id,
+      username: user.username,
+      roles: user.userRoles.map(ur => ur.role),
+      requiredOnboarding:
+        user.passwordChangeRequired ||
+        (user.mfaSetupRequired && !user.mfaEnabled)
     };
-
-    return res.status(200).json(response);
+    res.status(200).json(sanitizedUser)
   } catch (error: any) {
     if (error?.code === 'P2002') {
       return res.status(400).json({

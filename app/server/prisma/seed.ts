@@ -19,16 +19,12 @@ async function seedDefaultRoles() {
   const defaultRoles = [
     { 
       name: 'Admin', 
-      permissions: ['MANAGE_USERS', 'MANAGE_ROLES', 'REVIEW_ANNALES'] as AppPermission[]
+      permissions: ['MANAGE_USERS'] as AppPermission[]
     },
     { 
       name: 'User',
       permissions: [] as AppPermission[]
     },
-    { 
-      name: 'Reviewer',
-      permissions: ['REVIEW_ANNALES'] as AppPermission[]
-    }
   ];
 
   for (const role of defaultRoles) {
@@ -74,7 +70,6 @@ async function seedAdminUser() {
           roleId: adminRole.id
         }
       });
-      // Permissions are now on the role directly
     }
     
     console.log('✅ Admin user created:', admin.username);
@@ -114,58 +109,3 @@ main()
     await prisma.$disconnect();
   });
 
-async function seedMajor() {
-
-  const defaultMajor = [
-    { name: "Mathématique" },
-    { name: "Informatique" },
-
-  ];
-  for (const major of defaultMajor) {
-    const exist = await prisma.major.findUnique({
-      where: {
-        name: major.name
-      }
-    });
-    if (!exist) {
-      await prisma.major.create({ data: major })
-    }
-
-  }
-}
-
-
-// async function seedLevel(){
-//       const defaultLevel = [
-//       { name: "L1" },
-//       { name: "L2" },
-//       { name: "L3" },
-//       { name: "M1" },
-//       { name: "M2" },
-
-//     ];
-//      const majors = await prisma.major.findMany();
-//      for(const major of majors){
-//         for (const level of defaultLevel ){
-//           const exist = await prisma.level.findFirst({
-//             where: {
-//               name: level.name,
-//               majorId: major.id
-//             }
-//           });
-//           if(!exist){
-//             await prisma.level.create({
-//               data:{
-//                 name : level.name,
-//                 majorId : major.id,
-//               }
-//             })
-//           }
-
-//         } 
-//      }
-
-
-
-
-//   }
