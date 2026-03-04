@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import reactLogo from '../assets/react.svg'
 import viteLogo from '/vite.svg'
 
@@ -7,6 +8,16 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Simple Navigation Links */}
+      <nav className="flex gap-4 items-center justify-end p-4 border-b border-border">
+        <Link to="/search" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Rechercher
+        </Link>
+        <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Administration
+        </Link>
+      </nav>
+
       <div className="container mx-auto px-4 py-16">
         {/* Header avec les logos */}
         <div className='flex w-full justify-center gap-8 md:gap-20 mb-16 animate-fade-in'>

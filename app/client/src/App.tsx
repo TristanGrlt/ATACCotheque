@@ -1,6 +1,6 @@
 import { Route, Routes, Navigate } from 'react-router-dom'
 import { LandingPage } from './routes/landingPage.tsx'
-import { SearchSandbox } from './routes/SearchSandbox.tsx'
+import { Search } from './routes/Search.tsx'
 import { ExamDetail } from './routes/examDetail.tsx'
 import { SideBar } from './components/admin/sideBar.tsx'
 import { Login } from './routes/login.tsx'
@@ -28,7 +28,7 @@ function App() {
     <Routes>
       {/* Routes publiques */}
       <Route index element={<LandingPage />} />
-      <Route path="sandbox" element={<SearchSandbox />} />
+      <Route path="search" element={<Search />} />
       <Route path="exam/:examId" element={<ExamDetail />} />
       
       {/* Routes pour invités uniquement (non connectés) */}

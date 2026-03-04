@@ -262,7 +262,7 @@ export function ExamDetail() {
     return (
       <div className="p-10 space-y-6 max-w-3xl mx-auto">
         <button
-          onClick={() => navigate('/sandbox')}
+          onClick={() => navigate('/search')}
           className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors mb-6"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -282,7 +282,7 @@ export function ExamDetail() {
     <div className="p-10 space-y-6 max-w-full mx-auto">
       {/* Back Button */}
       <button
-        onClick={() => navigate('/sandbox')}
+        onClick={() => navigate('/search')}
         className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
