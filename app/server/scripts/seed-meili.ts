@@ -1,38 +1,42 @@
 import { MeiliSearch } from 'meilisearch';
+import { Prisma } from '../generated/prisma/client';
+import prisma from '../lib/prisma';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const host = process.env.MEILI_HOST || 'http://meilisearch:7700';
 const apiKey = process.env.MEILI_MASTER_KEY || 'devMasterKey';
 
-const client = new MeiliSearch({ host, apiKey });
-const majors = ["Informatique", "Maths", "Physique"];
-const levels = ["L1", "L2", "L3", "M1", "M2"];
-const subjects = ["Algèbre", "Analyse", "Thermodynamique", "Bases de données", "Algorithmique", "Réseaux", "Electromagnétisme"];
-
-const mockExams = Array.from({ length: 200 }).map((_, i) => {
-  const major = majors[Math.floor(Math.random() * majors.length)];
-  const level = levels[Math.floor(Math.random() * levels.length)];
-  const subject = subjects[Math.floor(Math.random() * subjects.length)];
-  const year = 2015 + Math.floor(Math.random() * 11); // Range: 2015-2025
-
-  return {
-    id: (i + 1).toString(),
-    course: `${subject} ${level}`,
-    title: `${subject} - ${level} (${year})`,
-    level: level,
-    major: major,
-    year: year,
-    path: `/${major}/${level}/${subject.toLowerCase().replace(/ /g, '_')}_${year}.pdf`
-  };
+const examQuery = Prisma.validator<Prisma.PastExamDefaultArgs>()({
+  include: {
+    examtype: true,
+    course: {
+      include: {
+        level: { include: { major: true } }
+      }
+    }
+  }
 });
+
+type ExamWithRelations = Prisma.PastExamGetPayload<typeof examQuery>;
 
 async function seed() {
   console.log(`Connecting to Meili at: ${host}`);
   const index = client.index('exams');
+  const exams = await prisma.pastExam.findMany(examQuery);
+
+  const documents = exams.map((exam: ExamWithRelations) => ({
+    id: exam.id.toString(),
+    course: exam.course.name,
+    type: exam.examtype.name,
+    level: exam.course.level.name,
+    major: exam.course.level.major.name,
+    year: exam.year,
+    path: exam.path
+  }));
 
   console.log('Updating settings...');
-  await index.updateFilterableAttributes(['level', 'major', 'year']);
+  await index.updateFilterableAttributes(['level', 'major', 'year', 'type']);
 
   // Configure Synonyms
   await index.updateSynonyms({
@@ -44,8 +48,8 @@ async function seed() {
   });
 
   // Add Documents
-  const task = await index.addDocuments(mockExams);
+  const task = await index.addDocuments(documents);
   console.log(`Synonyms configured and fake data sent. Task UID: ${task.taskUid}`);
 }
 
-seed().catch(console.error);
+seed().catch(console.error).finally(() => prisma.$disconnect());
