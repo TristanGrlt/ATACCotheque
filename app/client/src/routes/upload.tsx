@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronsUpDown, Loader2 } from "lucide-react"; 
+import { ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -41,6 +41,7 @@ type Course = {
   course: string;
   level: string;
   major: string;
+  parcours: string;
 };
 
 type Exam = {
@@ -48,9 +49,15 @@ type Exam = {
   name: string;
 };
 
+type Annexe = {
+  type: "url" | "fichier";
+  value: string | File | null;
+  comment: string;
+};
+
 export function Upload() {
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -61,20 +68,48 @@ export function Upload() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedExamId, setSelectedExamId] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-  
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedFileOption, setSelectedFileOption] = useState<File | null>(null);
-  
+  const [selectedFileOption, setSelectedFileOption] = useState<File | null>(
+    null,
+  );
+
   const [selectedComment, setSelectedComment] = useState("");
   const [selectedUrl, setSelectedUrl] = useState("");
 
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (f: File | null) => void) => {
+  const [annexes, setAnnexes] = useState<Annexe[]>([
+    { type: "url", value: "", comment: "" },
+  ]);
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (f: File | null) => void,
+  ) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
+  };
+ const addAnnexe = () => {
+    if (annexes.length < 5) {
+      setAnnexes([...annexes, { type: "url", value: "", comment: "" }]);
+    }
+  };
+
+  const removeAnnexe = (index: number) => {
+    if (annexes.length > 1) {
+      setAnnexes(annexes.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateAnnexe = (
+    index: number,
+    field: keyof Annexe,
+    value: string | File | null,
+  ) => {
+    const newAnnexes = [...annexes];
+    newAnnexes[index] = { ...newAnnexes[index], [field]: value };
+    setAnnexes(newAnnexes);
   };
 
   useEffect(() => {
@@ -118,16 +153,31 @@ export function Upload() {
 
   const all_course = useMemo(() => {
     if (!courses) return [];
-    return courses.flatMap((item: any) =>
-      item.level?.flatMap((item_level: any) =>
-        item_level.course?.map((item_course: any) => ({
-          id: item_course.id,
-          course: item_course.name,
-          level: item_level.name,
-          major: item.name,
-        })) || []
-      ) || []
-    );
+
+    const courseMap = new Map();
+
+    courses.forEach((majorData: any) => {
+      majorData.parcours?.forEach((parcoursData: any) => {
+        parcoursData.courses?.forEach((courseData: any) => {
+          if (courseMap.has(courseData.id)) {
+            const existingCourse = courseMap.get(courseData.id);
+            if (!existingCourse.parcours.includes(parcoursData.name)) {
+              existingCourse.parcours += ` et ${parcoursData.name}`;
+            }
+          } else {
+            courseMap.set(courseData.id, {
+              id: courseData.id,
+              course: courseData.name,
+              level: courseData.level?.name || "",
+              major: majorData.name,
+              parcours: parcoursData.name,
+            });
+          }
+        });
+      });
+    });
+
+    return Array.from(courseMap.values());
   }, [courses]);
 
   const filteredCourses = useMemo(() => {
@@ -139,18 +189,21 @@ export function Upload() {
     );
   }, [all_course, inputValue]);
 
-
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
+   event.preventDefault();
     setSubmitting(true);
     setErrorMessage("");
   
     if (!selectedCourse || !selectedExamId || !selectedFile || !selectedYear) {
-      setErrorMessage('Veuillez remplir tous les champs obligatoires (Cours, Examen, Année, Fichier).');
+      setErrorMessage('Veuillez remplir tous les champs obligatoires.');
       setSubmitting(false);
       return;
     }
-  
+    if (annexes.length > 5) {
+      setErrorMessage('Vous ne pouvez pas ajouter plus de 5 annexes.');
+      setSubmitting(false);
+      return;
+    }
     try {
       const formData = new FormData();
       formData.append("courseId", String(selectedCourse.id));
@@ -158,15 +211,19 @@ export function Upload() {
       formData.append("year", selectedYear);
       formData.append("file", selectedFile); 
       
-      if (selectedFileOption) {
-        formData.append("optionalFile", selectedFileOption);
-      }
-      if (selectedComment) {
-        formData.append("comment", selectedComment);
-      }
-      if (selectedUrl) {
-        formData.append("url", selectedUrl);
-      }
+      const metadata = annexes.map((annexe, index) => {
+        if (annexe.type === 'url') {
+          return { type: 'url', comment: annexe.comment, url: annexe.value };
+        } else if (annexe.type === 'fichier' && annexe.value instanceof File) {
+          const fileKey = `annexe_file_${index}`;
+          formData.append(fileKey, annexe.value);
+          return { type: 'fichier', comment: annexe.comment, fileKey: fileKey };
+        }
+        return null;
+      }).filter(Boolean); 
+
+  
+      formData.append('annexes_metadata', JSON.stringify(metadata));
 
       await apiRequest.post("/pastExam/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -175,13 +232,12 @@ export function Upload() {
       navigate('/'); 
 
     } catch (err: any) {
-      const msg = getRequestMessage(err) || "Erreur lors de l'envoi";
-      setErrorMessage(msg);
+      setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
       setSubmitting(false);
     }
   };
-  
+
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       {loading ? (
@@ -193,7 +249,7 @@ export function Upload() {
           <CardContent>
             <Skeleton className="aspect-video w-full" />
           </CardContent>
-        </Card> 
+        </Card>
       ) : (
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader>
@@ -212,12 +268,10 @@ export function Upload() {
           <CardContent>
             <form encType="multipart/form-data" onSubmit={handleSubmit}>
               <FieldGroup className="space-y-4">
-                
-                {/* Message d'erreur */}
                 {errorMessage && (
-                    <div className="text-red-500 text-sm font-medium text-center">
+                  <div className="text-red-500 text-sm font-medium text-center">
                     {errorMessage}
-                    </div>
+                  </div>
                 )}
 
                 <FieldLabel>Choisissez la filière</FieldLabel>
@@ -251,7 +305,7 @@ export function Upload() {
                                 {course.course}
                               </ItemTitle>
                               <ItemDescription>
-                                {course.level} {course.major}
+                                {course.level} {course.parcours}
                               </ItemDescription>
                             </ItemContent>
                           </Item>
@@ -285,10 +339,7 @@ export function Upload() {
 
                 <Field>
                   <FieldLabel>Année de l'examen</FieldLabel>
-                  <Select
-                    value={selectedYear}
-                    onValueChange={setSelectedYear}
-                  >
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choisissez l'année" />
                     </SelectTrigger>
@@ -307,12 +358,12 @@ export function Upload() {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <FieldLabel>Téléverser une annale</FieldLabel>
-                    <Input 
-                      id="file-main" 
-                      name="file-main" 
-                      type="file" 
+                    <Input
+                      id="file-main"
+                      name="file-main"
+                      type="file"
                       accept=".pdf"
-                      onChange={(e) => handleFileChange(e, setSelectedFile)} 
+                      onChange={(e) => handleFileChange(e, setSelectedFile)}
                     />
                     <p className="text-sm text-muted-foreground">
                       Seul le format pdf est accepté.
@@ -323,57 +374,130 @@ export function Upload() {
                 <Collapsible
                   open={isOpen}
                   onOpenChange={setIsOpen}
-                  className="w-full flex flex-col gap-2"
+                  className="w-full border p-3 rounded-lg bg-slate-50/50"
                 >
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold">
-                      Ajouter une annexe optionnelle
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-slate-700">
+                      Annexes optionnelles
                     </h4>
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="icon" className="size-8">
                         <ChevronsUpDown className="h-4 w-4" />
-                        <span className="sr-only">Toggle details</span>
                       </Button>
                     </CollapsibleTrigger>
                   </div>
 
-                  <CollapsibleContent className="grid gap-4 mt-2">
-                    <div className="grid gap-2">
-                      <p className="text-sm font-medium">Fichier annexe</p>
-                      <Input 
-                        type="file" 
-                        accept=".pdf" 
-                        onChange={(e) => handleFileChange(e, setSelectedFileOption)}
-                      />
-                    </div>
+                  <CollapsibleContent className="space-y-4">
+                    {annexes.map((annexe, index) => (
+                      <div
+                        key={index}
+                        className="p-3 border rounded-md bg-white space-y-3 shadow-sm relative group"
+                      >
+                        <div className="flex items-end gap-2">
+                          <Field className="flex-1">
+                            <FieldLabel className="text-xs">
+                              Type de document
+                            </FieldLabel>
+                            <Select
+                              value={annexe.type}
+                              onValueChange={(val) =>
+                                updateAnnexe(index, "type", val)
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="url">URL</SelectItem>
+                                <SelectItem value="fichier">Fichier</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </Field>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <p className="text-sm font-medium">Commentaire</p>
-                        <Input 
-                          type="text" 
-                          value={selectedComment}
-                          onChange={(e) => setSelectedComment(e.target.value)} 
-                          placeholder="Commentaire..."
-                        />
-                      </div>
+                          <div className="flex gap-1 mb-[2px]">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={addAnnexe}
+                              disabled={annexes.length >= 5}
 
-                      <div className="grid gap-2">
-                        <p className="text-sm font-medium">Url annexe</p>
-                        <Input 
-                          value={selectedUrl}
-                          onChange={(e) => setSelectedUrl(e.target.value)}
-                          type="text" 
-                          placeholder="https://...pdf" 
-                        />
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            {annexes.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-9 text-red-500 border-red-100 hover:bg-red-50"
+                                onClick={() => removeAnnexe(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-bold uppercase text-slate-400">
+                              Source
+                            </p>
+                            {annexe.type === "url" ? (
+                              <Input
+                                className="h-9"
+                                placeholder="https://lien-vers-correction.pdf"
+                                value={
+                                  typeof annexe.value === "string"
+                                    ? annexe.value
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  updateAnnexe(index, "value", e.target.value)
+                                }
+                              />
+                            ) : (
+                              <Input
+                                className="h-9 text-xs py-1"
+                                type="file"
+                                accept=".pdf"
+                                onChange={(e) =>
+                                  e.target.files &&
+                                  updateAnnexe(
+                                    index,
+                                    "value",
+                                    e.target.files[0],
+                                  )
+                                }
+                              />
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-bold uppercase text-slate-400">
+                              Commentaire
+                            </p>
+                            <Input
+                              className="h-9"
+                              placeholder="Ex: Correction détaillée..."
+                              value={annexe.comment}
+                              onChange={(e) =>
+                                updateAnnexe(index, "comment", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </CollapsibleContent>
                 </Collapsible>
 
                 <div className="flex justify-center space-x-3 mt-8">
-                  <Button type="submit" disabled={submitting}>
-                    {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button  type="submit" disabled={submitting}>
+                    {submitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     Envoyer
                   </Button>
                 </div>
