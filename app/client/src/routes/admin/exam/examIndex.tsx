@@ -1,36 +1,83 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen } from "lucide-react";
+import { useState, useCallback, useMemo } from 'react';
+import { usePaginatedData } from '@/hooks/usePaginatedData';
+import { DataTableServer } from '@/components/dataTable/dataTableServer';
+import { createColumnsExam, type Exam } from './columnsExam';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExamFormDialog } from '@/components/admin/exam/examFormDialog';
+import { DeleteConfirmDialog } from '@/components/deleteConfirmDialog';
+import { apiRequest, getRequestMessage } from '@/services/api';
+import { toast } from 'sonner';
 
 export function ExamIndex() {
-  return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BookOpen className="h-8 w-8" />
-          Gestion des Annales
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Gérez les examens et les annales de l'ATACCothèque
-        </p>
-      </div>
+  const [openEditExam, setOpenEditExam] = useState<Exam | null>(null);
+  const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
 
+  const { data: exams, pagination, isLoading, handlePageChange, handlePageSizeChange, handleSearchChange, setData, refetch } = usePaginatedData<Exam>({
+    endpoint: '/exam',
+    initialPageSize: 20,
+  });
+
+  const handleEdit = useCallback((exam: Exam) => {
+    setOpenEditExam(exam);
+  }, []);
+
+  const handleDelete = useCallback((exam: Exam) => {
+    setExamToDelete(exam);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (examToDelete) {
+      try {
+        await apiRequest.delete(`/exam/${examToDelete.id}`);
+        setData(prev => prev.filter(e => e.id !== examToDelete.id));
+        setExamToDelete(null);
+        toast.success('Examen supprimé avec succès');
+        refetch();
+      } catch (err) {
+        toast.error(`Erreur: ${getRequestMessage(err)}`);
+      }
+    }
+  }, [examToDelete, setData, refetch]);
+
+  const columns = useMemo(
+    () => createColumnsExam({ onEdit: handleEdit, onDelete: handleDelete }),
+    [handleEdit, handleDelete]
+  );
+
+  return (
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Examen en développement</CardTitle>
+          <CardTitle>Gestion des Annales</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            Cette page sera complétée avec :
-          </p>
-          <ul className="list-disc list-inside mt-4 space-y-2 text-muted-foreground">
-            <li>Tableau de gestion des annales</li>
-            <li>Upload de fichiers PDF</li>
-            <li>Édition des métadonnées</li>
-            <li>Suppression avec confirmation</li>
-            <li>Filtres et pagination</li>
-          </ul>
+          <DataTableServer
+            columns={columns}
+            data={exams}
+            pagination={pagination}
+            isLoading={isLoading}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSearchChange={handleSearchChange}
+          />
         </CardContent>
       </Card>
+
+      <ExamFormDialog
+        exam={openEditExam}
+        open={!!openEditExam}
+        onOpenChange={(open) => !open && setOpenEditExam(null)}
+        onSaved={refetch}
+      />
+
+      <DeleteConfirmDialog
+        open={!!examToDelete}
+        onOpenChange={(open) => !open && setExamToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Supprimer cet examen ?"
+        description="Cette action est irréversible."
+        itemName={`${examToDelete?.course} (${examToDelete?.year})`}
+      />
     </div>
   );
 }
