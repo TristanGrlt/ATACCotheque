@@ -68,7 +68,7 @@ model Parcours {
 
 model Course {
   id        Int        @id @default(autoincrement())
-  name      String
+  name      String     @unique
   semestre  Int
   parcours  Parcours[]
   level     Level      @relation(fields: [levelId], references: [id])

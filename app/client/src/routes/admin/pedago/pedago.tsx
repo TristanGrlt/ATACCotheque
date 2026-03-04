@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   EditableDeletableItemList,
   type ListItem,
 } from "@/components/admin/pedago/EditableDeletableItemList";
@@ -32,6 +38,10 @@ import { useEffect, useMemo, useState } from "react";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import {
+  CourseFormConnect,
+  type CourseFormConnectData,
+} from "@/components/admin/pedago/CourseFormConnect";
 
 // ── Data types ─────────────────────────────────────────
 
@@ -58,6 +68,7 @@ export function Pedago() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [examTypes, setExamTypes] = useState<ExamType[]>([]);
   const [parcours, setParcours] = useState<Parcours[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedParcoursId, setSelectedParcoursId] = useState<number | null>(
     null,
   );
@@ -104,35 +115,6 @@ export function Pedago() {
     fetchParcours();
   }, []);
 
-  // --- Référentiels ---
-
-  const [courses, setCourses] = useState<Course[]>([
-    {
-      id: 1,
-      name: "Algorithmique",
-      semestre: 1,
-      levelId: 1,
-      parcoursIds: [1],
-      examTypeIds: [1, 2, 4],
-    },
-    {
-      id: 2,
-      name: "Algèbre",
-      semestre: 1,
-      levelId: 1,
-      parcoursIds: [1],
-      examTypeIds: [1, 4],
-    },
-    {
-      id: 3,
-      name: "Base de données",
-      semestre: 3,
-      levelId: 2,
-      parcoursIds: [2],
-      examTypeIds: [1, 3, 4],
-    },
-  ]);
-
   // --- Sélection ---
 
   const selectedParcours =
@@ -174,32 +156,41 @@ export function Pedago() {
     fetchParcoursLevels();
   }, [selectedParcoursId]);
 
+  useEffect(() => {
+    if (!selectedParcoursId || !selectedLevelId) return;
+
+    const fetchCourses = async () => {
+      try {
+        const { data } = await apiRequest.get(
+          `/parcours/${selectedParcoursId}/levels/${selectedLevelId}/courses`,
+        );
+        setCourses(data);
+      } catch (error) {
+        toast.error(
+          "Erreur lors du chargement des cours : " + getRequestMessage(error),
+        );
+      }
+    };
+    fetchCourses();
+  }, [selectedParcoursId, selectedLevelId]);
+
   const levelItems = useMemo<(ListItem & Level)[]>(
     () => filteredLevels.map((l) => ({ ...l, badges: [] })),
     [filteredLevels],
   );
 
-  const filteredCourses = useMemo(() => {
-    if (!selectedParcoursId || !selectedLevelId) return [];
-    return courses.filter(
-      (c) =>
-        c.parcoursIds.includes(selectedParcoursId) &&
-        c.levelId === selectedLevelId,
-    );
-  }, [courses, selectedParcoursId, selectedLevelId]);
-
   const courseItems = useMemo<(ListItem & Course)[]>(
     () =>
-      filteredCourses.map((c) => ({
+      courses.map((c) => ({
         ...c,
-        badges: c.examTypeIds
+        badges: (c.examTypeIds || [])
           .map((eId) => {
             const et = examTypes.find((e) => e.id === eId);
             return et ? { id: et.id, label: et.name } : null;
           })
           .filter(Boolean) as { id: number; label: string }[],
       })),
-    [filteredCourses, examTypes],
+    [courses, examTypes],
   );
 
   // ── CRUD handlers ────────────────────────────────────
@@ -285,39 +276,81 @@ export function Pedago() {
     }
   };
 
-  const handleAddCourse = (data: CourseFormData) => {
-    if (!selectedParcoursId || !selectedLevelId) return;
-    const newId = Math.max(0, ...courses.map((c) => c.id)) + 1;
-    setCourses((prev) => [
-      ...prev,
-      {
-        id: newId,
+  const handleAddCourse = async (data: CourseFormData) => {
+    if (!selectedLevelId || !selectedParcoursId) return;
+
+    try {
+      const { data: newCourse } = await apiRequest.post("/course", {
         name: data.name,
         semestre: data.semestre,
         levelId: selectedLevelId,
         parcoursIds: [selectedParcoursId],
         examTypeIds: data.examTypeIds,
-      },
-    ]);
+      });
+      setCourses((prev) => [...prev, newCourse]);
+      toast.success("Cours ajouté");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de l'ajout du cours : ${getRequestMessage(error)}`,
+      );
+      throw error;
+    }
   };
 
-  const handleEditCourse = (id: number, data: CourseFormData) => {
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              name: data.name,
-              semestre: data.semestre,
-              examTypeIds: data.examTypeIds,
-            }
-          : c,
-      ),
-    );
+  const handleEditCourse = async (id: number, data: CourseFormData) => {
+    try {
+      const { data: updatedCourse } = await apiRequest.put(`/course/${id}`, {
+        name: data.name,
+        semestre: data.semestre,
+        examTypeIds: data.examTypeIds,
+      });
+      setCourses((prev) => prev.map((c) => (c.id === id ? updatedCourse : c)));
+      toast.success("Cours mis à jour");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de la mise à jour du cours : ${getRequestMessage(error)}`,
+      );
+    }
   };
 
-  const handleDeleteCourse = (item: ListItem) => {
-    setCourses((prev) => prev.filter((c) => c.id !== item.id));
+  const handleDeleteCourse = async (item: ListItem) => {
+    if (!selectedParcoursId || !selectedLevelId) return;
+
+    try {
+      await apiRequest.delete(
+        `/parcours/${selectedParcoursId}/levels/${selectedLevelId}/courses/${item.id}`,
+      );
+      setCourses((prev) => prev.filter((c) => c.id !== item.id));
+      toast.success("Cours supprimé du parcours et niveau");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de la suppression du cours : ${getRequestMessage(error)}`,
+      );
+      throw error;
+    }
+  };
+
+  const handleAddCourseConnect = async (data: CourseFormConnectData) => {
+    if (!selectedLevelId || !selectedParcoursId) return;
+
+    // Vérifier que le cours n'existe pas déjà
+    if (courses.some((c) => c.id === data.courseId)) {
+      toast.error("Ce cours est déjà associé à ce niveau");
+      return;
+    }
+
+    try {
+      const { data: newCourse } = await apiRequest.post(
+        `/parcours/${selectedParcoursId}/levels/${selectedLevelId}/courses/${data.courseId}`,
+        {},
+      );
+      setCourses((prev) => [...prev, newCourse]);
+      toast.success("Cours ajouté au parcours et niveau");
+    } catch (error) {
+      toast.error(
+        `Erreur lors de la connexion du cours : ${getRequestMessage(error)}`,
+      );
+    }
   };
 
   // ── Columns ──────────────────────────────────────────
@@ -357,6 +390,7 @@ export function Pedago() {
             onSelect={(item) => {
               setSelectedParcoursId(item.id as number);
               setSelectedLevelId(null);
+              setCourses([]);
             }}
             onDelete={handleDeleteParcours}
             deleteLabel="ce parcours"
@@ -409,6 +443,7 @@ export function Pedago() {
               onClick={() => {
                 setSelectedParcoursId(null);
                 setSelectedLevelId(null);
+                setCourses([]);
               }}
             >
               <ArrowLeft size={18} />
@@ -446,7 +481,10 @@ export function Pedago() {
   };
 
   const CourseColumn = () => {
-    const [isAdding, setIsAdding] = useState(false);
+    const [addingMode, setAddingMode] = useState<null | "new" | "existing">(
+      null,
+    );
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const isVisibleOnMobile = selectedLevelId !== null;
     const visibilityClass = isVisibleOnMobile ? "flex" : "hidden lg:flex";
 
@@ -477,20 +515,48 @@ export function Pedago() {
             <BookOpen size={18} />
             Cours
           </h2>
-          <Button onClick={() => setIsAdding(!isAdding)} variant="outline">
-            {isAdding ? <X /> : <Plus />}
-          </Button>
+          <DropdownMenu
+            open={addingMode ? false : isDropdownOpen}
+            onOpenChange={(open) => {
+              if (addingMode) {
+                setAddingMode(null);
+              } else {
+                setIsDropdownOpen(open);
+              }
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">{addingMode ? <X /> : <Plus />}</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setAddingMode("new")}>
+                Créer un nouveau cours
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setAddingMode("existing")}>
+                Sélectionner un cours existant
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="p-3 flex-1 overflow-y-auto">
-          {isAdding && (
+          {addingMode === "new" && (
             <CourseForm
               mode="create"
               examTypes={examTypes}
               onSubmit={(data) => {
                 handleAddCourse(data);
-                setIsAdding(false);
+                setAddingMode(null);
               }}
-              onCancel={() => setIsAdding(false)}
+              onCancel={() => setAddingMode(null)}
+            />
+          )}
+          {addingMode === "existing" && (
+            <CourseFormConnect
+              onCancel={() => setAddingMode(null)}
+              onSubmit={(data) => {
+                handleAddCourseConnect(data);
+                setAddingMode(null);
+              }}
             />
           )}
           <EditableDeletableItemList

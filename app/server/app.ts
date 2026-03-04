@@ -8,6 +8,7 @@ import majorRouter from './routes/major.route.js';
 import levelRouter from './routes/level.route.js';
 import parcoursRouter from './routes/parcours.route.js';
 import examTypeRouter from './routes/examType.route.js';
+import courseRouter from './routes/course.route.js';
 
 import cookieParser from 'cookie-parser';
 
@@ -33,6 +34,7 @@ app.use('/major', majorRouter);
 app.use('/level', levelRouter);
 app.use('/parcours', parcoursRouter);
 app.use('/exam-type', examTypeRouter);
+app.use('/course', courseRouter);
 
 
 // JWT_SECRET
