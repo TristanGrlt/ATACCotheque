@@ -21,11 +21,11 @@ export const getExamType = async (req: Request, res: Response) => {
              id: courseTypeId 
         },
         include: {
-            examType: true
+            examTypes: true
             }
         });
 
-  res.json(examTypeList?.examType)
+  res.json(examTypeList?.examTypes)
 }
 
 
