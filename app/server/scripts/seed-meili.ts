@@ -1,13 +1,18 @@
 import { MeiliSearch } from 'meilisearch';
-import { Prisma } from '../generated/prisma/client';
-import prisma from '../lib/prisma';
+import { Prisma } from '../generated/prisma/client.js';
+import prisma from '../lib/prisma.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const host = process.env.MEILI_HOST || 'http://meilisearch:7700';
 const apiKey = process.env.MEILI_MASTER_KEY || 'devMasterKey';
 
-const examQuery = Prisma.validator<Prisma.PastExamDefaultArgs>()({
+const client = new MeiliSearch({
+  host: host,
+  apiKey: apiKey
+});
+
+const examQuery = {
   include: {
     examtype: true,
     course: {
@@ -16,7 +21,7 @@ const examQuery = Prisma.validator<Prisma.PastExamDefaultArgs>()({
       }
     }
   }
-});
+} as const;
 
 type ExamWithRelations = Prisma.PastExamGetPayload<typeof examQuery>;
 
@@ -49,7 +54,7 @@ async function seed() {
 
   // Add Documents
   const task = await index.addDocuments(documents);
-  console.log(`Synonyms configured and fake data sent. Task UID: ${task.taskUid}`);
+  console.log(`Synonyms configured and data sent. Task UID: ${task.taskUid}`);
 }
 
 seed().catch(console.error).finally(() => prisma.$disconnect());
