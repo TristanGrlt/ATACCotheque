@@ -12,6 +12,7 @@ export default defineConfig({
       '@radix-ui/react-avatar',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-tooltip',
+      '@base-ui/react',
     ],
   },
   resolve: {
