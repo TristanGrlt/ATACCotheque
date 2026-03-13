@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
+import { deleteCourseCascade } from "../utils/cascadeDelete.js";
 
 export const getCourse = async (req: Request, res: Response) => {
   try {
@@ -107,9 +108,10 @@ export const deleteCourse = async (req: Request, res: Response) => {
   }
 
   try {
-    await prisma.course.delete({
-      where: { id: parseInt(courseId, 10) },
-    });
+    //    await prisma.course.delete({
+    //      where: { id: parseInt(courseId, 10) },
+    //    });
+    await deleteCourseCascade(parseInt(courseId, 10));
 
     return res.status(200).json({ message: "Le cours a bien été supprimé" });
   } catch (error) {

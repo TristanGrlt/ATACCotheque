@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 import { updateCourse } from "./course.controller.js";
+import { deleteCourseCascade } from "../utils/cascadeDelete.js";
 
 export const getParcours = async (req: Request, res: Response) => {
   try {
@@ -78,19 +79,17 @@ export const deleteParcours = async (req: Request, res: Response) => {
   }
 
   try {
-    const courseWithParcours = await prisma.course.count({
-      where: { parcours: { some: { id: parseInt(parcoursId, 10) } } },
+    const exclusifCourses = await prisma.course.findMany({
+      where: {
+        parcours: { some: { id: parseInt(parcoursId, 10) } },
+        NOT: {
+          parcours: { some: { id: { not: parseInt(parcoursId, 10) } } },
+        },
+      },
+      select: { id: true },
     });
-
-    if (courseWithParcours > 0) {
-      return res.status(403).json({
-        error: `Ce parcours est associé à ${courseWithParcours} cours. Impossible de le supprimer.`,
-      });
-    }
-
-    await prisma.parcours.delete({
-      where: { id: parseInt(parcoursId, 10) },
-    });
+    await Promise.all(exclusifCourses.map((c) => deleteCourseCascade(c.id)));
+    await prisma.parcours.delete({ where: { id: parseInt(parcoursId, 10) } });
 
     return res.status(200).json({ message: "Le parcours a bien été supprimé" });
   } catch (error) {
@@ -194,6 +193,16 @@ export const removeLevelFromParcours = async (req: Request, res: Response) => {
   }
 
   try {
+    const orphanCourses = await prisma.course.findMany({
+      where: {
+        levelId: parseInt(levelId, 10),
+        parcours: { some: { id: parseInt(parcoursId, 10) } },
+        NOT: { parcours: { some: { id: { not: parseInt(parcoursId, 10) } } } },
+      },
+      select: { id: true },
+    });
+    await Promise.all(orphanCourses.map((c) => deleteCourseCascade(c.id)));
+
     const updatedParcours = await prisma.parcours.update({
       where: { id: parseInt(parcoursId, 10) },
       data: { levels: { disconnect: { id: parseInt(levelId, 10) } } },
