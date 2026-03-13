@@ -164,7 +164,7 @@ model Annexe {
   isVerifed  Boolean
   path       String?
   url        String?
-  pastExam   PastExam @relation(fields: [pastExamId], references: [id])
+  pastExam   PastExam @relation(fields: [pastExamId], references: [id], onDelete: Cascade)
   pastExamId Int
 }
 
