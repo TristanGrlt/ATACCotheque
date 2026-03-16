@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import path from 'path';
-import { readFile } from 'fs/promises';
+import { readFile, unlink } from 'fs/promises';
 import prisma from '../lib/prisma.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
 
@@ -103,10 +103,10 @@ export const getExams = async (req: Request, res: Response) => {
 
     const whereClause = search
       ? {
-          course: {
-            name: { contains: search, mode: 'insensitive' as const }
-          }
+        course: {
+          name: { contains: search, mode: 'insensitive' as const }
         }
+      }
       : {};
 
     const totalCount = await prisma.pastExam.count({ where: whereClause });
@@ -155,12 +155,14 @@ export const getExams = async (req: Request, res: Response) => {
 export const updateExam = async (req: Request, res: Response) => {
   try {
     const { examId } = req.params;
-    const { year } = req.body;
+    const { year, courseId, examTypeId } = req.body;
 
     const exam = await prisma.pastExam.update({
       where: { id: parseInt(examId as string) },
       data: {
-        year: year ? parseInt(year as string) : undefined
+        year: year ? parseInt(year as string) : undefined,
+        courseId: courseId ? parseInt(courseId as string) : undefined,
+        examTypeId: examTypeId ? parseInt(examTypeId as string) : undefined
       },
       include: {
         course: {
@@ -191,9 +193,24 @@ export const deleteExam = async (req: Request, res: Response) => {
   try {
     const { examId } = req.params;
 
-    const exam = await prisma.pastExam.delete({
+    const exam = await prisma.pastExam.findUnique({
       where: { id: parseInt(examId as string) }
     });
+
+    if (!exam) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    await prisma.pastExam.delete({
+      where: { id: parseInt(examId as string) }
+    });
+
+    try {
+      const filePath = path.join(EXAMS_ROOT, exam.path);
+      await unlink(filePath);
+    } catch (fsErr) {
+      console.error('Failed to delete physical file:', fsErr);
+    }
 
     res.json({ message: 'Exam deleted successfully', id: exam.id });
   } catch (err) {

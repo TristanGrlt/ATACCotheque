@@ -1,46 +1,18 @@
-import Course, { ICourse } from '../models/course.model.js'
-import Level from '../models/level.model.js'
-import Major from '../models/major.model.js'
-import mongoose from 'mongoose'
 import { Request, Response } from 'express'
+import prisma from '../lib/prisma.js';
 
 export const getCourse = async (req: Request, res: Response) => {
-
-    const cycle = req.query.cycle ? String(req.query.cycle) : ''
-    const major = req.query.major ? String(req.query.major) : ''
-
-    const findMajor = await Major.findById(major);
-    if(findMajor == null){
-      return res.json({ courses: [] })
-    }
-
-    const idMajor =  findMajor._id;
-
-    const findLevel = await Level.findOne({ name: cycle, major: idMajor });
-
-    if (findLevel == null) {
-      return res.json({ courses: [] })
-    }
-
-    const idLevel = findLevel._id;
-
-    const findCourse = await Course.find({ level: idLevel }, { name: 1 });
-
-    res.json({ courses: findCourse });
+  try {
+    const courses = await prisma.course.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: 'asc' }
+    });
+    res.json(courses);
+  } catch (err) {
+    console.error('Course retrieval error:', err);
+    res.status(500).json({ error: 'Failed to retrieve courses' });
   }
-
-
-
-
-    
-  
-
-
-
-
-
- 
-
-
-
-   
+}
