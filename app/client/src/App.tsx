@@ -16,6 +16,9 @@ import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
 import { Loading } from './components/loading.tsx'
 import { PERMISSIONS } from './config/permissions.ts'
+import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
+import { MfaChallenge } from './routes/mfaChallenge.tsx'
+import { Upload } from './routes/upload.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -38,7 +41,15 @@ function App() {
         <Route path='login' element={<Login />} />
       </Route>
 
-      {/* Routes protégées par authentification */}
+      { /* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
+      <Route path="onboarding" element={<OnboardingPage />} />
+
+      {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
+      <Route path="mfa-challenge" element={<MfaChallenge />} />
+
+      {/* Routes protégées par authentification */}      
+      <Route path='upload' element={<Upload />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
@@ -51,12 +62,12 @@ function App() {
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.REVIEW_ANNALES]} />}>
             <Route path='exams-review' element={<ExamsReview />} />
           </Route>
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ROLES]} />}>
+          {/* Routes protégées par permissions */}
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
             <Route path='users' element={<UserIndex />} />
           </Route>
         </Route>
       </Route>
-
       {/* Pages d'erreur */}
       <Route path='unauthorized' element={<Unauthorized />} />
       <Route path='*' element={<NotFound />} />

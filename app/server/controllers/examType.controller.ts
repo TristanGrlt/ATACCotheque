@@ -1,17 +1,31 @@
-import { Request, Response } from 'express';
+import { Request, Response } from 'express'
 import prisma from '../lib/prisma.js';
 
-export const getExamTypes = async (req: Request, res: Response) => {
-  try {
-    const examTypes = await prisma.examType.findMany({
-      orderBy: {
-        name: 'asc'
-      }
-    });
+export const getExamType = async (req: Request, res: Response) => {
+    const reqCourseTypeId = req.query.courseTypeId
+    if (!reqCourseTypeId) {
+        return res.status(400).json({ error: "L'ID est manquant ou invalide" });
+    }
+    if (typeof reqCourseTypeId !== 'string') {
+        return res.status(400).json({ message: "L'ID doit être une chaîne de caractères valide" });
+    }
 
-    res.json(examTypes);
-  } catch (error) {
-    console.error('Error fetching exam types:', error);
-    res.status(500).json({ error: 'Failed to fetch exam types' });
-  }
-};
+    const courseTypeId = parseInt(reqCourseTypeId, 10);
+    if(isNaN(courseTypeId)){
+        return res.status(400).json({ error: "L'ID n'est pas un nombre" });
+
+
+    }
+    const examTypeList = await prisma.course.findUnique({
+        where: {
+             id: courseTypeId 
+        },
+        include: {
+            examTypes: true
+            }
+        });
+
+  res.json(examTypeList?.examTypes)
+}
+
+

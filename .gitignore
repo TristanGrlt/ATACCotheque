@@ -13,6 +13,8 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+*.pdf
+
 
 # --- Environment & Secrets ---
 .env
