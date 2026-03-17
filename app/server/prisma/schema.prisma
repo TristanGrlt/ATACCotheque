@@ -14,40 +14,128 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(cuid())
-  username String @unique
-  password String
+  id                     String               @id @default(cuid())
+  username               String               @unique
+  password               String
+  // Onboarding
+  passwordChangeRequired Boolean              @default(true)
+  mfaSetupRequired       Boolean              @default(true)
+  mfaMethod              String? // 'totp' or 'webauthn'
+  mfaEnabled             Boolean              @default(false)
+  //TOTP
+  totpSecret             String?
+  totpBackupCodes        String[]
+  // WebAuthn
+  webauthnCredentials    WebAuthnCredential[]
+  webauthnChallenge      WebAuthnChallenge?
+  // Audit
+  lastPasswordChange     DateTime?
+  mfaSetupDate           DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @default(now()) @updatedAt
+
+  userRoles UserRole[]
 }
 
-model Major{
-	  id       Int       @id @default(autoincrement())
-    name String @unique
-    level Level[]
+/**
+ * Clé WebAuthn enregistrée par l'utilisateur
+ */
+model WebAuthnCredential {
+  // ID fourni par l'authentificateur
+  id         String    @id
+  userId     String
+  // Clé publique COSE encodée en Uint8Array
+  publicKey  Bytes
+  // Compteur de signatures — incrémenté à chaque authentification (anti-replay)
+  counter    BigInt
+  // 'singleDevice' (clé matérielle) | 'multiDevice' (passkey synchronisée)
+  deviceType String
+  // true si la passkey est sauvegardée dans un cloud (Google, iCloud, etc.)
+  backedUp   Boolean
+  // Canaux de transport supportés : 'usb' | 'nfc' | 'ble' | 'internal' | 'hybrid'
+  transports String[]
+  // Nom lisible choisi par l'utilisateur (ex : "MacBook Touch ID")
+  name       String    @default("Clé de sécurité")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * Challenge WebAuthn éphémère stocké côté serveur.
+ */
+model WebAuthnChallenge {
+  userId    String   @id
+  challenge String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/**
+ * Challenge WebAuthn pour le login sans mot de passe (passkey / discoverable credential).
+ * Aucun userId à ce stade — l'identité est révélée après vérification.
+ */
+model PasskeyLoginChallenge {
+  id        String   @id @default(cuid())
+  challenge String
+  expiresAt DateTime
+}
+
+model Role {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  color       String          @default("#e94e1b")
+  userRoles   UserRole[]
+  permissions AppPermission[]
+}
+
+enum AppPermission {
+  MANAGE_USERS
+}
+
+model UserRole {
+  id     Int    @id @default(autoincrement())
+  userId String
+  roleId Int
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model Major {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: Informatique, Mathématiques
+  
+  parcours Parcours[] 
 }
 
 
-model Level{
-	  id       Int       @id @default(autoincrement())
-    name String 
-
-    major Major  @relation(fields: [majorId], references: [id])
-    majorId  Int 
-    course Course[]
+model Level {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: L1, L2, L3, M1, M2
+  courses  Course[]   
 }
 
-model Course{
-	  id       Int       @id @default(autoincrement())
-    name String @unique
-    semeste String
-    level Level  @relation(fields: [LevelId], references: [id])
-      
-    LevelId Int @unique
-    examType  ExamType[]
-
-    pastExam PastExam[]
-
+model Parcours {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique// ex: "Portail IEEEA", "Informatique", "Master SSI"
+  majors   Major[]
+  courses  Course[]
 }
 
+model Course {
+  id         Int        @id @default(autoincrement())
+  name       String 
+  semestre   Int     
+  parcours   Parcours[]
+  level      Level      @relation(fields: [levelId], references: [id])
+  levelId    Int
+  examTypes  ExamType[]
+  pastExams  PastExam[]
+}
 model ExamType{
 	id       Int       @id @default(autoincrement())
   name String @unique
@@ -60,26 +148,28 @@ model PastExam{
     path String @unique
     year Int 
     course Course  @relation(fields: [courseId], references: [id])
-    courseId Int @unique
+    courseId Int 
     examtype ExamType  @relation(fields: [examTypeId], references: [id])
-    examTypeId  Int @unique
-
+    examTypeId  Int
+    isVerified Boolean @default(false)
+    annexe Annexe[]
 }
 
 model Annexe{
   	id       Int       @id @default(autoincrement())
     name String 
     type Type
-    isVerifed Boolean
     path String?
     url String? 
+    pastExam PastExam  @relation(fields: [pastExamId], references: [id])
+    pastExamId Int
+    isVerified Boolean @default(false)
 
 
 
 }
 
-
 enum Type {
-	FILE
-	URL
+  FILE
+  URL
 }

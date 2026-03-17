@@ -1,46 +1,35 @@
-import Course, { ICourse } from '../models/course.model.js'
-import Level from '../models/level.model.js'
-import Major from '../models/major.model.js'
-import mongoose from 'mongoose'
 import { Request, Response } from 'express'
+import prisma from '../lib/prisma.js';
 
 export const getCourse = async (req: Request, res: Response) => {
+  try {
+    const result = await prisma.major.findMany({
+      select: {
+        name: true,
+        parcours: { 
+          select: {
+            name: true,
+            courses: { 
+              select: {
+                id: true,
+                name: true,
+                semestre: true, 
+            
+                level: { 
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
-    const cycle = req.query.cycle ? String(req.query.cycle) : ''
-    const major = req.query.major ? String(req.query.major) : ''
-
-    const findMajor = await Major.findById(major);
-    if(findMajor == null){
-      return res.json({ courses: [] })
-    }
-
-    const idMajor =  findMajor._id;
-
-    const findLevel = await Level.findOne({ name: cycle, major: idMajor });
-
-    if (findLevel == null) {
-      return res.json({ courses: [] })
-    }
-
-    const idLevel = findLevel._id;
-
-    const findCourse = await Course.find({ level: idLevel }, { name: 1 });
-
-    res.json({ courses: findCourse });
+    return res.json(result);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des cours:", error);
+    return res.status(500).json({ error: "Erreur interne du serveur" });
   }
-
-
-
-
-    
-  
-
-
-
-
-
- 
-
-
-
-   
+}

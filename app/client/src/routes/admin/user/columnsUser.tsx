@@ -1,7 +1,7 @@
 "use client"
 
 import { type ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { ArrowUpDown, Key, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -11,18 +11,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { Role } from "./columnsRole"
+import { UserBadge } from "@/components/userBadge"
 
 export type User = {
   id: number
   username: string
+  roles: Role[]
 }
 
 type ColumnActions = {
   onEdit: (user: User) => void
   onDelete: (user: User) => void
+  onReinitMfa: (user: User) => void
 }
 
-export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<User>[] => [
+export const createColumns = ({ onEdit, onDelete, onReinitMfa }: ColumnActions): ColumnDef<User>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -60,6 +64,23 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
     },
   },
   {
+    accessorKey: "roles",
+    header: "Rôles",
+    cell: ({ row }) => {
+      const roles = row.getValue("roles") as Role[]
+      return (
+        <div className="flex gap-1 flex-wrap">
+          {roles.length === 0 ? (
+            <span className="text-muted-foreground">aucun</span>
+          ) : null}
+          {roles.map(role => (
+            <UserBadge key={role.id} text={role.name} color={role.color} />
+          ))}
+        </div>
+      )
+    },
+  },
+  {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
@@ -75,6 +96,10 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Us
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => onReinitMfa(user)}>
+              <Key />
+              Réinitialiser 2FA
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(user)}>
               <Pencil />
               Modifier

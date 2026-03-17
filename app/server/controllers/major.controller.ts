@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma.js';
 
-interface IMajor {
-  name: string;
-}
-export const getMajor = async (req: Request<{}, {}, IMajor>, res: Response) => {
+
+export const getMajor = async (req: Request, res: Response) => {
   
-    const majorsList = await prisma.
+    const majorsList = await prisma.major.findMany({})
   
   res.json(majorsList)
 }

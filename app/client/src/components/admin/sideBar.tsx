@@ -41,6 +41,8 @@ import { useTheme } from "../theme-provider"
 import type { Theme } from "../theme-provider"
 import { Toaster } from "../ui/sonner"
 
+import { PERMISSIONS } from "@/config/permissions"
+
 const items = [
   {
     title: "Tableau de bord",
@@ -56,13 +58,14 @@ const items = [
     title: "Utilisateurs",
     url: "users",
     icon: User,
+    permission: PERMISSIONS.MANAGE_USERS,
   },
 ]
 
 export function SideBar() {
 
   const isMobile = useIsMobile();
-  const { logout, username } = useAuth();
+  const { logout, user, perms } = useAuth();
   const { theme, setTheme } = useTheme();
 
   // Déduire le titre de la section depuis l'URL courante
@@ -104,7 +107,9 @@ export function SideBar() {
             <SidebarGroupLabel>Application</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((item) => (
+                {items
+                  .filter((item) => !item.permission || perms.includes(item.permission))
+                  .map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <Link to={item.url}>
@@ -113,7 +118,7 @@ export function SideBar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
+                  ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -128,10 +133,10 @@ export function SideBar() {
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="h-8 w-8 rounded-lg">{username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="h-8 w-8 rounded-lg">{user?.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <p>{username}</p>
+                      <p>{user?.username}</p>
                     </div>
                     <EllipsisVertical />
                   </SidebarMenuButton>
