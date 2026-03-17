@@ -4,7 +4,7 @@ import { readFile, unlink } from 'fs/promises';
 import prisma from '../lib/prisma.js';
 import { getPaginationParams, createPaginationResponse, getSkip } from '../utils/pagination.js';
 
-const EXAMS_ROOT = '/app/data/exams/content';
+const EXAMS_ROOT = '/app/files';
 
 /**
  * Get a specific exam file
@@ -15,37 +15,46 @@ const EXAMS_ROOT = '/app/data/exams/content';
  * @throws {403} Unauthorized file access (path traversal attempt)
  * @throws {500} Server error
  */
+
 export const getExamFile = async (req: Request, res: Response) => {
   try {
     const { examId } = req.params;
+    const parsedId = parseInt(examId, 10);
 
-    // Set CORS and cache headers for PDF
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: 'Invalid exam ID' });
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
-    // Fetch exam from database to get the file path
     const exam = await prisma.pastExam.findUnique({
-      where: { id: parseInt(examId as string) }
+      where: { id: parsedId }
     });
 
     if (!exam) {
       return res.status(404).json({ error: 'Exam not found' });
     }
 
-    // Construct file path and prevent directory traversal
-    const filePath = path.join(EXAMS_ROOT, exam.path);
-    const realPath = path.resolve(filePath);
+    const normalizedDbPath = exam.path.replace('../files', EXAMS_ROOT);
 
-    // Security: ensure resolved path is within EXAMS_ROOT
+    const realPath = path.resolve(normalizedDbPath);
+
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
       return res.status(403).json({ error: 'Unauthorized file access' });
     }
 
-    // Read and send the file
-    const fileContent = await readFile(realPath);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${path.basename(exam.path)}"`);
-    res.send(fileContent);
+
+    res.sendFile(realPath, (err) => {
+      if (err) {
+        console.error('Error sending file from disk:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'File exists in database but not on disk' });
+        }
+      }
+    });
   } catch (err) {
     console.error('File serving error:', err);
     res.status(500).json({ error: 'Failed to retrieve file' });

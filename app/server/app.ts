@@ -12,6 +12,7 @@ import examTypeRouter from './routes/examType.route.js';
 
 import cookieParser from 'cookie-parser';
 import pastExam  from './routes/pastExam.route.js';
+import examRouter  from './routes/exam.route.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/onboarding', onboardingRouter);
 app.use('/course', courseRouter);
 app.use('/examType',examTypeRouter);
 app.use('/pastExam',pastExam);
+app.use('/exam', examRouter);
 
 
 
