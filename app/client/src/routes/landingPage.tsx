@@ -91,7 +91,7 @@ export function LandingPage() {
         <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
         
         {/* Bouton Bibliothèque - État Inactif */}
-        <button onClick={() => navigate('/sandbox')} className ="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full flex items-center justify-center transition-all text-gray-400 hover:bg-gray-100 hover:text-gray-900">
+        <button onClick={() => navigate('/search')} className ="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full flex items-center justify-center transition-all text-gray-400 hover:bg-gray-100 hover:text-gray-900">
           <Library className="w-6 h-6" />
         </button>
         
