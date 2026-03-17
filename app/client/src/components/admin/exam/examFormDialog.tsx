@@ -20,6 +20,32 @@ import { apiRequest, getRequestMessage } from '@/services/api'
 import { toast } from 'sonner'
 import type { Exam } from '@/routes/admin/exam/columnsExam'
 
+interface Major {
+  name: string
+}
+
+interface Level {
+  name: string
+  major?: Major
+}
+
+interface Course {
+  id: number | string
+  name: string
+  level?: Level
+}
+
+interface ExamType {
+  id: number | string
+  name: string
+}
+
+interface ExamUpdatePayload {
+  year: number
+  courseId?: number
+  examTypeId?: number
+}
+
 interface ExamFormDialogProps {
   exam: Exam | null
   open: boolean
@@ -28,14 +54,21 @@ interface ExamFormDialogProps {
 }
 
 export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDialogProps) {
-  if (!exam) return null
-  const [year, setYear] = useState(exam?.year.toString() ?? '')
-  const [isLoading, setIsLoading] = useState(false)
+  const [year, setYear] = useState<string>(exam?.year?.toString() ?? '')
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [courseId, setCourseId] = useState<string>('')
   const [examTypeId, setExamTypeId] = useState<string>('')
-  const [courses, setCourses] = useState<any[]>([])
-  const [examTypes, setExamTypes] = useState<any[]>([])
-  const [isFetchingOptions, setIsFetchingOptions] = useState(false)
+
+  const [courses, setCourses] = useState<Course[]>([])
+  const [examTypes, setExamTypes] = useState<ExamType[]>([])
+  const [isFetchingOptions, setIsFetchingOptions] = useState<boolean>(false)
+
+  // Sync year if a different exam is passed while component is mounted
+  useEffect(() => {
+    if (exam) {
+      setYear(exam.year?.toString() ?? '')
+    }
+  }, [exam])
 
   useEffect(() => {
     if (open) {
@@ -46,6 +79,7 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
             apiRequest.get('/course'),
             apiRequest.get('/examType')
           ])
+
           setCourses(coursesRes.data?.data || coursesRes.data || [])
           setExamTypes(typesRes.data?.data || typesRes.data || [])
         } catch (err) {
@@ -65,11 +99,13 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
 
       setIsLoading(true)
       try {
-        const payload: Record<string, any> = { year: parseInt(year, 10) }
+        const payload: ExamUpdatePayload = { year: parseInt(year, 10) }
+
         if (courseId) payload.courseId = parseInt(courseId, 10)
         if (examTypeId) payload.examTypeId = parseInt(examTypeId, 10)
+
         await apiRequest.put(`/exam/${exam.id}`, payload)
-        toast.success('Examen mise à jour avec succès')
+        toast.success('Examen mis à jour avec succès')
         onOpenChange(false)
         onSaved?.()
       } catch (err) {
@@ -81,12 +117,12 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
     [exam, year, courseId, examTypeId, onOpenChange, onSaved]
   )
 
+  if (!exam) return null
+
   const selectedCourseDetails = courses.find(c => c.id.toString() === courseId)
 
   const displayLevel = selectedCourseDetails?.level?.name ?? exam?.level ?? ''
   const displayMajor = selectedCourseDetails?.level?.major?.name ?? exam?.major ?? ''
-
-  if (!exam) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,7 +143,7 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
               </SelectTrigger>
               <SelectContent>
                 {courses.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
+                  <SelectItem key={c.id.toString()} value={c.id.toString()}>
                     {c.name}
                   </SelectItem>
                 ))}
@@ -123,7 +159,7 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
               </SelectTrigger>
               <SelectContent>
                 {examTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id.toString()}>
+                  <SelectItem key={t.id.toString()} value={t.id.toString()}>
                     {t.name}
                   </SelectItem>
                 ))}
