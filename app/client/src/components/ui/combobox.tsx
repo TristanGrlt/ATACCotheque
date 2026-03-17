@@ -103,15 +103,14 @@ function ComboboxContent({
     "side" | "align" | "sideOffset" | "alignOffset" | "anchor"
   >) {
   return (
-    <ComboboxPrimitive.Portal container={document.body}>
+    <ComboboxPrimitive.Portal>
       <ComboboxPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
         anchor={anchor}
-        className="isolate"
-        style={{ zIndex: 9999 }}
+        className="isolate z-50"
       >
         <ComboboxPrimitive.Popup
           data-slot="combobox-content"

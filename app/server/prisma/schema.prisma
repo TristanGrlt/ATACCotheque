@@ -106,56 +106,67 @@ model UserRole {
 }
 
 model Major {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
-  level Level[]
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: Informatique, Mathématiques
+  
+  parcours Parcours[] 
 }
 
-model Level {
-  id   Int    @id @default(autoincrement())
-  name String
 
-  major   Major    @relation(fields: [majorId], references: [id])
-  majorId Int
-  course  Course[]
+model Level {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: L1, L2, L3, M1, M2
+  courses  Course[]   
+}
+
+model Parcours {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique// ex: "Portail IEEEA", "Informatique", "Master SSI"
+  majors   Major[]
+  courses  Course[]
 }
 
 model Course {
-  id       Int    @id @default(autoincrement())
-  name     String
-  semestre String
-  level    Level  @relation(fields: [LevelId], references: [id])
-
-  LevelId  Int
-  examType ExamType[]
-
+  id         Int        @id @default(autoincrement())
+  name       String 
+  semestre   Int     
+  parcours   Parcours[]
+  level      Level      @relation(fields: [levelId], references: [id])
+  levelId    Int
+  examTypes  ExamType[]
+  pastExams  PastExam[]
+}
+model ExamType{
+	id       Int       @id @default(autoincrement())
+  name String @unique
+  course Course[]
   pastExam PastExam[]
 }
 
-model ExamType {
-  id       Int        @id @default(autoincrement())
-  name     String     @unique
-  course   Course[]
-  pastExam PastExam[]
+model PastExam{
+	id       Int       @id @default(autoincrement())
+    path String @unique
+    year Int 
+    course Course  @relation(fields: [courseId], references: [id])
+    courseId Int 
+    examtype ExamType  @relation(fields: [examTypeId], references: [id])
+    examTypeId  Int
+    isVerified Boolean @default(false)
+    annexe Annexe[]
 }
 
-model PastExam {
-  id         Int      @id @default(autoincrement())
-  path       String   @unique
-  year       Int
-  course     Course   @relation(fields: [courseId], references: [id])
-  courseId   Int
-  examtype   ExamType @relation(fields: [examTypeId], references: [id])
-  examTypeId Int
-}
+model Annexe{
+  	id       Int       @id @default(autoincrement())
+    name String 
+    type Type
+    path String?
+    url String? 
+    pastExam PastExam  @relation(fields: [pastExamId], references: [id])
+    pastExamId Int
+    isVerified Boolean @default(false)
 
-model Annexe {
-  id        Int     @id @default(autoincrement())
-  name      String
-  type      Type
-  isVerifed Boolean
-  path      String?
-  url       String?
+
+
 }
 
 enum Type {

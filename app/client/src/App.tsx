@@ -7,7 +7,6 @@ import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { PermissionRoute } from './components/permissionRoute.tsx'
 import { GuestRoute } from './components/guestRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
-import { AddUser } from './components/admin/user/addUser.tsx'
 import { NotFound } from './routes/notFound.tsx'
 import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
@@ -16,6 +15,7 @@ import { PERMISSIONS } from './config/permissions.ts'
 import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import Dashboard from './routes/admin/dashboard/dashboard.tsx'
+import { Upload } from './routes/upload.tsx'
 
 function App() {
   const { isLoading } = useAuth()
@@ -43,7 +43,9 @@ function App() {
       {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
-      {/* Routes protégées par authentification */}
+      {/* Routes protégées par authentification */}      
+      <Route path='upload' element={<Upload />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
