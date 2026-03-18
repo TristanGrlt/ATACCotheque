@@ -1,3 +1,4 @@
+
 import { Route, Routes, Navigate } from 'react-router-dom'
 import { LandingPage } from './routes/landingPage.tsx'
 import { SearchSandbox } from './routes/SearchSandbox.tsx'
