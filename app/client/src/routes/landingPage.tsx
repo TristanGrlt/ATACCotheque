@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Atom,
   FlaskConical,
@@ -15,7 +15,6 @@ import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
 
 export function LandingPage() {
-  const navigate = useNavigate();
   return (
     <>
       <div className="min-h-screen bg-background pb-28 font-sans text-foreground selection:bg-primary/20">
@@ -89,23 +88,23 @@ export function LandingPage() {
 
         <nav className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 rounded-2xl p-2 flex justify-around sm:gap-2 items-center bg-background/90 backdrop-blur-xl border border-border shadow-2xl">
           {/* Bouton Accueil - État Actif */}
-          <Button
-            onClick={() => navigate("/")}
-            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
-          >
-            <LayoutGrid className="w-6 h-6" />
-          </Button>
+          <Link to="/">
+            <Button className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full">
+              <LayoutGrid className="w-6 h-6" />
+            </Button>
+          </Link>
 
           <div className="w-px h-6 bg-border mx-1 hidden sm:block"></div>
 
           {/* Bouton Bibliothèque - État Inactif */}
-          <Button
-            onClick={() => navigate("/search")}
-            variant="ghost"
-            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
-          >
-            <Library className="w-6 h-6" />
-          </Button>
+          <Link to="/search">
+            <Button
+              variant="ghost"
+              className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+            >
+              <Library className="w-6 h-6" />
+            </Button>
+          </Link>
 
           {/* Bouton Manquants - État Inactif */}
           <Button
@@ -116,13 +115,14 @@ export function LandingPage() {
           </Button>
 
           {/* Bouton Upload - État Inactif */}
-          <Button
-            onClick={() => navigate("/upload")}
-            variant="ghost"
-            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
-          >
-            <Plus className="w-6 h-6" />
-          </Button>
+          <Link to="/upload">
+            <Button
+              variant="ghost"
+              className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+            >
+              <Plus className="w-6 h-6" />
+            </Button>
+          </Link>
         </nav>
       </div>
     </>
