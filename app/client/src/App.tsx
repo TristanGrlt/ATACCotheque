@@ -1,70 +1,77 @@
-
-import { Route, Routes, Navigate } from 'react-router-dom'
-import { LandingPage } from './routes/landingPage.tsx'
-import { SearchSandbox } from './routes/SearchSandbox.tsx'
-import { SideBar } from './components/admin/sideBar.tsx'
-import { Login } from './routes/login.tsx'
-import { ProtectedRoute } from './components/protectedRoute.tsx'
-import { PermissionRoute } from './components/permissionRoute.tsx'
-import { GuestRoute } from './components/guestRoute.tsx'
-import { UserIndex } from './routes/admin/user/userIndex.tsx'
-import { NotFound } from './routes/notFound.tsx'
-import { Unauthorized } from './routes/unauthorized.tsx'
-import { useAuth } from './contexts/AuthContext.tsx'
-import { Loading } from './components/loading.tsx'
-import { PERMISSIONS } from './config/permissions.ts'
-import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
-import { MfaChallenge } from './routes/mfaChallenge.tsx'
-import Dashboard from './routes/admin/dashboard/dashboard.tsx'
-import { Upload } from './routes/upload.tsx'
+import { Route, Routes, Navigate } from "react-router-dom";
+import { LandingPage } from "./routes/landingPage.tsx";
+import { SearchSandbox } from "./routes/SearchSandbox.tsx";
+import { SideBar } from "./components/admin/sideBar.tsx";
+import { NavbarLayout } from "./components/navbar.tsx";
+import { Login } from "./routes/login.tsx";
+import { ProtectedRoute } from "./components/protectedRoute.tsx";
+import { PermissionRoute } from "./components/permissionRoute.tsx";
+import { GuestRoute } from "./components/guestRoute.tsx";
+import { UserIndex } from "./routes/admin/user/userIndex.tsx";
+import { NotFound } from "./routes/notFound.tsx";
+import { Unauthorized } from "./routes/unauthorized.tsx";
+import { useAuth } from "./contexts/AuthContext.tsx";
+import { Loading } from "./components/loading.tsx";
+import { PERMISSIONS } from "./config/permissions.ts";
+import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
+import { MfaChallenge } from "./routes/mfaChallenge.tsx";
+import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
+import { Upload } from "./routes/upload.tsx";
 
 function App() {
-  const { isLoading } = useAuth()
+  const { isLoading } = useAuth();
 
   // Attendre que l'authentification soit vérifiée avant de rendre les routes
   // Évite les redirections indésirables et le flicker
   if (isLoading) {
-    return <Loading />
+    return <Loading />;
   }
 
   return (
     <Routes>
-      {/* Routes publiques */}
-      <Route index element={<LandingPage />} />
-      <Route path="sandbox" element={<SearchSandbox />} />
-      
-      {/* Routes pour invités uniquement (non connectés) */}
-      <Route element={<GuestRoute />}>
-        <Route path='login' element={<Login />} />
+      {/* Routes with Navbar Layout */}
+      <Route element={<NavbarLayout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="search" element={<SearchSandbox />} />
+        <Route path="upload" element={<Upload />} />
       </Route>
 
-      { /* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
+      {/* Routes for guests only (not authenticated) */}
+      <Route element={<GuestRoute />}>
+        <Route path="login" element={<Login />} />
+      </Route>
+
+      {/* Onboarding route */}
       <Route path="onboarding" element={<OnboardingPage />} />
 
-      {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
+      {/* MFA challenge route */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
-      {/* Routes protégées par authentification */}      
-      <Route path='upload' element={<Upload />} />
-
+      {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
-        <Route path='admin' element={<SideBar />}>
+        <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='dashboard' element={<Dashboard />} />
-          <Route path='toto' element={<LandingPage />} />
-          
-          {/* Routes protégées par permissions */}
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
-            <Route path='users' element={<UserIndex />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="toto" element={<LandingPage />} />
+
+          {/* Permission-protected routes */}
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_USERS]}
+              />
+            }
+          >
+            <Route path="users" element={<UserIndex />} />
           </Route>
         </Route>
       </Route>
 
-      {/* Pages d'erreur */}
-      <Route path='unauthorized' element={<Unauthorized />} />
-      <Route path='*' element={<NotFound />} />
+      {/* Error pages */}
+      <Route path="unauthorized" element={<Unauthorized />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
-  )
+  );
 }
- 
-export default App
+
+export default App;
