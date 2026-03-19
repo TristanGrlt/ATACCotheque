@@ -429,14 +429,14 @@ export function Upload() {
                   {/* Grand label pointillé servant de zone de clic géante */}
                   <label
                     htmlFor="file-main"
-                    className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10"
+                    className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
                     <div className="flex justify-center mb-4">
                       {/* Icône FileUp au centre */}
                       <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                     <p className="font-semibold text-foreground text-sm tracking-tight">
-                      Toucher pour choisir un PDF
+                      Cliquer pour choisir un PDF
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Seul le format PDF est accepté.
