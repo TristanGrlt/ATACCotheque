@@ -359,7 +359,7 @@ export function LandingPage() {
       </div>
       {isRaining && (
         <>
-          <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
+          <div className="pointer-events-none fixed inset-0 z-100 overflow-hidden">
             {Array.from({ length: 60 }).map((_, i) => {
               // Randomisation pour un effet naturel
               const left = Math.random() * 100;
@@ -386,7 +386,7 @@ export function LandingPage() {
             })}
           </div>
 
-          <div className="pointer-events-none fixed inset-0 z-[101] flex items-center justify-center">
+          <div className="pointer-events-none fixed inset-0 z-101 flex items-center justify-center">
             <img
               src="/atacc_logo.png"
               alt="Gros Logo ATACC Dansant"
