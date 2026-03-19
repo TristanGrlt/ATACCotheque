@@ -39,7 +39,7 @@ export function ValidExam() {
     <div className="flex flex-wrap gap-3">
       {reviewExam.map((exam) => (
         <Card className="relative  w-full max-w-sm  pt-0">
-        <iframe src={`${API_ENDPOINT}/pastExam/invalidFile/${exam.id}`} ></iframe>
+        <iframe src={`${API_ENDPOINT}/pastExam/adminFile/${exam.id}`} ></iframe>
           <CardHeader>
             <CardAction>
               <Badge variant="secondary">{exam.year}</Badge>

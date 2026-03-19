@@ -153,7 +153,6 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
     const result = await prisma.pastExam.findMany({
       select: {
         id: true,
-        path: true,
         year: true,
         course: {
           select: {
@@ -219,11 +218,6 @@ export const getFileInvalid = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Fichier introuvable" });
     }
 
-    // Cet endpoint est réservé aux fichiers non vérifiés
-    if (result.isVerified) {
-      return res.status(401).json({ error: "Le fichier demandé est valide" });
-    }
-
     const courseName  = result.course?.name   ?? 'inconnu';
     const examType    = result.examtype?.name  ?? 'inconnu';
     const downloadName = `Ataccothèque_${courseName}_${examType}_${result.year}.pdf`;
@@ -255,4 +249,32 @@ res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
     console.error("Erreur lors de la récupération du fichier:", error);
     return res.status(500).json({ error: "Erreur lors de la récupération du fichier" });
   }
+};
+
+
+export const getExamById = async (req: Request, res: Response) => {
+
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const result = await prisma.pastExam.findUnique({
+      select: {
+        id: true,
+        isVerified: true,
+        year : true,
+        examtype: { select: { id: true } },
+        course: { select: { id: true } },
+      },
+      where: { id: parsedId },
+    });
+ 
+    return res.json(result);
+
 };

@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -35,6 +35,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { API_ENDPOINT } from "@/config/env";
 
 type Course = {
   id: number;
@@ -55,8 +56,12 @@ type Annexe = {
   comment: string;
 };
 
-export function Upload() {
+export function ManageExam() {
   const navigate = useNavigate();
+  const pendingExamTypeId = useRef<string | null>(null);
+
+  const [searchParams] = useSearchParams();
+  const examId = searchParams.get("id");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -68,15 +73,106 @@ export function Upload() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedExamId, setSelectedExamId] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
 
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [annexes, setAnnexes] = useState<Annexe[]>([
     { type: "url", value: "", comment: "" },
   ]);
+
+  // 1. Charger les cours
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const { data } = await apiRequest.get("/course");
+        setCourses(data);
+      } catch (error) {
+        console.log(getRequestMessage(error));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // 2. Charger les types d'examen quand un cours est sélectionné
+  useEffect(() => {
+  if (selectedCourse) {
+    const fetchExamType = async () => {
+      try {
+        const { data } = await apiRequest.get("/examType", {
+          params: { courseTypeId: selectedCourse.id },
+        });
+        setExamType(data);
+
+        if (pendingExamTypeId.current) {
+          setSelectedExamId(pendingExamTypeId.current);
+          pendingExamTypeId.current = null;
+        }
+      } catch (error) {
+        console.log(getRequestMessage(error));
+      }
+    };
+    fetchExamType();
+  } else {
+    setExamType([]);
+  }
+}, [selectedCourse]);
+
+  const all_course = useMemo(() => {
+    if (!courses) return [];
+    const courseMap = new Map();
+    courses.forEach((majorData: any) => {
+      majorData.parcours?.forEach((parcoursData: any) => {
+        parcoursData.courses?.forEach((courseData: any) => {
+          if (courseMap.has(courseData.id)) {
+            const existingCourse = courseMap.get(courseData.id);
+            if (!existingCourse.parcours.includes(parcoursData.name)) {
+              existingCourse.parcours += ` et ${parcoursData.name}`;
+            }
+          } else {
+            courseMap.set(courseData.id, {
+              id: courseData.id,
+              course: courseData.name,
+              level: courseData.level?.name || "",
+              major: majorData.name,
+              parcours: parcoursData.name,
+            });
+          }
+        });
+      });
+    });
+    return Array.from(courseMap.values());
+  }, [courses]);
+
+  // 3. Pré-remplir si un ?id= est présent, une fois les cours chargés
+ useEffect(() => {
+  if (!examId || all_course.length === 0) return;
+
+  const fetchExam = async () => {
+    try {
+      const { data } = await apiRequest.get(`/pastExam/${examId}`);
+
+      const found = all_course.find((c: Course) => c.id === data.course.id);
+      if (found) {
+        setSelectedCourse(found);
+        setInputValue(found.course);
+      }
+
+      pendingExamTypeId.current = String(data.examtype.id);
+      setSelectedYear(String(data.year));
+    } catch (error) {
+      console.log(getRequestMessage(error));
+    }
+  };
+  fetchExam();
+}, [examId, all_course]);
+  const years = [];
+  for (let i = 2026; i >= 2005; --i) {
+    years.push(i);
+  }
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setFile: (f: File | null) => void,
@@ -85,7 +181,8 @@ export function Upload() {
       setFile(e.target.files[0]);
     }
   };
- const addAnnexe = () => {
+
+  const addAnnexe = () => {
     if (annexes.length < 5) {
       setAnnexes([...annexes, { type: "url", value: "", comment: "" }]);
     }
@@ -107,125 +204,56 @@ export function Upload() {
     setAnnexes(newAnnexes);
   };
 
-  useEffect(() => {
-    const fetchCourse = async () => {
-      try {
-        const { data } = await apiRequest.get("/course");
-        setCourses(data);
-      } catch (error) {
-        console.log(getRequestMessage(error));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCourse();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCourse) {
-      const fetchExamType = async () => {
-        try {
-          const { data } = await apiRequest.get("/examType", {
-            params: {
-              courseTypeId: selectedCourse.id,
-            },
-          });
-          setExamType(data);
-        } catch (error) {
-          console.log(getRequestMessage(error));
-        }
-      };
-      fetchExamType();
-    } else {
-      setExamType([]);
-    }
-  }, [selectedCourse]);
-
-  const years = [];
-  for (let i = 2026; i >= 2005; --i) {
-    years.push(i);
-  }
-
-  const all_course = useMemo(() => {
-    if (!courses) return [];
-
-    const courseMap = new Map();
-
-    courses.forEach((majorData: any) => {
-      majorData.parcours?.forEach((parcoursData: any) => {
-        parcoursData.courses?.forEach((courseData: any) => {
-          if (courseMap.has(courseData.id)) {
-            const existingCourse = courseMap.get(courseData.id);
-            if (!existingCourse.parcours.includes(parcoursData.name)) {
-              existingCourse.parcours += ` et ${parcoursData.name}`;
-            }
-          } else {
-            courseMap.set(courseData.id, {
-              id: courseData.id,
-              course: courseData.name,
-              level: courseData.level?.name || "",
-              major: majorData.name,
-              parcours: parcoursData.name,
-            });
-          }
-        });
-      });
-    });
-
-    return Array.from(courseMap.values());
-  }, [courses]);
-
   const filteredCourses = useMemo(() => {
-    if (!inputValue) {
-      return all_course;
-    }
+    if (!inputValue) return all_course;
     return all_course.filter((c: Course) =>
       c.course.toLowerCase().includes(inputValue.toLowerCase()),
     );
   }, [all_course, inputValue]);
 
-  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-   event.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setSubmitting(true);
     setErrorMessage("");
-  
+
     if (!selectedCourse || !selectedExamId || !selectedFile || !selectedYear) {
-      setErrorMessage('Veuillez remplir tous les champs obligatoires.');
+      setErrorMessage("Veuillez remplir tous les champs obligatoires.");
       setSubmitting(false);
       return;
     }
     if (annexes.length > 5) {
-      setErrorMessage('Vous ne pouvez pas ajouter plus de 5 annexes.');
+      setErrorMessage("Vous ne pouvez pas ajouter plus de 5 annexes.");
       setSubmitting(false);
       return;
     }
+
     try {
       const formData = new FormData();
       formData.append("courseId", String(selectedCourse.id));
       formData.append("examTypeId", selectedExamId);
       formData.append("year", selectedYear);
-      formData.append("file", selectedFile); 
-      
-      const metadata = annexes.map((annexe, index) => {
-        if (annexe.type === 'url') {
-          return { type: 'url', comment: annexe.comment, url: annexe.value };
-        } else if (annexe.type === 'fichier' && annexe.value instanceof File) {
-          const fileKey = `annexe_file_${index}`;
-          formData.append(fileKey, annexe.value);
-          return { type: 'fichier', comment: annexe.comment, fileKey: fileKey };
-        }
-        return null;
-      }).filter(Boolean); 
+      formData.append("file", selectedFile);
 
-  
-      formData.append('annexes_metadata', JSON.stringify(metadata));
+      const metadata = annexes
+        .map((annexe, index) => {
+          if (annexe.type === "url") {
+            return { type: "url", comment: annexe.comment, url: annexe.value };
+          } else if (annexe.type === "fichier" && annexe.value instanceof File) {
+            const fileKey = `annexe_file_${index}`;
+            formData.append(fileKey, annexe.value);
+            return { type: "fichier", comment: annexe.comment, fileKey };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      formData.append("annexes_metadata", JSON.stringify(metadata));
 
       await apiRequest.post("/pastExam/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate('/'); 
-
+      navigate("/");
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
@@ -234,7 +262,7 @@ export function Upload() {
   };
 
   return (
-    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="flex w-full">
       {loading ? (
         <Card className="w-full max-w-xs">
           <CardHeader>
@@ -246,7 +274,7 @@ export function Upload() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl flex-auto">
           <CardHeader>
             <div className="flex flex-col items-center gap-2 text-center">
               <a>
@@ -417,7 +445,6 @@ export function Upload() {
                               className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
                               onClick={addAnnexe}
                               disabled={annexes.length >= 5}
-
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -460,11 +487,7 @@ export function Upload() {
                                 accept=".pdf"
                                 onChange={(e) =>
                                   e.target.files &&
-                                  updateAnnexe(
-                                    index,
-                                    "value",
-                                    e.target.files[0],
-                                  )
+                                  updateAnnexe(index, "value", e.target.files[0])
                                 }
                               />
                             )}
@@ -489,7 +512,7 @@ export function Upload() {
                 </Collapsible>
 
                 <div className="flex justify-center space-x-3 mt-8">
-                  <Button  type="submit" disabled={submitting}>
+                  <Button type="submit" disabled={submitting}>
                     {submitting && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
@@ -501,6 +524,12 @@ export function Upload() {
           </CardContent>
         </Card>
       )}
+      <div className="grow">
+         <iframe className="w-full h-full" src={`${API_ENDPOINT}/pastExam/adminFile/${examId}`} ></iframe>
+
+      </div>
+
     </div>
+    
   );
 }
