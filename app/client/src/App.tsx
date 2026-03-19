@@ -17,6 +17,8 @@ import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import Dashboard from './routes/admin/dashboard/dashboard.tsx'
 import { Upload } from './routes/upload.tsx'
+import { ValidExam } from './routes/validExam.tsx'
+
 
 function App() {
   const { isLoading } = useAuth()
@@ -51,7 +53,7 @@ function App() {
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<Dashboard />} />
-          <Route path='toto' element={<LandingPage />} />
+          <Route path='validExam' element={<ValidExam />} />
           
           {/* Routes protégées par permissions */}
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
