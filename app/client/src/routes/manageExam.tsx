@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -63,6 +63,7 @@ type AnnexeAPI = {
   type: "FILE" | "URL";
   path: string | null;
   url: string | null;
+  value: string | File | null;
   pastExamId: number;
   isVerified: boolean;
 };
@@ -157,7 +158,6 @@ export function ManageExam() {
     return Array.from(courseMap.values());
   }, [courses]);
 
-  // 3. Pré-remplir si un ?id= est présent, une fois les cours chargés
   useEffect(() => {
     if (!examId || all_course.length === 0) return;
     const fetchExam = async () => {
@@ -173,7 +173,9 @@ export function ManageExam() {
         pendingExamTypeId.current = String(data.examtype.id);
         setSelectedYear(String(data.year));
 
-        const { data: annexeData } = await apiRequest.get(`/pastExam/annexeById/${examId}`);
+        const { data: annexeData } = await apiRequest.get(
+          `/pastExam/annexeById/${examId}`,
+        );
         setAnnexesAPI(annexeData);
         if (annexeData.length > 0) {
           setAnnexes(
@@ -211,9 +213,9 @@ export function ManageExam() {
   };
 
   const removeAnnexe = (index: number) => {
-    if (annexes.length > 1) {
+
       setAnnexes(annexes.filter((_, i) => i !== index));
-    }
+    
   };
 
   const updateAnnexe = (
@@ -233,12 +235,11 @@ export function ManageExam() {
     );
   }, [all_course, inputValue]);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleValidate = async () => {
     setSubmitting(true);
     setErrorMessage("");
 
-    if (!selectedCourse || !selectedExamId || !selectedFile || !selectedYear) {
+if (!selectedCourse || !selectedExamId || !selectedYear) {
       setErrorMessage("Veuillez remplir tous les champs obligatoires.");
       setSubmitting(false);
       return;
@@ -251,30 +252,33 @@ export function ManageExam() {
 
     try {
       const formData = new FormData();
+      formData.append("examId",String(examId));
       formData.append("courseId", String(selectedCourse.id));
       formData.append("examTypeId", selectedExamId);
       formData.append("year", selectedYear);
-      formData.append("file", selectedFile);
+      if(selectedFile){
+          formData.append("file", selectedFile);
 
-      const metadata = annexes
-        .map((annexe, index) => {
-          if (annexe.type === "url") {
-            return { type: "url", comment: annexe.comment, url: annexe.value };
-          } else if (
-            annexe.type === "fichier" &&
-            annexe.value instanceof File
-          ) {
-            const fileKey = `annexe_file_${index}`;
-            formData.append(fileKey, annexe.value);
-            return { type: "fichier", comment: annexe.comment, fileKey };
-          }
-          return null;
-        })
-        .filter(Boolean);
+      }
+
+      const metadata = annexesAPI
+  .map((annexe, index) => {
+    if (annexe.type === "URL") {
+      return { id: annexe.id, type: "URL", comment: annexes[index].comment, url: annexe.url };
+    } else if (annexe.type === "FILE" && annexe.value instanceof File) {
+      const fileKey = `annexe_file_${index}`;
+      formData.append(fileKey, annexe.value);
+      return { id: annexe.id, type: "fichier", comment: annexes[index].comment, fileKey };
+    } else if (annexe.type === "FILE") {
+      return { id: annexe.id, type: "FILE", comment: annexes[index].comment };
+    }
+    return null;
+  })
+  .filter(Boolean);
 
       formData.append("annexes_metadata", JSON.stringify(metadata));
 
-      await apiRequest.post("/pastExam/upload", formData, {
+      await apiRequest.put("/pastExam/updateAnnale", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -287,7 +291,7 @@ export function ManageExam() {
   };
 
   return (
-<div className="flex w-full h-screen overflow-hidden">
+    <div className="flex w-full h-screen overflow-hidden">
       {loading ? (
         <Card className="w-full max-w-xs">
           <CardHeader>
@@ -299,266 +303,288 @@ export function ManageExam() {
           </CardContent>
         </Card>
       ) : (
-
-          <div className="w-full max-w-md overflow-y-auto flex-shrink-0">
-
-        <Card className="w-full max-w-md shadow-xl flex-auto">
-          <CardHeader>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <a>
-                <div className="flex size-12 items-center justify-center rounded-md">
-                  <img src={logo} alt="atacc logo" />
-                </div>
-              </a>
-              <h1 className="text-xl font-bold">
-                Ajoutez une annale sur l'Attacothèque !
-              </h1>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            <form encType="multipart/form-data" onSubmit={handleSubmit}>
-              <FieldGroup className="space-y-4">
-                {errorMessage && (
-                  <div className="text-red-500 text-sm font-medium text-center">
-                    {errorMessage}
+        <div className="w-full max-w-md overflow-y-auto flex-shrink-0">
+          <Card className="w-full max-w-md shadow-xl flex-auto">
+            <CardHeader>
+              <div className="flex flex-col items-center gap-2 text-center">
+                <a>
+                  <div className="flex size-12 items-center justify-center rounded-md">
+                    <img src={logo} alt="atacc logo" />
                   </div>
-                )}
+                </a>
+                <h1 className="text-xl font-bold">
+                  Ajoutez une annale sur l'Attacothèque !
+                </h1>
+              </div>
+            </CardHeader>
 
-                <FieldLabel>Choisissez la filière</FieldLabel>
-                <Combobox
-                  value={selectedCourse ? selectedCourse.course : ""}
-                  onValueChange={(val) => {
-                    if (!val) {
-                      setSelectedCourse(null);
-                      return;
-                    }
-                    const found = all_course.find((c: any) => c.course === val);
-                    if (found) {
-                      setSelectedCourse(found);
-                      setInputValue(found.course);
-                    }
-                  }}
-                  inputValue={inputValue}
-                  onInputValueChange={setInputValue}
-                >
-                  <ComboboxInput placeholder="Rechercher un cours" />
-                  <ComboboxContent>
-                    {filteredCourses.length === 0 && (
-                      <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
-                    )}
-                    <ComboboxList>
-                      {filteredCourses.map((course: Course) => (
-                        <ComboboxItem key={course.id} value={course.course}>
-                          <Item size="sm" className="p-0">
-                            <ItemContent>
-                              <ItemTitle className="whitespace-nowrap">
-                                {course.course}
-                              </ItemTitle>
-                              <ItemDescription>
-                                {course.level} {course.parcours}
-                              </ItemDescription>
-                            </ItemContent>
-                          </Item>
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
+            <CardContent>
+              <form encType="multipart/form-data">
+                <FieldGroup className="space-y-4">
+                  {errorMessage && (
+                    <div className="text-red-500 text-sm font-medium text-center">
+                      {errorMessage}
+                    </div>
+                  )}
 
-                <Field>
-                  <FieldLabel>Type d'examen</FieldLabel>
-                  <Select
-                    value={selectedExamId}
-                    onValueChange={setSelectedExamId}
-                    disabled={!selectedCourse}
+                  <FieldLabel>Choisissez la filière</FieldLabel>
+                  <Combobox
+                    value={selectedCourse ? selectedCourse.course : ""}
+                    onValueChange={(val) => {
+                      if (!val) {
+                        setSelectedCourse(null);
+                        return;
+                      }
+                      const found = all_course.find(
+                        (c: any) => c.course === val,
+                      );
+                      if (found) {
+                        setSelectedCourse(found);
+                        setInputValue(found.course);
+                      }
+                    }}
+                    inputValue={inputValue}
+                    onInputValueChange={setInputValue}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisissez le type de l'examen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {examType.map((type: Exam) => (
-                          <SelectItem key={type.id} value={String(type.id)}>
-                            {type.name}
-                          </SelectItem>
+                    <ComboboxInput placeholder="Rechercher un cours" />
+                    <ComboboxContent>
+                      {filteredCourses.length === 0 && (
+                        <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
+                      )}
+                      <ComboboxList>
+                        {filteredCourses.map((course: Course) => (
+                          <ComboboxItem key={course.id} value={course.course}>
+                            <Item size="sm" className="p-0">
+                              <ItemContent>
+                                <ItemTitle className="whitespace-nowrap">
+                                  {course.course}
+                                </ItemTitle>
+                                <ItemDescription>
+                                  {course.level} {course.parcours}
+                                </ItemDescription>
+                              </ItemContent>
+                            </Item>
+                          </ComboboxItem>
                         ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
 
-                <Field>
-                  <FieldLabel>Année de l'examen</FieldLabel>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisissez l'année" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={String(year)}>
-                            {year - 1 + "/" + year}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
+                  <Field>
+                    <FieldLabel>Type d'examen</FieldLabel>
+                    <Select
+                      value={selectedExamId}
+                      onValueChange={setSelectedExamId}
+                      disabled={!selectedCourse}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisissez le type de l'examen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {examType.map((type: Exam) => (
+                            <SelectItem key={type.id} value={String(type.id)}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
 
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <FieldLabel>Téléverser une annale</FieldLabel>
-                    <Input
-                      id="file-main"
-                      name="file-main"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => handleFileChange(e, setSelectedFile)}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Seul le format pdf est accepté.
-                    </p>
+                  <Field>
+                    <FieldLabel>Année de l'examen</FieldLabel>
+                    <Select
+                      value={selectedYear}
+                      onValueChange={setSelectedYear}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisissez l'année" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={String(year)}>
+                              {year - 1 + "/" + year}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <FieldLabel>Téléverser une annale</FieldLabel>
+                      <Input
+                        id="file-main"
+                        name="file-main"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => handleFileChange(e, setSelectedFile)}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Seul le format pdf est accepté.
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <Collapsible
-                  open={isOpen}
-                  onOpenChange={setIsOpen}
-                  className="w-full border p-3 rounded-lg bg-slate-50/50"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-slate-700">
-                      Annexes optionnelles
-                    </h4>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8">
-                        <ChevronsUpDown className="h-4 w-4" />
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
+                  <Collapsible
+                    open={isOpen}
+                    onOpenChange={setIsOpen}
+                    className="w-full border p-3 rounded-lg bg-slate-50/50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-slate-700">
+                        Annexes optionnelles
+                      </h4>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                          <ChevronsUpDown className="h-4 w-4" />
+                        </Button>
+                      </CollapsibleTrigger>
+                    </div>
 
-                  <CollapsibleContent className="space-y-4">
-                    {annexes.map((annexe, index) => (
-                      <div
-                        key={index}
-                        className="p-3 border rounded-md bg-white space-y-3 shadow-sm relative group"
-                      >
-                        <div className="flex items-end gap-2">
-                          <Field className="flex-1">
-                            <FieldLabel className="text-xs">
-                              Type de document
-                            </FieldLabel>
-                            <Select
-                              value={annexe.type}
-                              onValueChange={(val) =>
-                                updateAnnexe(index, "type", val)
-                              }
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="url">URL</SelectItem>
-                                <SelectItem value="fichier">Fichier</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </Field>
+                    <CollapsibleContent className="space-y-4">
+                      {annexes.map((annexe, index) => (
+                        <div
+                          key={index}
+                          className="p-3 border rounded-md bg-white space-y-3 shadow-sm relative group"
+                        >
+                          <div className="flex items-end gap-2">
+                            <Field className="flex-1">
+                              <FieldLabel className="text-xs">
+                                Type de document
+                              </FieldLabel>
+                              <Select
+                                value={annexe.type}
+                                onValueChange={(val) =>
+                                  updateAnnexe(index, "type", val)
+                                }
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="url">URL</SelectItem>
+                                  <SelectItem value="fichier">
+                                    Fichier
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </Field>
 
-                          <div className="flex gap-1 mb-[2px]">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
-                              onClick={addAnnexe}
-                              disabled={annexes.length >= 5}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                            {annexes.length > 1 && (
+                            <div className="flex gap-1 mb-[2px]">
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="icon"
-                                className="size-9 text-red-500 border-red-100 hover:bg-red-50"
-                                onClick={() => removeAnnexe(index)}
+                                className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                onClick={addAnnexe}
+                                disabled={annexes.length >= 5}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Plus className="h-4 w-4" />
                               </Button>
-                            )}
+                              {  (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="size-9 text-red-500 border-red-100 hover:bg-red-50"
+                                  onClick={() => removeAnnexe(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="space-y-1">
-                            <p className="text-[11px] font-bold uppercase text-slate-400">
-                              Source
-                            </p>
-                            {annexe.type === "url" ? (
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-bold uppercase text-slate-400">
+                                Source
+                              </p>
+                              {annexe.type === "url" ? (
+                                <Input
+                                  className="h-9"
+                                  placeholder="https://lien-vers-correction.pdf"
+                                  value={
+                                    typeof annexe.value === "string"
+                                      ? annexe.value
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    updateAnnexe(index, "value", e.target.value)
+                                  }
+                                />
+                              ) : (
+                                <Input
+                                  className="h-9 text-xs py-1"
+                                  type="file"
+                                  accept=".pdf"
+                                  onChange={(e) =>
+                                    e.target.files &&
+                                    updateAnnexe(
+                                      index,
+                                      "value",
+                                      e.target.files[0],
+                                    )
+                                  }
+                                />
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[11px] font-bold uppercase text-slate-400">
+                                Commentaire
+                              </p>
                               <Input
                                 className="h-9"
-                                placeholder="https://lien-vers-correction.pdf"
-                                value={
-                                  typeof annexe.value === "string"
-                                    ? annexe.value
-                                    : ""
-                                }
+                                placeholder="Ex: Correction détaillée..."
+                                value={annexe.comment}
                                 onChange={(e) =>
-                                  updateAnnexe(index, "value", e.target.value)
+                                  updateAnnexe(index, "comment", e.target.value)
                                 }
                               />
-                            ) : (
-                              <Input
-                                className="h-9 text-xs py-1"
-                                type="file"
-                                accept=".pdf"
-                                onChange={(e) =>
-                                  e.target.files &&
-                                  updateAnnexe(
-                                    index,
-                                    "value",
-                                    e.target.files[0],
-                                  )
-                                }
-                              />
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-[11px] font-bold uppercase text-slate-400">
-                              Commentaire
-                            </p>
-                            <Input
-                              className="h-9"
-                              placeholder="Ex: Correction détaillée..."
-                              value={annexe.comment}
-                              onChange={(e) =>
-                                updateAnnexe(index, "comment", e.target.value)
-                              }
-                            />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
 
-                <div className="flex justify-center space-x-3 mt-8">
-                  <Button type="submit" disabled={submitting}>
-                    {submitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Envoyer
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
-          </div>
+                  <div className="flex justify-center space-x-3 mt-8">
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={submitting}
+                      onClick={() => {
+                        /* handleDelete */
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-green-600 border-green-200 hover:bg-green-50"
+                      disabled={submitting}
+                     onClick={handleValidate}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      Valider
+                    </Button>
+                  </div>
+                </FieldGroup>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       )}
-      
-  <div className="grow flex flex-col overflow-hidden">
+
+      <div className="grow flex flex-col overflow-hidden">
         <Tabs defaultValue="annale" className="flex flex-col h-full">
           <TabsList className="mx-2 mt-2 w-fit">
             <TabsTrigger value="annale">Annale</TabsTrigger>

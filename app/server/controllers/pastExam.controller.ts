@@ -188,7 +188,7 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
   }
 };
 
-const EXAMS_ROOT = '/app/files';
+const EXAMS_ROOT = "/app/files";
 
 export const getFileInvalid = async (req: Request, res: Response) => {
   try {
@@ -218,24 +218,24 @@ export const getFileInvalid = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Fichier introuvable" });
     }
 
-    const courseName  = result.course?.name   ?? 'inconnu';
-    const examType    = result.examtype?.name  ?? 'inconnu';
+    const courseName = result.course?.name ?? "inconnu";
+    const examType = result.examtype?.name ?? "inconnu";
     const downloadName = `Ataccothèque_${courseName}_${examType}_${result.year}.pdf`;
 
-    // Protection path traversal 
-    const normalizedDbPath = result.path.replace('../files', EXAMS_ROOT);
+    // Protection path traversal
+    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
     const realPath = path.resolve(normalizedDbPath);
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
       return res.status(403).json({ error: "Accès non autorisé" });
     }
 
-res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // Nginx attend un chemin absolu configuré via un alias interne
       // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
-      const nginxPath = realPath.replace(EXAMS_ROOT, '/protected-files');
-      res.setHeader('X-Accel-Redirect', nginxPath);
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      res.setHeader("X-Accel-Redirect", nginxPath);
       res.end();
     } else {
       res.sendFile(realPath, (err) => {
@@ -247,64 +247,59 @@ res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
     }
   } catch (error) {
     console.error("Erreur lors de la récupération du fichier:", error);
-    return res.status(500).json({ error: "Erreur lors de la récupération du fichier" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération du fichier" });
   }
 };
 
-
 export const getExamById = async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-    const { id } = req.params;
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+  const parsedId = parseInt(id, 10);
+  if (isNaN(parsedId)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
 
-    if (!id || Array.isArray(id)) {
-      return res.status(400).json({ error: "Id manquant ou invalide" });
-    }
-    const parsedId = parseInt(id, 10);
-    if (isNaN(parsedId)) {
-      return res.status(400).json({ error: "Id manquant ou invalide" });
-    }
+  const result = await prisma.pastExam.findUnique({
+    select: {
+      id: true,
+      isVerified: true,
+      year: true,
+      examtype: { select: { id: true } },
+      course: { select: { id: true } },
+    },
+    where: { id: parsedId },
+  });
 
-    const result = await prisma.pastExam.findUnique({
-      select: {
-        id: true,
-        isVerified: true,
-        year : true,
-        examtype: { select: { id: true } },
-        course: { select: { id: true } },
-      },
-      where: { id: parsedId },
-    });
- 
-    return res.json(result);
-
+  return res.json(result);
 };
 
 export const getAnnexeById = async (req: Request, res: Response) => {
-    const {id} = req.params;
+  const { id } = req.params;
 
-    if (!id || Array.isArray(id)) {
-      return res.status(400).json({ error: "Id manquant ou invalide" });
-    }
-    const parsedId = parseInt(id, 10);
-    if (isNaN(parsedId)) {
-      return res.status(400).json({ error: "Id manquant ou invalide" });
-    }
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+  const parsedId = parseInt(id, 10);
+  if (isNaN(parsedId)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
 
-    const result = await prisma.annexe.findMany({
-              where : {
-                pastExamId : parsedId,
-            },
+  const result = await prisma.annexe.findMany({
+    where: {
+      pastExamId: parsedId,
+    },
+  });
 
-    }
-           
-    );
-
-     return res.json(result);
-}
-
+  return res.json(result);
+};
 
 export const getAnnexeFile = async (req: Request, res: Response) => {
-      try {
+  try {
     const { id } = req.params;
 
     if (!id || Array.isArray(id)) {
@@ -318,9 +313,8 @@ export const getAnnexeFile = async (req: Request, res: Response) => {
     const result = await prisma.annexe.findUnique({
       select: {
         id: true,
-        path :true,
+        path: true,
         name: true,
-        
       },
       where: { id: parsedId },
     });
@@ -330,23 +324,23 @@ export const getAnnexeFile = async (req: Request, res: Response) => {
     }
 
     const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
-    if(!result.path){
-        return res.status(404).json({ error: "Fichier introuvable" });
+    if (!result.path) {
+      return res.status(404).json({ error: "Fichier introuvable" });
     }
-    // Protection path traversal 
-    const normalizedDbPath = result.path.replace('../files', EXAMS_ROOT);
+    // Protection path traversal
+    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
     const realPath = path.resolve(normalizedDbPath);
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
       return res.status(403).json({ error: "Accès non autorisé" });
     }
 
-res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // Nginx attend un chemin absolu configuré via un alias interne
       // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
-      const nginxPath = realPath.replace(EXAMS_ROOT, '/protected-files');
-      res.setHeader('X-Accel-Redirect', nginxPath);
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      res.setHeader("X-Accel-Redirect", nginxPath);
       res.end();
     } else {
       res.sendFile(realPath, (err) => {
@@ -358,6 +352,122 @@ res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
     }
   } catch (error) {
     console.error("Erreur lors de la récupération du fichier:", error);
-    return res.status(500).json({ error: "Erreur lors de la récupération du fichier" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération du fichier" });
   }
-}
+};
+
+export const updateAnnale = async (req: Request, res: Response) => {
+  try {
+    const { examId, courseId, examTypeId, year, annexes_metadata } = req.body;
+    const files = (req as MulterRequest).files;
+
+    if (files && files["file"] && !(files["file"].length === 0)) {
+      const mainFile = files["file"][0];
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const courseDir = path.join(uploadDir, courseId);
+      if (!fs.existsSync(courseDir)) {
+        fs.mkdirSync(courseDir, { recursive: true });
+      }
+
+      if (mainFile.mimetype !== "application/pdf") {
+        return res
+          .status(400)
+          .json({ message: "Le fichier principal doit être un PDF." });
+      }
+      const magic = mainFile.buffer.slice(0, 4).toString("utf8");
+      if (!magic.startsWith("%PDF")) {
+        return res
+          .status(400)
+          .json({ message: "Le fichier n'est pas un PDF valide." });
+      }
+
+      const safeMainPdfBytes = await recreatepdf(mainFile.buffer);
+      const mainFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+      const mainFilePath = path.join(courseDir, mainFilename);
+      fs.writeFileSync(mainFilePath, safeMainPdfBytes);
+      const newPastExam = await prisma.pastExam.update({
+        data: {
+          path: mainFilePath,
+          year: parseInt(year),
+          courseId: parseInt(courseId),
+          examTypeId: parseInt(examTypeId),
+          isVerified: true,
+        },
+        where: { id: parseInt(examId) },
+      });
+    } else {
+      const newPastExam = await prisma.pastExam.update({
+        data: {
+          year: parseInt(year),
+          courseId: parseInt(courseId),
+          examTypeId: parseInt(examTypeId),
+          isVerified: true,
+        },
+        where: { id: parseInt(examId) },
+      });
+    }
+
+    let annexesList: any[] = [];
+    if (annexes_metadata) {
+      try {
+        annexesList = JSON.parse(annexes_metadata);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ message: "Format des annexes invalide." });
+      }
+    }
+    for (const annexe of annexesList) {
+      if (annexe.type === "URL" && annexe.url) {
+        await prisma.annexe.update({
+          data: {
+            name: annexe.comment || "Lien externe",
+            type: "URL",
+            url: annexe.url,
+          },
+          where: { id: parseInt(annexe.id) },
+        });
+      } else if (annexe.type === "fichier" && annexe.fileKey) {
+        const annexeFileArray = files[annexe.fileKey];
+        if (annexeFileArray && annexeFileArray.length > 0) {
+          const annexeFile = annexeFileArray[0];
+          const magic = annexeFile.buffer.slice(0, 4).toString("utf8");
+          if (!magic.startsWith("%PDF")) {
+            return res
+              .status(400)
+              .json({ message: "Le fichier n'est pas un PDF valide." });
+          }
+          if (annexeFile.mimetype === "application/pdf") {
+            const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
+            const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+            const optionalFilePath = path.join(uploadDir, optFilename);
+            fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
+            await prisma.annexe.update({
+              data: {
+                name: annexe.comment || "Document annexe",
+                type: "FILE",
+                path: optionalFilePath,
+              },
+              where: { id: parseInt(annexe.id) },
+            });
+          }
+        }
+      } else if (annexe.type === "FILE") {
+        await prisma.annexe.update({
+          data: { name: annexe.comment || "Document annexe" },
+          where: { id: parseInt(annexe.id) },
+        });
+      }
+    }
+    return res.status(200).json({ message: "Annale mise à jour avec succès" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
