@@ -18,6 +18,7 @@ import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import Dashboard from './routes/admin/dashboard/dashboard.tsx'
 import { Upload } from './routes/upload.tsx'
 import { ValidExam } from './routes/validExam.tsx'
+import { ManageExam } from './routes/manageExam.tsx'
 
 
 function App() {
@@ -54,6 +55,8 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<Dashboard />} />
           <Route path='validExam' element={<ValidExam />} />
+          <Route path='manageExam' element={<ManageExam />} />
+
           
           {/* Routes protégées par permissions */}
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
