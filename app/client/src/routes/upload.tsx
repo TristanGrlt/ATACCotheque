@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import logo from "/atacc_logo.png";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, ChevronsUpDown, FileUp, Loader2, Plus, Trash2, UploadCloud } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -238,191 +238,256 @@ export function Upload() {
     }
   };
 
-  return (
-    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+return (
+    // pb-32 pour laisser de la place au dock de navigation flottant en bas
+    <div className="bg-background flex min-h-screen flex-col items-center justify-center p-6 md:p-10 pb-32 font-sans text-foreground selection:bg-primary/20">
+      
       {loading ? (
-        <Card className="w-full max-w-xs">
-          <CardHeader>
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
+        <Card className="w-full max-w-3xl rounded-3xl border-border/70 shadow-lg">
+          <CardHeader className="text-center pt-10 pb-6 px-6">
+            <Skeleton className="w-16 h-16 rounded-2xl mx-auto mb-5" />
+            <Skeleton className="h-8 w-2/3 mx-auto mb-2" />
+            <Skeleton className="h-4 w-1/2 mx-auto" />
           </CardHeader>
-          <CardContent>
-            <Skeleton className="aspect-video w-full" />
+          <CardContent className="px-6 sm:px-10 pb-10">
+            <Skeleton className="h-12 w-full rounded-xl mb-4" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+            </div>
+            <Skeleton className="h-32 w-full rounded-2xl mt-6" />
           </CardContent>
         </Card>
       ) : (
-        <Card className="w-full max-w-md shadow-xl">
-          <CardHeader>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <a>
-                <div className="flex size-12 items-center justify-center rounded-md">
-                  <img src={logo} alt="atacc logo" />
-                </div>
-              </a>
-              <h1 className="text-xl font-bold">
-                Ajoutez une annale sur l'Attacothèque !
-              </h1>
+        // max-w-xl pour un formulaire plus large
+        <Card className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card shadow-lg">
+          
+          {/* --- En-tête de Carte (Intégré comme demandé) --- */}
+          <CardHeader className="text-center pt-10 pb-6 px-6 sm:px-10">
+            <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-5 mx-auto border border-border/50">
+              {/* Icône de nuage teinté comme sur l'image */}
+              <UploadCloud className="w-9 h-9 text-slate-700" />
             </div>
+            <CardTitle className="text-3xl font-bold tracking-tight text-foreground mb-1">
+              Partager un fichier sinon l'URSAF
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Aidez les futurs étudiants.ça suffit enough ça suffit enough
+            </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="px-6 sm:px-10 pb-10">
             <form encType="multipart/form-data" onSubmit={handleSubmit}>
-              <FieldGroup className="space-y-4">
+              <FieldGroup className="space-y-6">
+                
+                {/* Message d'erreur */}
                 {errorMessage && (
-                  <div className="text-red-500 text-sm font-medium text-center">
+                  <div className="bg-destructive/10 text-destructive text-sm font-semibold p-3 rounded-xl flex items-center gap-2 border border-destructive/20">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
                     {errorMessage}
                   </div>
                 )}
 
-                <FieldLabel>Choisissez la filière</FieldLabel>
-                <Combobox
-                  value={selectedCourse ? selectedCourse.course : ""}
-                  onValueChange={(val) => {
-                    if (!val) {
-                      setSelectedCourse(null);
-                      return;
-                    }
-                    const found = all_course.find((c: any) => c.course === val);
-                    if (found) {
-                      setSelectedCourse(found);
-                      setInputValue(found.course);
-                    }
-                  }}
-                  inputValue={inputValue}
-                  onInputValueChange={setInputValue}
-                >
-                  <ComboboxInput placeholder="Rechercher un cours" />
-                  <ComboboxContent>
-                    {filteredCourses.length === 0 && (
-                      <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
-                    )}
-                    <ComboboxList>
-                      {filteredCourses.map((course: Course) => (
-                        <ComboboxItem key={course.id} value={course.course}>
-                          <Item size="sm" className="p-0">
-                            <ItemContent>
-                              <ItemTitle className="whitespace-nowrap">
-                                {course.course}
-                              </ItemTitle>
-                              <ItemDescription>
-                                {course.level} {course.parcours}
-                              </ItemDescription>
-                            </ItemContent>
-                          </Item>
-                        </ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-
+                {/* Champ complet "TITRE" -> Mappe à la Combobox de recherche de cours */}
                 <Field>
-                  <FieldLabel>Type d'examen</FieldLabel>
-                  <Select
-                    value={selectedExamId}
-                    onValueChange={setSelectedExamId}
-                    disabled={!selectedCourse}
+                  <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                    CHOISISSEZ LA FILIERE SVP (PAS DE CONNERIE)
+                  </FieldLabel>
+                  <Combobox
+                    value={selectedCourse ? selectedCourse.course : ""}
+                    onValueChange={(val : any) => {
+                      if (!val) {
+                        setSelectedCourse(null);
+                        return;
+                      }
+                      const found = all_course.find((c: any) => c.course === val);
+                      if (found) {
+                        setSelectedCourse(found);
+                        setInputValue(found.course);
+                      }
+                    }}
+                    inputValue={inputValue}
+                    onInputValueChange={setInputValue}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisissez le type de l'examen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {examType.map((type: Exam) => (
-                          <SelectItem key={type.id} value={String(type.id)}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <Field>
-                  <FieldLabel>Année de l'examen</FieldLabel>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisissez l'année" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={String(year)}>
-                            {year - 1 + "/" + year}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <FieldLabel>Téléverser une annale</FieldLabel>
-                    <Input
-                      id="file-main"
-                      name="file-main"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => handleFileChange(e, setSelectedFile)}
+                    <ComboboxInput 
+                      placeholder="Ex: Algèbre - Partiel 2024 (Rechercher cours)" 
+                      className="h-12 rounded-xl bg-background border-border/70"
                     />
-                    <p className="text-sm text-muted-foreground">
-                      Seul le format pdf est accepté.
-                    </p>
-                  </div>
+                    <ComboboxContent className="rounded-xl border-border/70 shadow-xl">
+                      {filteredCourses.length === 0 && (
+                        <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
+                      )}
+                      <ComboboxList>
+                        {filteredCourses.map((course: Course) => (
+                          <ComboboxItem key={course.id} value={course.course} className="rounded-lg m-1">
+                            <Item size="sm" className="p-0">
+                              <ItemContent>
+                                <ItemTitle className="whitespace-nowrap font-semibold">
+                                  {course.course}
+                                </ItemTitle>
+                                <ItemDescription className="text-xs text-muted-foreground">
+                                  {course.level} {course.parcours}
+                                </ItemDescription>
+                              </ItemContent>
+                            </Item>
+                          </ComboboxItem>
+                        ))}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </Field>
+
+                {/* Grille responsive : 2 colonnes pour MATIÈRE (Type) et TYPE (Année) */}
+                <div className="grid grid-cols-2 gap-4">
+                  
+                  {/* Image "MATIÈRE" -> Mappe au Select Type d'examen */}
+                  <Field>
+                    <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                      TYPE D'EXAMEN 
+                    </FieldLabel>
+                    <Select
+                      value={selectedExamId}
+                      onValueChange={setSelectedExamId}
+                      disabled={!selectedCourse}
+                    >
+                      <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
+                        <SelectValue placeholder="Type..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/70">
+                        <SelectGroup>
+                          {examType.map((type: Exam) => (
+                            <SelectItem key={type.id} value={String(type.id)} className="rounded-lg m-0.5">
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  {/* Image "TYPE" -> Mappe au Select Année (Widening) */}
+                  <Field>
+                    <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                      ANNÉE (IMAGE: TYPE)
+                    </FieldLabel>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
+                        <SelectValue placeholder="Année..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/70">
+                        <SelectGroup>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={String(year)} className="rounded-lg m-0.5">
+                              {year - 1 + " / " + year}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
                 </div>
 
+                {/* Zone de dépot de fichier pointillée (Principal) */}
+                <Field className="pt-2">
+                  <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">
+                    TELEVERSER UNE ANNALE (PDF SVP POTO)
+                  </FieldLabel>
+                  {/* Grand label pointillé servant de zone de clic géante */}
+                  <label htmlFor="file-main" className="block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10">
+                    <div className="flex justify-center mb-4">
+                      {/* Icône FileUp au centre */}
+                      <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </div>
+                    <p className="font-semibold text-foreground text-sm tracking-tight">Toucher pour choisir un PDF</p>
+                    <p className="text-xs text-muted-foreground mt-1">Seul le format PDF est accepté.</p>
+                    {/* Affiche le nom du fichier s'il est sélectionné */}
+                    {selectedFile && <span className="text-primary font-bold text-xs mt-3 block truncate">Fichier sélectionné : {selectedFile.name}</span>}
+                  </label>
+                  {/* Input caché, activé par le label via htmlFor/id */}
+                  <Input
+                    id="file-main"
+                    name="file-main"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => handleFileChange(e, setSelectedFile)}
+                    className="hidden" // Cache l'input natif
+                  />
+                </Field>
+
+                {/* Bouton Envoyer customisé (Sombre comme image) */}
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    disabled={submitting}
+                    // Couleur sombre spécifique bg-slate-950
+                    className="w-full h-12 rounded-xl bg-slate-950 text-slate-50 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200 font-semibold tracking-wide text-sm transition-colors shadow-md"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      "Envoyer"
+                    )}
+                  </Button>
+                </div>
+
+                {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
                 <Collapsible
                   open={isOpen}
                   onOpenChange={setIsOpen}
-                  className="w-full border p-3 rounded-lg bg-slate-50/50"
+                  className="w-full border border-border/70 p-4 rounded-2xl bg-muted/20 transition-all shadow-inner mt-4"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-slate-700">
-                      Annexes optionnelles
-                    </h4>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-bold text-foreground">
+                        Annexes optionnelles
+                      </h4>
+                      <p className="text-xs text-muted-foreground">Corrigés, codes sources, liens...</p>
+                    </div>
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8">
-                        <ChevronsUpDown className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="size-9 rounded-full hover:bg-muted/50">
+                        <ChevronsUpDown className="h-4 w-4 text-foreground" />
                       </Button>
                     </CollapsibleTrigger>
                   </div>
 
-                  <CollapsibleContent className="space-y-4">
+                  <CollapsibleContent className="space-y-4 pt-4 border-t border-border/70 mt-4">
                     {annexes.map((annexe, index) => (
-                      <div
+                      <Card
                         key={index}
-                        className="p-3 border rounded-md bg-white space-y-3 shadow-sm relative group"
+                        className="p-4 border border-border/70 rounded-xl bg-card space-y-4 shadow relative group"
                       >
                         <div className="flex items-end gap-2">
                           <Field className="flex-1">
-                            <FieldLabel className="text-xs">
-                              Type de document
+                            <FieldLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 ml-1">
+                              TYPE D'ANNEXE
                             </FieldLabel>
                             <Select
                               value={annexe.type}
-                              onValueChange={(val) =>
+                              onValueChange={(val: "url" | "fichier") =>
                                 updateAnnexe(index, "type", val)
                               }
                             >
-                              <SelectTrigger className="h-9">
+                              <SelectTrigger className="h-10 rounded-lg bg-background border-border/70 text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="url">URL</SelectItem>
+                              <SelectContent className="rounded-lg border-border/70">
+                                <SelectItem value="url">Lien URL</SelectItem>
                                 <SelectItem value="fichier">Fichier</SelectItem>
                               </SelectContent>
                             </Select>
                           </Field>
 
-                          <div className="flex gap-1 mb-[2px]">
+                          <div className="flex gap-1">
                             <Button
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              className="size-10 rounded-lg text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
                               onClick={addAnnexe}
                               disabled={annexes.length >= 5}
-
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -431,7 +496,7 @@ export function Upload() {
                                 type="button"
                                 variant="outline"
                                 size="icon"
-                                className="size-9 text-red-500 border-red-100 hover:bg-red-50"
+                                className="size-10 rounded-lg text-destructive border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
                                 onClick={() => removeAnnexe(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -440,15 +505,15 @@ export function Upload() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="space-y-1">
-                            <p className="text-[11px] font-bold uppercase text-slate-400">
-                              Source
+                        <div className="grid grid-cols-1 gap-3 pt-2">
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                              {annexe.type === "url" ? "Lien web" : "Fichier (PDF)"}
                             </p>
                             {annexe.type === "url" ? (
                               <Input
-                                className="h-9"
-                                placeholder="https://lien-vers-correction.pdf"
+                                className="h-10 rounded-lg bg-background border-border/70 text-foreground"
+                                placeholder="https://..."
                                 value={
                                   typeof annexe.value === "string"
                                     ? annexe.value
@@ -459,27 +524,34 @@ export function Upload() {
                                 }
                               />
                             ) : (
-                              <Input
-                                className="h-9 text-xs py-1"
-                                type="file"
-                                accept=".pdf"
-                                onChange={(e) =>
-                                  e.target.files &&
-                                  updateAnnexe(
-                                    index,
-                                    "value",
-                                    e.target.files[0],
-                                  )
-                                }
-                              />
+                              <label htmlFor={`file-annexe-${index}`} className="flex items-center gap-2 h-10 w-full rounded-lg bg-background border border-border/70 px-3 text-sm text-muted-foreground cursor-pointer hover:bg-muted/20">
+                                <FileUp className="w-4 h-4 text-muted-foreground" />
+                                <span className="flex-1 truncate">
+                                  {annexe.value instanceof File ? annexe.value.name : "Toucher pour choisir..."}
+                                </span>
+                              </label>
                             )}
+                            <Input
+                              id={`file-annexe-${index}`}
+                              className="hidden"
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) =>
+                                e.target.files &&
+                                updateAnnexe(
+                                  index,
+                                  "value",
+                                  e.target.files[0],
+                                )
+                              }
+                            />
                           </div>
-                          <div className="space-y-1">
-                            <p className="text-[11px] font-bold uppercase text-slate-400">
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
                               Commentaire
                             </p>
                             <Input
-                              className="h-9"
+                              className="h-10 rounded-lg bg-background border-border/70 text-foreground"
                               placeholder="Ex: Correction détaillée..."
                               value={annexe.comment}
                               onChange={(e) =>
@@ -488,19 +560,11 @@ export function Upload() {
                             />
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </CollapsibleContent>
                 </Collapsible>
-
-                <div className="flex justify-center space-x-3 mt-8">
-                  <Button  type="submit" disabled={submitting}>
-                    {submitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Envoyer
-                  </Button>
-                </div>
+                
               </FieldGroup>
             </form>
           </CardContent>
