@@ -278,3 +278,86 @@ export const getExamById = async (req: Request, res: Response) => {
     return res.json(result);
 
 };
+
+export const getAnnexeById = async (req: Request, res: Response) => {
+    const {id} = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const result = await prisma.annexe.findMany({
+              where : {
+                pastExamId : parsedId,
+            },
+
+    }
+           
+    );
+
+     return res.json(result);
+}
+
+
+export const getAnnexeFile = async (req: Request, res: Response) => {
+      try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const result = await prisma.annexe.findUnique({
+      select: {
+        id: true,
+        path :true,
+        name: true,
+        
+      },
+      where: { id: parsedId },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: "Fichier introuvable" });
+    }
+
+    const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
+    if(!result.path){
+        return res.status(404).json({ error: "Fichier introuvable" });
+    }
+    // Protection path traversal 
+    const normalizedDbPath = result.path.replace('../files', EXAMS_ROOT);
+    const realPath = path.resolve(normalizedDbPath);
+    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+      return res.status(403).json({ error: "Accès non autorisé" });
+    }
+
+res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+
+    if (process.env.NODE_ENV === 'production') {
+      // Nginx attend un chemin absolu configuré via un alias interne
+      // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
+      const nginxPath = realPath.replace(EXAMS_ROOT, '/protected-files');
+      res.setHeader('X-Accel-Redirect', nginxPath);
+      res.end();
+    } else {
+      res.sendFile(realPath, (err) => {
+        if (err) {
+          console.error("Erreur de téléchargement en dev:", err);
+          if (!res.headersSent) res.status(500).send("Erreur de fichier");
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération du fichier:", error);
+    return res.status(500).json({ error: "Erreur lors de la récupération du fichier" });
+  }
+}

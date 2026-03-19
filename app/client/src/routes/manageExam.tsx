@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   Collapsible,
@@ -56,6 +57,16 @@ type Annexe = {
   comment: string;
 };
 
+type AnnexeAPI = {
+  id: number;
+  name: string;
+  type: "FILE" | "URL";
+  path: string | null;
+  url: string | null;
+  pastExamId: number;
+  isVerified: boolean;
+};
+
 export function ManageExam() {
   const navigate = useNavigate();
   const pendingExamTypeId = useRef<string | null>(null);
@@ -81,7 +92,8 @@ export function ManageExam() {
     { type: "url", value: "", comment: "" },
   ]);
 
-  // 1. Charger les cours
+  const [annexesAPI, setAnnexesAPI] = useState<AnnexeAPI[]>([]);
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -96,29 +108,28 @@ export function ManageExam() {
     fetchCourses();
   }, []);
 
-  // 2. Charger les types d'examen quand un cours est sélectionné
   useEffect(() => {
-  if (selectedCourse) {
-    const fetchExamType = async () => {
-      try {
-        const { data } = await apiRequest.get("/examType", {
-          params: { courseTypeId: selectedCourse.id },
-        });
-        setExamType(data);
+    if (selectedCourse) {
+      const fetchExamType = async () => {
+        try {
+          const { data } = await apiRequest.get("/examType", {
+            params: { courseTypeId: selectedCourse.id },
+          });
+          setExamType(data);
 
-        if (pendingExamTypeId.current) {
-          setSelectedExamId(pendingExamTypeId.current);
-          pendingExamTypeId.current = null;
+          if (pendingExamTypeId.current) {
+            setSelectedExamId(pendingExamTypeId.current);
+            pendingExamTypeId.current = null;
+          }
+        } catch (error) {
+          console.log(getRequestMessage(error));
         }
-      } catch (error) {
-        console.log(getRequestMessage(error));
-      }
-    };
-    fetchExamType();
-  } else {
-    setExamType([]);
-  }
-}, [selectedCourse]);
+      };
+      fetchExamType();
+    } else {
+      setExamType([]);
+    }
+  }, [selectedCourse]);
 
   const all_course = useMemo(() => {
     if (!courses) return [];
@@ -147,27 +158,38 @@ export function ManageExam() {
   }, [courses]);
 
   // 3. Pré-remplir si un ?id= est présent, une fois les cours chargés
- useEffect(() => {
-  if (!examId || all_course.length === 0) return;
+  useEffect(() => {
+    if (!examId || all_course.length === 0) return;
+    const fetchExam = async () => {
+      try {
+        const { data } = await apiRequest.get(`/pastExam/${examId}`);
 
-  const fetchExam = async () => {
-    try {
-      const { data } = await apiRequest.get(`/pastExam/${examId}`);
+        const found = all_course.find((c: Course) => c.id === data.course.id);
+        if (found) {
+          setSelectedCourse(found);
+          setInputValue(found.course);
+        }
 
-      const found = all_course.find((c: Course) => c.id === data.course.id);
-      if (found) {
-        setSelectedCourse(found);
-        setInputValue(found.course);
+        pendingExamTypeId.current = String(data.examtype.id);
+        setSelectedYear(String(data.year));
+
+        const { data: annexeData } = await apiRequest.get(`/pastExam/annexeById/${examId}`);
+        setAnnexesAPI(annexeData);
+        if (annexeData.length > 0) {
+          setAnnexes(
+            annexeData.map((a: AnnexeAPI) => ({
+              type: a.type === "FILE" ? "fichier" : "url",
+              value: a.type === "URL" ? a.url : null,
+              comment: a.name,
+            })),
+          );
+        }
+      } catch (error) {
+        console.log(getRequestMessage(error));
       }
-
-      pendingExamTypeId.current = String(data.examtype.id);
-      setSelectedYear(String(data.year));
-    } catch (error) {
-      console.log(getRequestMessage(error));
-    }
-  };
-  fetchExam();
-}, [examId, all_course]);
+    };
+    fetchExam();
+  }, [examId, all_course]);
   const years = [];
   for (let i = 2026; i >= 2005; --i) {
     years.push(i);
@@ -238,7 +260,10 @@ export function ManageExam() {
         .map((annexe, index) => {
           if (annexe.type === "url") {
             return { type: "url", comment: annexe.comment, url: annexe.value };
-          } else if (annexe.type === "fichier" && annexe.value instanceof File) {
+          } else if (
+            annexe.type === "fichier" &&
+            annexe.value instanceof File
+          ) {
             const fileKey = `annexe_file_${index}`;
             formData.append(fileKey, annexe.value);
             return { type: "fichier", comment: annexe.comment, fileKey };
@@ -262,7 +287,7 @@ export function ManageExam() {
   };
 
   return (
-    <div className="flex w-full">
+<div className="flex w-full h-screen overflow-hidden">
       {loading ? (
         <Card className="w-full max-w-xs">
           <CardHeader>
@@ -274,6 +299,9 @@ export function ManageExam() {
           </CardContent>
         </Card>
       ) : (
+
+          <div className="w-full max-w-md overflow-y-auto flex-shrink-0">
+
         <Card className="w-full max-w-md shadow-xl flex-auto">
           <CardHeader>
             <div className="flex flex-col items-center gap-2 text-center">
@@ -487,7 +515,11 @@ export function ManageExam() {
                                 accept=".pdf"
                                 onChange={(e) =>
                                   e.target.files &&
-                                  updateAnnexe(index, "value", e.target.files[0])
+                                  updateAnnexe(
+                                    index,
+                                    "value",
+                                    e.target.files[0],
+                                  )
                                 }
                               />
                             )}
@@ -523,13 +555,45 @@ export function ManageExam() {
             </form>
           </CardContent>
         </Card>
+          </div>
       )}
-      <div className="grow">
-         <iframe className="w-full h-full" src={`${API_ENDPOINT}/pastExam/adminFile/${examId}`} ></iframe>
+      
+  <div className="grow flex flex-col overflow-hidden">
+        <Tabs defaultValue="annale" className="flex flex-col h-full">
+          <TabsList className="mx-2 mt-2 w-fit">
+            <TabsTrigger value="annale">Annale</TabsTrigger>
+            {annexesAPI.map((annexe) => (
+              <TabsTrigger key={annexe.id} value={`annexe-${annexe.id}`}>
+                {annexe.name || `Annexe ${annexe.id}`}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
+          <TabsContent value="annale" className="flex-1 mt-0">
+            <iframe
+              className="w-full h-full"
+              src={`${API_ENDPOINT}/pastExam/adminFile/${examId}`}
+            />
+          </TabsContent>
+
+          {annexesAPI.map((annexe) => (
+            <TabsContent
+              key={annexe.id}
+              value={`annexe-${annexe.id}`}
+              className="flex-1 mt-0"
+            >
+              <iframe
+                className="w-full h-full"
+                src={
+                  annexe.type === "FILE"
+                    ? `${API_ENDPOINT}/pastExam/adminAnnexe/${annexe.id}`
+                    : (annexe.url ?? "")
+                }
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
-
     </div>
-    
   );
 }
