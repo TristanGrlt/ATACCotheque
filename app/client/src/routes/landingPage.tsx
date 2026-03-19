@@ -8,12 +8,12 @@ import {
   Terminal,
   Eye,
   FileText,
-  InstagramIcon,
   ExternalLink,
   CheckCircle2,
   Moon,
   Sun,
   Plus,
+  Instagram,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -340,7 +340,7 @@ export function LandingPage() {
               rel="noopener noreferrer"
             >
               <Button variant="outline" className="gap-2">
-                <InstagramIcon className="w-4 h-4" />
+                <Instagram className="w-4 h-4" />
                 Instagram
               </Button>
             </a>
@@ -361,7 +361,6 @@ export function LandingPage() {
         <>
           <div className="pointer-events-none fixed inset-0 z-100 overflow-hidden">
             {Array.from({ length: 60 }).map((_, i) => {
-              // Randomisation pour un effet naturel
               const left = Math.random() * 100;
               const delay = Math.random() * 5;
               const duration = 2 + Math.random() * 7;
@@ -376,7 +375,7 @@ export function LandingPage() {
                     left: `${left}%`,
                     animationDelay: `${delay}s`,
                     animationDuration: `${duration}s`,
-                    width: `${size}px`,
+                    width: `${size + 20}px`,
                     height: `${size}px`,
                   }}
                   alt=""
