@@ -261,13 +261,13 @@ if (!selectedCourse || !selectedExamId || !selectedYear) {
 
       }
 
-      const metadata = annexesAPI
+     const metadata = annexesAPI
   .map((annexe, index) => {
     if (annexe.type === "URL") {
       return { id: annexe.id, type: "URL", comment: annexes[index].comment, url: annexe.url };
-    } else if (annexe.type === "FILE" && annexe.value instanceof File) {
+    } else if (annexe.type === "FILE" && annexes[index].value instanceof File) {
       const fileKey = `annexe_file_${index}`;
-      formData.append(fileKey, annexe.value);
+      formData.append(fileKey, annexes[index].value as File);
       return { id: annexe.id, type: "fichier", comment: annexes[index].comment, fileKey };
     } else if (annexe.type === "FILE") {
       return { id: annexe.id, type: "FILE", comment: annexes[index].comment };
