@@ -1,7 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import logo from "/atacc_logo.png";
@@ -13,7 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, ChevronsUpDown, FileUp, Loader2, Plus, Trash2, UploadCloud } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronsUpDown,
+  FileUp,
+  Loader2,
+  Plus,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -90,7 +104,7 @@ export function Upload() {
       setFile(e.target.files[0]);
     }
   };
- const addAnnexe = () => {
+  const addAnnexe = () => {
     if (annexes.length < 5) {
       setAnnexes([...annexes, { type: "url", value: "", comment: "" }]);
     }
@@ -190,17 +204,17 @@ export function Upload() {
   }, [all_course, inputValue]);
 
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-   event.preventDefault();
+    event.preventDefault();
     setSubmitting(true);
     setErrorMessage("");
-  
+
     if (!selectedCourse || !selectedExamId || !selectedFile || !selectedYear) {
-      setErrorMessage('Veuillez remplir tous les champs obligatoires.');
+      setErrorMessage("Veuillez remplir tous les champs obligatoires.");
       setSubmitting(false);
       return;
     }
     if (annexes.length > 5) {
-      setErrorMessage('Vous ne pouvez pas ajouter plus de 5 annexes.');
+      setErrorMessage("Vous ne pouvez pas ajouter plus de 5 annexes.");
       setSubmitting(false);
       return;
     }
@@ -209,28 +223,35 @@ export function Upload() {
       formData.append("courseId", String(selectedCourse.id));
       formData.append("examTypeId", selectedExamId);
       formData.append("year", selectedYear);
-      formData.append("file", selectedFile); 
-      
-      const metadata = annexes.map((annexe, index) => {
-        if (annexe.type === 'url') {
-          return { type: 'url', comment: annexe.comment, url: annexe.value };
-        } else if (annexe.type === 'fichier' && annexe.value instanceof File) {
-          const fileKey = `annexe_file_${index}`;
-          formData.append(fileKey, annexe.value);
-          return { type: 'fichier', comment: annexe.comment, fileKey: fileKey };
-        }
-        return null;
-      }).filter(Boolean); 
+      formData.append("file", selectedFile);
 
-  
-      formData.append('annexes_metadata', JSON.stringify(metadata));
+      const metadata = annexes
+        .map((annexe, index) => {
+          if (annexe.type === "url") {
+            return { type: "url", comment: annexe.comment, url: annexe.value };
+          } else if (
+            annexe.type === "fichier" &&
+            annexe.value instanceof File
+          ) {
+            const fileKey = `annexe_file_${index}`;
+            formData.append(fileKey, annexe.value);
+            return {
+              type: "fichier",
+              comment: annexe.comment,
+              fileKey: fileKey,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      formData.append("annexes_metadata", JSON.stringify(metadata));
 
       await apiRequest.post("/pastExam/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate('/'); 
-
+      navigate("/");
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
@@ -238,10 +259,9 @@ export function Upload() {
     }
   };
 
-return (
+  return (
     // pb-32 pour laisser de la place au dock de navigation flottant en bas
-    <div className="bg-background flex min-h-screen flex-col items-center justify-center p-6 md:p-10 pb-32 font-sans text-foreground selection:bg-primary/20">
-      
+    <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-6 md:p-10 pb-32 font-sans text-foreground selection:bg-primary/20">
       {loading ? (
         <Card className="w-full max-w-3xl rounded-3xl border-border/70 shadow-lg">
           <CardHeader className="text-center pt-10 pb-6 px-6">
@@ -261,7 +281,6 @@ return (
       ) : (
         // max-w-xl pour un formulaire plus large
         <Card className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card shadow-lg">
-          
           {/* --- En-tête de Carte (Intégré comme demandé) --- */}
           <CardHeader className="text-center pt-10 pb-6 px-6 sm:px-10">
             <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-5 mx-auto border border-border/50">
@@ -279,7 +298,6 @@ return (
           <CardContent className="px-6 sm:px-10 pb-10">
             <form encType="multipart/form-data" onSubmit={handleSubmit}>
               <FieldGroup className="space-y-6">
-                
                 {/* Message d'erreur */}
                 {errorMessage && (
                   <div className="bg-destructive/10 text-destructive text-sm font-semibold p-3 rounded-xl flex items-center gap-2 border border-destructive/20">
@@ -295,12 +313,14 @@ return (
                   </FieldLabel>
                   <Combobox
                     value={selectedCourse ? selectedCourse.course : ""}
-                    onValueChange={(val : any) => {
+                    onValueChange={(val: any) => {
                       if (!val) {
                         setSelectedCourse(null);
                         return;
                       }
-                      const found = all_course.find((c: any) => c.course === val);
+                      const found = all_course.find(
+                        (c: any) => c.course === val,
+                      );
                       if (found) {
                         setSelectedCourse(found);
                         setInputValue(found.course);
@@ -309,8 +329,8 @@ return (
                     inputValue={inputValue}
                     onInputValueChange={setInputValue}
                   >
-                    <ComboboxInput 
-                      placeholder="Ex: Algèbre - Partiel 2024 (Rechercher cours)" 
+                    <ComboboxInput
+                      placeholder="Ex: Algèbre - Partiel 2024 (Rechercher cours)"
                       className="h-12 rounded-xl bg-background border-border/70"
                     />
                     <ComboboxContent className="rounded-xl border-border/70 shadow-xl">
@@ -319,7 +339,11 @@ return (
                       )}
                       <ComboboxList>
                         {filteredCourses.map((course: Course) => (
-                          <ComboboxItem key={course.id} value={course.course} className="rounded-lg m-1">
+                          <ComboboxItem
+                            key={course.id}
+                            value={course.course}
+                            className="rounded-lg m-1"
+                          >
                             <Item size="sm" className="p-0">
                               <ItemContent>
                                 <ItemTitle className="whitespace-nowrap font-semibold">
@@ -339,11 +363,10 @@ return (
 
                 {/* Grille responsive : 2 colonnes pour MATIÈRE (Type) et TYPE (Année) */}
                 <div className="grid grid-cols-2 gap-4">
-                  
                   {/* Image "MATIÈRE" -> Mappe au Select Type d'examen */}
                   <Field>
                     <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                      TYPE D'EXAMEN 
+                      TYPE D'EXAMEN
                     </FieldLabel>
                     <Select
                       value={selectedExamId}
@@ -356,7 +379,11 @@ return (
                       <SelectContent className="rounded-xl border-border/70">
                         <SelectGroup>
                           {examType.map((type: Exam) => (
-                            <SelectItem key={type.id} value={String(type.id)} className="rounded-lg m-0.5">
+                            <SelectItem
+                              key={type.id}
+                              value={String(type.id)}
+                              className="rounded-lg m-0.5"
+                            >
                               {type.name}
                             </SelectItem>
                           ))}
@@ -370,14 +397,21 @@ return (
                     <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
                       ANNÉE (IMAGE: TYPE)
                     </FieldLabel>
-                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <Select
+                      value={selectedYear}
+                      onValueChange={setSelectedYear}
+                    >
                       <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
                         <SelectValue placeholder="Année..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-border/70">
                         <SelectGroup>
                           {years.map((year) => (
-                            <SelectItem key={year} value={String(year)} className="rounded-lg m-0.5">
+                            <SelectItem
+                              key={year}
+                              value={String(year)}
+                              className="rounded-lg m-0.5"
+                            >
                               {year - 1 + " / " + year}
                             </SelectItem>
                           ))}
@@ -393,15 +427,26 @@ return (
                     TELEVERSER UNE ANNALE (PDF SVP POTO)
                   </FieldLabel>
                   {/* Grand label pointillé servant de zone de clic géante */}
-                  <label htmlFor="file-main" className="block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10">
+                  <label
+                    htmlFor="file-main"
+                    className="block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10"
+                  >
                     <div className="flex justify-center mb-4">
                       {/* Icône FileUp au centre */}
                       <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
-                    <p className="font-semibold text-foreground text-sm tracking-tight">Toucher pour choisir un PDF</p>
-                    <p className="text-xs text-muted-foreground mt-1">Seul le format PDF est accepté.</p>
+                    <p className="font-semibold text-foreground text-sm tracking-tight">
+                      Toucher pour choisir un PDF
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Seul le format PDF est accepté.
+                    </p>
                     {/* Affiche le nom du fichier s'il est sélectionné */}
-                    {selectedFile && <span className="text-primary font-bold text-xs mt-3 block truncate">Fichier sélectionné : {selectedFile.name}</span>}
+                    {selectedFile && (
+                      <span className="text-primary font-bold text-xs mt-3 block truncate">
+                        Fichier sélectionné : {selectedFile.name}
+                      </span>
+                    )}
                   </label>
                   {/* Input caché, activé par le label via htmlFor/id */}
                   <Input
@@ -416,8 +461,8 @@ return (
 
                 {/* Bouton Envoyer customisé (Sombre comme image) */}
                 <div className="pt-4">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={submitting}
                     // Couleur sombre spécifique bg-slate-950
                     className="w-full h-12 rounded-xl bg-slate-950 text-slate-50 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200 font-semibold tracking-wide text-sm transition-colors shadow-md"
@@ -444,10 +489,16 @@ return (
                       <h4 className="text-sm font-bold text-foreground">
                         Annexes optionnelles
                       </h4>
-                      <p className="text-xs text-muted-foreground">Corrigés, codes sources, liens...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Corrigés, codes sources, liens...
+                      </p>
                     </div>
                     <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-9 rounded-full hover:bg-muted/50">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 rounded-full hover:bg-muted/50"
+                      >
                         <ChevronsUpDown className="h-4 w-4 text-foreground" />
                       </Button>
                     </CollapsibleTrigger>
@@ -508,7 +559,9 @@ return (
                         <div className="grid grid-cols-1 gap-3 pt-2">
                           <div className="space-y-1.5">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                              {annexe.type === "url" ? "Lien web" : "Fichier (PDF)"}
+                              {annexe.type === "url"
+                                ? "Lien web"
+                                : "Fichier (PDF)"}
                             </p>
                             {annexe.type === "url" ? (
                               <Input
@@ -524,10 +577,15 @@ return (
                                 }
                               />
                             ) : (
-                              <label htmlFor={`file-annexe-${index}`} className="flex items-center gap-2 h-10 w-full rounded-lg bg-background border border-border/70 px-3 text-sm text-muted-foreground cursor-pointer hover:bg-muted/20">
+                              <label
+                                htmlFor={`file-annexe-${index}`}
+                                className="flex items-center gap-2 h-10 w-full rounded-lg bg-background border border-border/70 px-3 text-sm text-muted-foreground cursor-pointer hover:bg-muted/20"
+                              >
                                 <FileUp className="w-4 h-4 text-muted-foreground" />
                                 <span className="flex-1 truncate">
-                                  {annexe.value instanceof File ? annexe.value.name : "Toucher pour choisir..."}
+                                  {annexe.value instanceof File
+                                    ? annexe.value.name
+                                    : "Toucher pour choisir..."}
                                 </span>
                               </label>
                             )}
@@ -538,11 +596,7 @@ return (
                               accept=".pdf"
                               onChange={(e) =>
                                 e.target.files &&
-                                updateAnnexe(
-                                  index,
-                                  "value",
-                                  e.target.files[0],
-                                )
+                                updateAnnexe(index, "value", e.target.files[0])
                               }
                             />
                           </div>
@@ -564,7 +618,6 @@ return (
                     ))}
                   </CollapsibleContent>
                 </Collapsible>
-                
               </FieldGroup>
             </form>
           </CardContent>

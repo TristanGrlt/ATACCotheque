@@ -14,7 +14,7 @@ export function NavbarLayout() {
   };
 
   return (
-    <div className="relative min-h-screen pb-28">
+    <div className="relative min-h-screen">
       {/* Main content */}
       <main>
         <Outlet />
@@ -34,6 +34,7 @@ export function NavbarLayout() {
                 }`}
                 variant={active ? "default" : "ghost"}
                 title={item.title}
+                onDoubleClick={item.onDoubleClick}
               >
                 <IconComponent className="w-6 h-6" />
               </Button>

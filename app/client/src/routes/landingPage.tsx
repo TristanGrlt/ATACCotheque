@@ -47,6 +47,22 @@ export function LandingPage() {
   const { theme, setTheme } = useTheme();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
+  const [titleClicks, setTitleClicks] = useState(0);
+  const [isRaining, setIsRaining] = useState(false);
+
+  const handleTitleClick = () => {
+    if (titleClicks >= 9) {
+      setIsRaining(true);
+
+      // Stop the rain after 6 seconds so it doesn't run forever
+      setTimeout(() => {
+        setIsRaining(false);
+        setTitleClicks(0);
+      }, 15000);
+    } else {
+      setTitleClicks(titleClicks + 1);
+    }
+  };
 
   const totalPastExams = useMemo(
     () =>
@@ -92,7 +108,7 @@ export function LandingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-background sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20">
+      <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20">
         {/* --- Theme Toggle Button --- */}
         <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40">
           <Button
@@ -115,7 +131,13 @@ export function LandingPage() {
             Bienvenue à l'ATACCothèque
           </h1>
           <h3 className="text-2xl sm:text-1xl font-extrabold mb-2 tracking-tight leading-tight">
-            Vos annales <span className="text-primary">partout !</span>
+            Vos annales{" "}
+            <span
+              className="text-primary select-none"
+              onClick={handleTitleClick}
+            >
+              partout !
+            </span>
           </h3>
           <p className="text-base text-muted-foreground mb-6 max-w-2xl mx-auto">
             Votre plateforme dédiée au stockage et à la consultation des annales
@@ -127,21 +149,21 @@ export function LandingPage() {
         </div>
 
         {/* --- Barre de recherche --- */}
-        <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative">
-          <div className="relative group">
+        <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative ">
+          <div className="relative group background bg-background/80 rounded-full">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="text-muted-foreground w-4 h-4" />
             </div>
             <Input
               type="text"
-              className="pl-10 py-2 text-sm w-full"
+              className="pl-10 py-6 text-sm w-full rounded-full"
               placeholder="Chercher par un cours, une matière, un niveau..."
             />
           </div>
         </div>
 
         {/* --- Grille des Matières --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12">
+        <div className="max-w-4xl mx-auto px-4 mb-12 ">
           <h2 className="text-2xl font-bold mb-5 text-foreground">
             Parcourir par catégorie
           </h2>
@@ -153,7 +175,7 @@ export function LandingPage() {
                   <Card
                     // eslint-disable-next-line react/no-array-index-key
                     key={index}
-                    className="relative p-3 sm:p-4 rounded-xl border border-border/50"
+                    className="relative p-3 sm:p-4 rounded-xl border border-border/50 "
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Skeleton className="w-10 h-10 rounded-lg" />
@@ -168,7 +190,7 @@ export function LandingPage() {
                   return (
                     <Card
                       key={subject.name}
-                      className="group relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50"
+                      className="group relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 "
                     >
                       <div className="flex flex-col items-center gap-2">
                         {/* Icon container */}
@@ -307,7 +329,7 @@ export function LandingPage() {
         </div>
 
         {/* --- Suivez-nous --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12">
+        <div className="max-w-4xl mx-auto px-4 pb-33">
           <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
             Suivez-nous
           </h2>
@@ -335,8 +357,45 @@ export function LandingPage() {
           </div>
         </div>
       </div>
+      {isRaining && (
+        <>
+          <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
+            {Array.from({ length: 60 }).map((_, i) => {
+              // Randomisation pour un effet naturel
+              const left = Math.random() * 100;
+              const delay = Math.random() * 5;
+              const duration = 2 + Math.random() * 7;
+              const size = 20 + Math.random() * 50;
+
+              return (
+                <img
+                  key={i}
+                  src="/atacc_logo.png"
+                  className="absolute top-[-10%] animate-logo-rain"
+                  style={{
+                    left: `${left}%`,
+                    animationDelay: `${delay}s`,
+                    animationDuration: `${duration}s`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                  }}
+                  alt=""
+                  aria-hidden="true"
+                />
+              );
+            })}
+          </div>
+
+          <div className="pointer-events-none fixed inset-0 z-[101] flex items-center justify-center">
+            <img
+              src="/atacc_logo.png"
+              alt="Gros Logo ATACC Dansant"
+              className="w-88 h-88 md:w-64 md:h-64 object-contain animate-logo-dance-bounce drop-shadow-lg"
+              aria-hidden="true"
+            />
+          </div>
+        </>
+      )}
     </>
   );
 }
-
-
