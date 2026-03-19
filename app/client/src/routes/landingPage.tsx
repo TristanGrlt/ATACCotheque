@@ -38,6 +38,11 @@ const getColorFromId = (key: string) => {
   return colorPalettes[hash % colorPalettes.length];
 };
 
+type Stats = {
+  subjects: Subject[];
+  totalPastExams: number;
+};
+
 type Subject = {
   name: string;
   pastExamCount: number;
@@ -49,12 +54,11 @@ export function LandingPage() {
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [titleClicks, setTitleClicks] = useState(0);
   const [isRaining, setIsRaining] = useState(false);
+  const [totalPastExams, setTotalPastExams] = useState(0);
 
   const handleTitleClick = () => {
     if (titleClicks >= 9) {
       setIsRaining(true);
-
-      // Stop the rain after 6 seconds so it doesn't run forever
       setTimeout(() => {
         setIsRaining(false);
         setTitleClicks(0);
@@ -63,12 +67,6 @@ export function LandingPage() {
       setTitleClicks(titleClicks + 1);
     }
   };
-
-  const totalPastExams = useMemo(
-    () =>
-      subjects.reduce((sum, subject) => sum + (subject.pastExamCount ?? 0), 0),
-    [subjects],
-  );
 
   const subjectIcons = useMemo(() => [Terminal, Sigma, Atom, FlaskConical], []);
   const getIconFromSubjectName = (name: string) => {
@@ -82,11 +80,12 @@ export function LandingPage() {
     let cancelled = false;
     setSubjectsLoading(true);
     apiRequest
-      .get<Subject[]>("/major/stats")
+      .get<Stats>("/major/stats")
       .then((res) => {
         if (cancelled) return;
-        if (Array.isArray(res.data)) {
-          setSubjects(res.data);
+        if (Array.isArray(res.data.subjects)) {
+          setSubjects(res.data.subjects);
+          setTotalPastExams(res.data.totalPastExams);
         }
       })
       .catch(() => {
@@ -225,7 +224,7 @@ export function LandingPage() {
                 <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-foreground">
-                    Plus de {totalPastExams} annales
+                    Plus de {(totalPastExams % 10) * 10} annales
                   </p>
                 </div>
               </div>

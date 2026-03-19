@@ -63,5 +63,10 @@ export const getMajorStat = async (req: Request, res: Response) => {
     pastExamCount: majorPastExamCount.get(m.id) || 0,
   }));
 
-  res.json(stats);
+  const totalCount = await prisma.pastExam.count();
+
+  return res.status(200).json({
+    subjects: stats,
+    totalPastExams: totalCount,
+  });
 };
