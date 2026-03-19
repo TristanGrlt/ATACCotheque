@@ -368,7 +368,7 @@ return (
                   {/* Image "TYPE" -> Mappe au Select Année (Widening) */}
                   <Field>
                     <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                      ANNÉE (IMAGE: TYPE)
+                      ANNÉE 
                     </FieldLabel>
                     <Select value={selectedYear} onValueChange={setSelectedYear}>
                       <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
@@ -393,8 +393,8 @@ return (
                     TELEVERSER UNE ANNALE (PDF SVP POTO)
                   </FieldLabel>
                   {/* Grand label pointillé servant de zone de clic géante */}
-                  <label htmlFor="file-main" className="block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10">
-                    <div className="flex justify-center mb-4">
+                  <label htmlFor="file-main" className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group bg-muted/10">
+                    <div className="flex justify-center mb-4"> 
                       {/* Icône FileUp au centre */}
                       <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
@@ -414,26 +414,7 @@ return (
                   />
                 </Field>
 
-                {/* Bouton Envoyer customisé (Sombre comme image) */}
-                <div className="pt-4">
-                  <Button 
-                    type="submit" 
-                    disabled={submitting}
-                    // Couleur sombre spécifique bg-slate-950
-                    className="w-full h-12 rounded-xl bg-slate-950 text-slate-50 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200 font-semibold tracking-wide text-sm transition-colors shadow-md"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      "Envoyer"
-                    )}
-                  </Button>
-                </div>
-
-                {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
+                 {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
                 <Collapsible
                   open={isOpen}
                   onOpenChange={setIsOpen}
@@ -564,7 +545,26 @@ return (
                     ))}
                   </CollapsibleContent>
                 </Collapsible>
-                
+
+                {/* Bouton Envoyer customisé (Sombre comme image) */}
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    disabled={submitting}
+                    // Couleur sombre spécifique bg-slate-950
+                    className="w-full h-12 rounded-xl
+                     font-semibold tracking-wide text-sm transition-colors shadow-md"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      "Envoyer"
+                    )}
+                  </Button>
+                </div>                
               </FieldGroup>
             </form>
           </CardContent>
