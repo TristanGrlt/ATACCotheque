@@ -459,26 +459,6 @@ export function Upload() {
                   />
                 </Field>
 
-                {/* Bouton Envoyer customisé (Sombre comme image) */}
-                <div className="pt-4">
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    // Couleur sombre spécifique bg-slate-950
-                    className="w-full h-12 rounded-xl bg-slate-950 text-slate-50 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200 font-semibold tracking-wide text-sm transition-colors shadow-md"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      "Envoyer"
-                    )}
-                  </Button>
-                </div>
-
-                {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
                 {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
                 <Collapsible
                   open={isOpen}
