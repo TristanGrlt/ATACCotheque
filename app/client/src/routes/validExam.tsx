@@ -11,7 +11,7 @@ import {
 import { API_ENDPOINT } from "@/config/env";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { useEffect, useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 type reviewExam = {
   id: number;
   path: string;
@@ -21,6 +21,7 @@ type reviewExam = {
 };
 
 export function ValidExam() {
+  const navigate = useNavigate();
   const [reviewExam, setReviewExam] = useState<reviewExam[]>([]);
   useEffect(() => {
     const fetchToReview = async () => {
@@ -50,7 +51,7 @@ export function ValidExam() {
             </CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button className="w-full">Réviser l'annale</Button>
+            <Button className="w-full" onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}>Réviser l'annale</Button>
           </CardFooter>
         </Card>
       ))}
