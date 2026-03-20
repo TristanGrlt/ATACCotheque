@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog"
 import { UserFormDialog } from "@/components/admin/user/userFormDialog"
+import { ActionConfirmDialog } from "@/components/actionConfirmDialog"
 
 export function User() {
   
@@ -16,6 +17,7 @@ export function User() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [usersToDelete, setUsersToDelete] = useState(false)
   const [openEditUser, setOpenEditUser] = useState<User | null>(null);
+  const [userToReinitMfa, setUserToReinitMfa] = useState<User | null>(null)
 
   const {
     data,
@@ -36,6 +38,23 @@ export function User() {
   const handleEdit = useCallback((user: User) => {
     setOpenEditUser(user)
   }, [])
+
+  // -----  MFA  -----
+  const handleReinitMfa = useCallback((user: User) => {
+    setUserToReinitMfa(user);
+  }, [])
+
+  const confirmReinitMfa = useCallback(async () => {
+    if (userToReinitMfa) {
+      try {
+        await apiRequest.put(`/user/${userToReinitMfa.id}/reinit-mfa`)
+        toast.success(`La double authentification de ${userToReinitMfa.username} a été réinitialisée. L'utilisateur devra la configurer à nouveau lors de sa prochaine connexion.`)
+        setUserToReinitMfa(null)
+      } catch (err) {
+        toast.error(`Une erreur est survenue lors de la réinitialisation : ${getRequestMessage(err)}`)
+      }
+    }
+  }, [userToReinitMfa])
 
   // -----  DELETE  -----
   const handleDelete = useCallback((user: User) => {
@@ -101,7 +120,8 @@ export function User() {
   const columns = useMemo(() => createColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
-  }), [handleEdit, handleDelete])
+    onReinitMfa: handleReinitMfa,
+  }), [handleEdit, handleDelete, handleReinitMfa])
 
   return (
     <div className="mx-auto mt-2">
@@ -169,6 +189,12 @@ export function User() {
           }}
           title={`Modifier l'utilisateur "${openEditUser?.username?? ""}"`}
           description={`Modifier les champs si dessous de l'utilisateur "${openEditUser?.username?? ""}". Le mot de passe renseigné devra être changer par l'utilisateur lors de sa première connexion`}
+        />
+
+        <ActionConfirmDialog 
+          open={!!userToReinitMfa}
+          onOpenChange={(open) => !open && setUserToReinitMfa(null)}
+          onConfirm={confirmReinitMfa}
         />
     </div>
   )
