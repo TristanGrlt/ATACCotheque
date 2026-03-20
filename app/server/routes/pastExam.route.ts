@@ -10,7 +10,6 @@ router.get('/:id',getExamById)
 router.get('/annexeById/:id', getAnnexeById)
 router.get('/adminAnnexe/:id',getAnnexeFile)
 router.put('/updateAnnale',uploadMiddleware,updateAnnale)
-
 router.delete('/:id', deletePastExam)
 
 
