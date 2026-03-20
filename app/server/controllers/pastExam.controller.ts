@@ -274,6 +274,9 @@ export const getExamById = async (req: Request, res: Response) => {
     },
     where: { id: parsedId },
   });
+  if(!result){
+    return res.status(404).json({erreur : "id invalide"})
+  }
 
   return res.json(result);
 };
@@ -362,112 +365,189 @@ export const updateAnnale = async (req: Request, res: Response) => {
   try {
     const { examId, courseId, examTypeId, year, annexes_metadata } = req.body;
     const files = (req as MulterRequest).files;
+    const parsedExamId = parseInt(examId);
 
-    if (files && files["file"] && !(files["file"].length === 0)) {
+    const existingExam = await prisma.pastExam.findUnique({
+      where: { id: parsedExamId },
+      include: { annexe: true },
+    });
+
+    if (!existingExam) {
+      return res.status(404).json({ message: "Annale introuvable." });
+    }
+
+    let mainFilePath = existingExam.path;
+
+    if (files && files["file"] && files["file"].length > 0) {
       const mainFile = files["file"][0];
 
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
       const courseDir = path.join(uploadDir, courseId);
-      if (!fs.existsSync(courseDir)) {
-        fs.mkdirSync(courseDir, { recursive: true });
+      if (!fs.existsSync(courseDir)) fs.mkdirSync(courseDir, { recursive: true });
+
+      if (mainFile.mimetype !== "application/pdf" || !mainFile.buffer.slice(0, 4).toString("utf8").startsWith("%PDF")) {
+        return res.status(400).json({ message: "Le fichier principal n'est pas un PDF valide." });
       }
 
-      if (mainFile.mimetype !== "application/pdf") {
-        return res
-          .status(400)
-          .json({ message: "Le fichier principal doit être un PDF." });
-      }
-      const magic = mainFile.buffer.slice(0, 4).toString("utf8");
-      if (!magic.startsWith("%PDF")) {
-        return res
-          .status(400)
-          .json({ message: "Le fichier n'est pas un PDF valide." });
+      if (mainFilePath && fs.existsSync(mainFilePath)) {
+        fs.unlinkSync(mainFilePath);
       }
 
       const safeMainPdfBytes = await recreatepdf(mainFile.buffer);
       const mainFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
-      const mainFilePath = path.join(courseDir, mainFilename);
+      mainFilePath = path.join(courseDir, mainFilename);
       fs.writeFileSync(mainFilePath, safeMainPdfBytes);
-      const newPastExam = await prisma.pastExam.update({
-        data: {
-          path: mainFilePath,
-          year: parseInt(year),
-          courseId: parseInt(courseId),
-          examTypeId: parseInt(examTypeId),
-          isVerified: true,
-        },
-        where: { id: parseInt(examId) },
-      });
-    } else {
-      const newPastExam = await prisma.pastExam.update({
-        data: {
-          year: parseInt(year),
-          courseId: parseInt(courseId),
-          examTypeId: parseInt(examTypeId),
-          isVerified: true,
-        },
-        where: { id: parseInt(examId) },
-      });
     }
+
+    await prisma.pastExam.update({
+      where: { id: parsedExamId },
+      data: {
+        path: mainFilePath,
+        year: parseInt(year),
+        courseId: parseInt(courseId),
+        examTypeId: parseInt(examTypeId),
+        isVerified: true,
+      },
+    });
 
     let annexesList: any[] = [];
     if (annexes_metadata) {
       try {
         annexesList = JSON.parse(annexes_metadata);
       } catch (e) {
-        return res
-          .status(400)
-          .json({ message: "Format des annexes invalide." });
+        return res.status(400).json({ message: "Format des annexes invalide." });
       }
     }
+
+    const incomingIds = annexesList.map((a: any) => a.id).filter(Boolean).map(Number);
+
+    for (const oldAnnexe of existingExam.annexe) {
+      if (!incomingIds.includes(oldAnnexe.id)) {
+        if (oldAnnexe.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+          fs.unlinkSync(oldAnnexe.path);
+        }
+        await prisma.annexe.delete({ where: { id: oldAnnexe.id } });
+      }
+    }
+
     for (const annexe of annexesList) {
-      if (annexe.type === "URL" && annexe.url) {
-        await prisma.annexe.update({
-          data: {
-            name: annexe.comment || "Lien externe",
-            type: "URL",
-            url: annexe.url,
-          },
-          where: { id: parseInt(annexe.id) },
-        });
-      } else if (annexe.type === "fichier" && annexe.fileKey) {
-        const annexeFileArray = files[annexe.fileKey];
-        if (annexeFileArray && annexeFileArray.length > 0) {
-          const annexeFile = annexeFileArray[0];
-          const magic = annexeFile.buffer.slice(0, 4).toString("utf8");
-          if (!magic.startsWith("%PDF")) {
-            return res
-              .status(400)
-              .json({ message: "Le fichier n'est pas un PDF valide." });
+      if (annexe.id) {
+        const annexeId = parseInt(annexe.id);
+        const oldAnnexe = existingExam.annexe.find(a => a.id === annexeId);
+
+        if (annexe.type === "URL") {
+          if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+            fs.unlinkSync(oldAnnexe.path);
           }
-          if (annexeFile.mimetype === "application/pdf") {
+          await prisma.annexe.update({
+            where: { id: annexeId },
+            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, path: null, isVerified: true },
+          });
+        } else if (annexe.type === "FILE") {
+          if (annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
+            if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+              fs.unlinkSync(oldAnnexe.path);
+            }
+            const annexeFile = files[annexe.fileKey][0];
             const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
             const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
             const optionalFilePath = path.join(uploadDir, optFilename);
             fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
+
             await prisma.annexe.update({
-              data: {
-                name: annexe.comment || "Document annexe",
-                type: "FILE",
-                path: optionalFilePath,
-              },
-              where: { id: parseInt(annexe.id) },
+              where: { id: annexeId },
+              data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, url: null, isVerified: true },
+            });
+          } else {
+            await prisma.annexe.update({
+              where: { id: annexeId },
+              data: { name: annexe.comment || "Document annexe", isVerified: true },
             });
           }
         }
-      } else if (annexe.type === "FILE") {
-        await prisma.annexe.update({
-          data: { name: annexe.comment || "Document annexe" },
-          where: { id: parseInt(annexe.id) },
-        });
+      } else {
+        if (annexe.type === "URL" && annexe.url) {
+          await prisma.annexe.create({
+            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, pastExamId: parsedExamId, isVerified: true },
+          });
+        } else if (annexe.type === "FILE" && annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
+          const annexeFile = files[annexe.fileKey][0];
+          const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
+          const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+          const optionalFilePath = path.join(uploadDir, optFilename);
+          fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
+
+          await prisma.annexe.create({
+            data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, pastExamId: parsedExamId, isVerified: true },
+          });
+        }
       }
     }
+
     return res.status(200).json({ message: "Annale mise à jour avec succès" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+export const deletePastExam = async (req: Request, res: Response) => {
+  try {
+    if (!req.params.id || Array.isArray(req.params.id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const examId = parseInt(req.params.id);
+    if (isNaN(examId)){
+      return res.status(400).json({ error: "Id invalide" });
+    }
+    
+    const existingExam = await prisma.pastExam.findUnique({
+      where: { id: examId },
+      include: { annexe: true },
+    });
+
+    if (!existingExam) {
+      return res.status(404).json({ error: "Annale introuvable" });
+    }
+
+    // 1. On supprime d'abord les dépendances en BDD
+    await prisma.annexe.deleteMany({
+      where: { pastExamId: examId }
+    });
+
+    // 2. On supprime le parent en BDD
+    await prisma.pastExam.delete({
+      where: { id: examId },
+    });
+
+    // 3. ON RÉPOND AU FRONTEND ICI (avant de toucher aux fichiers)
+    res.status(200).json({ message: "Annale supprimée avec succès" });
+
+    // 4. Seulement maintenant, on supprime les fichiers physiques.
+    // Si nodemon redémarre le serveur à cause de ça, le front n'en saura rien et la DB est déjà propre.
+    const safeDeleteFile = (filePath: string | null) => {
+      if (filePath && fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (fsError) {
+          console.warn(`Impossible de supprimer le fichier ${filePath} :`, fsError);
+        }
+      }
+    };
+
+    safeDeleteFile(existingExam.path);
+    for (const annexe of existingExam.annexe) {
+      if (annexe.type === "FILE") {
+        safeDeleteFile(annexe.path);
+      }
+    }
+
+  } catch (error) {
+    console.error("====== ERREUR LORS DE LA SUPPRESSION ======");
+    console.error(error);
+    // Si les headers sont déjà envoyés (si l'erreur a lieu après res.json), on ne renvoie pas d'erreur
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Erreur serveur lors de la suppression" });
+    }
   }
 };
