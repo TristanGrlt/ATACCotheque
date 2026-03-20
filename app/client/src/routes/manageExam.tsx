@@ -326,7 +326,7 @@ export function ManageExam() {
         <div className={`w-full bg-card flex-shrink-0 ${isMobile ? "border-b border-border" : "max-w-md overflow-y-auto border-r border-border h-full"}`}>
           <Card className={`w-full shadow-none border-none ${isMobile ? "pb-6" : "pb-12"}`}>
             <CardHeader className="pb-4">
-              <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex flex-col items-center gap-2 text-center">
                 <a>
                   <div className="flex h-16 items-center justify-center rounded-md">
                     <img src={logo} alt="atacc logo" className="h-full object-contain" />
@@ -340,7 +340,7 @@ export function ManageExam() {
 
             <CardContent>
               <form encType="multipart/form-data">
-                <FieldGroup className="space-y-5">
+                <FieldGroup className="space-y-3">
                   {errorMessage && (
                     <div className="text-destructive text-sm font-medium text-center bg-destructive/10 p-2 rounded-md">
                       {errorMessage}
@@ -539,7 +539,7 @@ export function ManageExam() {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <div className="flex flex-col sm:flex-row gap-3 pt-6 pb-2">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-3 pb-2">
                     <Button
                       type="button"
                       variant="destructive"
@@ -571,7 +571,6 @@ export function ManageExam() {
       <div className={`flex flex-col bg-muted/10 p-2 ${isMobile ? "h-[70vh] w-full" : "grow overflow-hidden h-full"}`}>
         <Tabs defaultValue="annale" className="flex flex-col h-full rounded-xl border border-border bg-card overflow-hidden">
           
-          {/* MODIFICATION 2 : On cache les onglets s'il n'y a aucune annexe PDF */}
           {annexes.filter(a => a.id && a.type === "fichier").length > 0 && (
             <TabsList className="mx-4 mt-4 w-fit max-w-full flex-wrap bg-muted">
               <TabsTrigger value="annale" className="data-[state=active]:bg-background">
