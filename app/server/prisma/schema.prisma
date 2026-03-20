@@ -109,6 +109,7 @@ model UserRole {
 model Major {
   id   Int    @id @default(autoincrement())
   name String @unique // ex: Informatique, Mathématiques
+  icon String @default("Book")
 
   parcours Parcours[]
 }
