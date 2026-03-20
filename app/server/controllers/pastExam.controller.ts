@@ -515,7 +515,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
       // Extract the major safely (assuming a course belongs to at least one major via parcours)
       const majorName = verifiedExam.course.parcours[0]?.majors[0]?.name || "Non défini";
 
-      // 2. Add to Meilisearch index matching the frontend interface EXACTLY
+      // Add to Meilisearch index matching the frontend interface EXACTLY
       await index.addDocuments([{
         id: verifiedExam.id,
         year: verifiedExam.year,
@@ -526,6 +526,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
         path: verifiedExam.path, // Required by frontend
         isVerified: verifiedExam.isVerified,
         annexes: verifiedExam.annexe.map(a => ({
+          id: a.id,
           name: a.name,
           type: a.type,
           url: a.url || a.path
