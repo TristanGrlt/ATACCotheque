@@ -1,6 +1,5 @@
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { MeiliSearch } from 'meilisearch';
 import {
   Card,
   CardHeader,
@@ -11,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { BookOpen, Calendar, Archive, ArrowLeft, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { MEILI_HOST, MEILI_API_KEY, API_ENDPOINT } from '@/config/env';
+import { API_ENDPOINT } from '@/config/env';
 
 // PDF.js type definitions
 interface PDFViewport {
@@ -59,10 +58,7 @@ declare global {
   }
 }
 
-const client = new MeiliSearch({
-  host: MEILI_HOST,
-  apiKey: MEILI_API_KEY
-});
+
 
 interface ExamDetail {
   id: string;
@@ -91,7 +87,6 @@ export function ExamDetail() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pdfDocRef = useRef<PDFDocument | null>(null);
   const renderTaskRef = useRef<PDFRenderTask | null>(null);
-
   const fetchExam = useCallback(async () => {
     if (!examId) return;
 
@@ -99,23 +94,31 @@ export function ExamDetail() {
       setIsLoading(true);
       setError(null);
 
-      const search = await client.index('exams').search('', {
-        limit: 1000
-      });
+      // Fetch directly from our new secure backend route!
+      const response = await fetch(`${API_ENDPOINT}/pastExam/public/${examId}`);
 
-      const found = search.hits.find((hit) =>
-        (hit as unknown as ExamDetail).id === examId
-      );
-
-      if (!found) {
-        setError('Examen non trouvé');
-        return;
+      if (!response.ok) {
+        if (response.status === 404) throw new Error('Examen introuvable ou non vérifié.');
+        throw new Error('Erreur lors de la récupération des données.');
       }
 
-      setExam(found as ExamDetail);
-    } catch (err) {
+      const dbExam = await response.json();
+
+      // Map the deep PostgreSQL database relations to match your frontend ExamDetail interface
+      const mappedExam: ExamDetail = {
+        id: dbExam.id.toString(), // Convert to string for consistency
+        course: dbExam.course?.name || 'Inconnu',
+        type: dbExam.examtype?.name || 'Inconnu',
+        level: dbExam.course?.level?.name || 'Inconnu',
+        major: dbExam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
+        year: dbExam.year,
+        path: dbExam.path,
+      };
+
+      setExam(mappedExam);
+    } catch (err: any) {
       console.error('Failed to fetch exam', err);
-      setError('Impossible de charger les détails de l\'examen. Veuillez réessayer.');
+      setError(err.message || 'Impossible de charger les détails de l\'examen. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
