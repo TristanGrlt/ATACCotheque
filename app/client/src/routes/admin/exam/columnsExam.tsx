@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export type Exam = {
@@ -15,9 +15,10 @@ export type Exam = {
 type ColumnActions = {
   onEdit: (exam: Exam) => void
   onDelete: (exam: Exam) => void
+  onOpenDetails: (exam: Exam) => void
 }
 
-export const createColumnsExam = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Exam>[] => [
+export const createColumnsExam = ({ onEdit, onDelete, onOpenDetails }: ColumnActions): ColumnDef<Exam>[] => [
   {
     accessorKey: 'id',
     header: 'ID',
@@ -56,6 +57,14 @@ export const createColumnsExam = ({ onEdit, onDelete }: ColumnActions): ColumnDe
             title="Modifier"
           >
             <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onOpenDetails(exam)}
+            title="Gérer les fichiers et annexes"
+          >
+            <ExternalLink className="h-4 w-4" />
           </Button>
           <Button
             size="sm"

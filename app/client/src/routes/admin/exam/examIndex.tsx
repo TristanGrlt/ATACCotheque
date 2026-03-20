@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePaginatedData } from '@/hooks/usePaginatedData';
 import { DataTableServer } from '@/components/dataTable/dataTableServer';
 import { createColumnsExam, type Exam } from './columnsExam';
@@ -9,11 +10,12 @@ import { apiRequest, getRequestMessage } from '@/services/api';
 import { toast } from 'sonner';
 
 export function ExamIndex() {
+  const navigate = useNavigate();
   const [openEditExam, setOpenEditExam] = useState<Exam | null>(null);
   const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
 
   const { data: exams, pagination, isLoading, handlePageChange, handlePageSizeChange, handleSearchChange, setData, refetch } = usePaginatedData<Exam>({
-    endpoint: '/exam',
+    endpoint: '/pastExam/list',
     initialPageSize: 20,
   });
 
@@ -25,10 +27,14 @@ export function ExamIndex() {
     setExamToDelete(exam);
   }, []);
 
+  const handleOpenDetails = useCallback((exam: Exam) => {
+    navigate(`/admin/manageExam?id=${exam.id}`);
+  }, [navigate]);
+
   const confirmDelete = useCallback(async () => {
     if (examToDelete) {
       try {
-        await apiRequest.delete(`/exam/${examToDelete.id}`);
+        await apiRequest.delete(`/pastExam/${examToDelete.id}`);
         setData(prev => prev.filter(e => e.id !== examToDelete.id));
         setExamToDelete(null);
         toast.success('Examen supprimé avec succès');
@@ -40,7 +46,7 @@ export function ExamIndex() {
   }, [examToDelete, setData, refetch]);
 
   const columns = useMemo(
-    () => createColumnsExam({ onEdit: handleEdit, onDelete: handleDelete }),
+    () => createColumnsExam({ onEdit: handleEdit, onDelete: handleDelete, onOpenDetails: handleOpenDetails }),
     [handleEdit, handleDelete]
   );
 

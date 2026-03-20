@@ -104,7 +104,7 @@ export function ExamFormDialog({ exam, open, onOpenChange, onSaved }: ExamFormDi
         if (courseId) payload.courseId = parseInt(courseId, 10)
         if (examTypeId) payload.examTypeId = parseInt(examTypeId, 10)
 
-        await apiRequest.put(`/exam/${exam.id}`, payload)
+        await apiRequest.put(`/pastExam/${exam.id}`, payload)
         toast.success('Examen mis à jour avec succès')
         onOpenChange(false)
         onSaved?.()

@@ -56,7 +56,7 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
 
     const mainFile = files["file"][0];
 
-   
+
     const courseDir = path.join(uploadDir, courseId);
     if (!fs.existsSync(courseDir)) {
       fs.mkdirSync(courseDir, { recursive: true });
@@ -700,3 +700,65 @@ export const getPublicFile = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Erreur serveur" });
   }
 };
+export const getAllPastExams = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const search = (req.query.search as string) || "";
+    const skip = (page - 1) * pageSize;
+
+    const whereClause = search ? {
+      OR: [
+        { course: { name: { contains: search, mode: 'insensitive' as const } } },
+        { examtype: { name: { contains: search, mode: 'insensitive' as const } } }
+      ]
+    } : {};
+
+    const [totalCount, exams] = await Promise.all([
+      prisma.pastExam.count({ where: whereClause }),
+      prisma.pastExam.findMany({
+        where: whereClause,
+        skip,
+        take: pageSize,
+        include: {
+          course: {
+            include: {
+              level: true,
+              parcours: { include: { majors: true } }
+            }
+          },
+          examtype: true,
+        },
+        orderBy: { id: 'desc' }
+      })
+    ]);
+
+    const formattedExams = exams.map((exam) => ({
+      id: exam.id,
+      course: exam.course?.name || 'Inconnu',
+      type: exam.examtype?.name || 'Inconnu',
+      level: exam.course?.level?.name || 'Inconnu',
+      major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
+      year: exam.year,
+      path: exam.path
+    }));
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    return res.json({
+      data: formattedExams,
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error("Erreur getAllPastExams:", error);
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
