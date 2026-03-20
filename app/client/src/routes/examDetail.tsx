@@ -103,10 +103,10 @@ export function ExamDetail() {
         limit: 1000
       });
 
-      const found = search.hits.find((hit) => 
+      const found = search.hits.find((hit) =>
         (hit as unknown as ExamDetail).id === examId
       );
-      
+
       if (!found) {
         setError('Examen non trouvé');
         return;
@@ -134,11 +134,11 @@ export function ExamDetail() {
     const initializePdf = async () => {
       try {
         setPdfLoading(true);
-        
+
         // Wait for PDF.js library to load
         let pdfjsLib = window.pdfjsLib;
         let attempts = 0;
-        
+
         while (!pdfjsLib && attempts < 10) {
           console.log('Waiting for PDF.js library...');
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -156,12 +156,12 @@ export function ExamDetail() {
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         // Load PDF from backend
-        const pdfUrl = `${API_ENDPOINT}/exam/${exam.id}/file`;
+        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${examId}/file`;
         console.log('Loading PDF from:', pdfUrl);
-        
+
         const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
         console.log('PDF loaded successfully, total pages:', pdf.numPages);
-        
+
         pdfDocRef.current = pdf;
         setNumPages(pdf.numPages);
         setPageNumber(1);
@@ -178,7 +178,7 @@ export function ExamDetail() {
   }, [exam]);
 
   // Render current page whenever page number changes
-// Render current page whenever page number changes
+  // Render current page whenever page number changes
   useEffect(() => {
     if (!pdfReady || !pdfDocRef.current || !canvasRef.current) return;
 
@@ -192,7 +192,7 @@ export function ExamDetail() {
           setPdfLoading(false);
           return;
         }
-        
+
         // 1. If a render is already in progress, cancel it!
         if (renderTaskRef.current) {
           renderTaskRef.current.cancel();
@@ -223,7 +223,7 @@ export function ExamDetail() {
 
         // 3. Wait for the render to finish
         await renderTask.promise;
-        
+
         // 4. Clear the ref once successful
         renderTaskRef.current = null;
         setPdfLoading(false);
@@ -234,7 +234,7 @@ export function ExamDetail() {
           console.log('Previous render cancelled safely.');
           return;
         }
-        
+
         console.error('PDF rendering error:', err);
         setError(`Failed to render page: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setPdfLoading(false);
@@ -242,7 +242,7 @@ export function ExamDetail() {
     };
 
     renderCurrentPage();
-    
+
     // Cleanup function: cancel any ongoing render if the component unmounts
     return () => {
       if (renderTaskRef.current) {
@@ -337,7 +337,7 @@ export function ExamDetail() {
             {/* Download Section */}
             <div className="space-y-3">
               <a
-                href={`${API_ENDPOINT}/exam/${exam.id}/file`}
+                href={`${API_ENDPOINT}/pastExam/public/${exam.id}/file`}
                 download
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium w-full justify-center"
               >
@@ -353,7 +353,7 @@ export function ExamDetail() {
           <p className="text-sm font-medium text-muted-foreground">Aperçu</p>
           <div className="w-full bg-muted rounded-lg border border-input overflow-hidden flex flex-col">
             {/* PDF Canvas */}
-            <div className="relative flex-1 overflow-auto flex items-center justify-center bg-gray-900 p-2 min-h-[400px] lg:min-h-[600px]">
+            <div className="relative flex-1 overflow-auto flex items-center justify-center bg-gray-900 p-2 min-h-100 lg:min-h-150">
               {pdfLoading && (
                 <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-900/50 rounded-t-lg">
                   <Spinner className="h-8 w-8 text-primary" />

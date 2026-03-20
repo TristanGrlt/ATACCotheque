@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import healthRouter from './routes/health.route.js';
 import userRouter from './routes/user.route.js';
 import roleRouter from './routes/role.route.js';
-import examRouter from './routes/exam.route.js';
 import onboardingRouter from './routes/onboarding.route.js';
 import mfaRouter from './routes/mfa.route.js';
 import passkeyRouter from './routes/passkey.route.js';
@@ -12,7 +11,7 @@ import courseRouter from './routes/course.route.js';
 import examTypeRouter from './routes/examType.route.js';
 
 import cookieParser from 'cookie-parser';
-import  pastExam  from './routes/pastExam.route.js';
+import pastExam from './routes/pastExam.route.js';
 
 dotenv.config();
 
@@ -34,11 +33,10 @@ app.use('/auth/passkey', passkeyRouter);
 app.use('/user/mfa', mfaRouter);
 app.use('/user', userRouter);
 app.use('/role', roleRouter);
-app.use('/exam', examRouter);
 app.use('/onboarding', onboardingRouter);
 app.use('/course', courseRouter);
-app.use('/examType',examTypeRouter);
-app.use('/pastExam',pastExam);
+app.use('/examType', examTypeRouter);
+app.use('/pastExam', pastExam);
 
 
 

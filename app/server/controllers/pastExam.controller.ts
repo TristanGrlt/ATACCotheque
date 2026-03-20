@@ -1,15 +1,22 @@
 import { Request, Response } from "express";
+import { MeiliSearch } from "meilisearch";
 import prisma from "../lib/prisma.js";
 import fs from "fs";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
-import { resourceLimits } from "worker_threads";
 
 interface MulterRequest extends Request {
   files: {
     [key: string]: Express.Multer.File[];
   };
 }
+const host = process.env.MEILI_HOST || 'http://meilisearch:7700';
+const apiKey = process.env.MEILI_MASTER_KEY || 'devMasterKey';
+
+const meiliClient = new MeiliSearch({
+  host: host,
+  apiKey: apiKey
+});
 
 const uploadDir = "files";
 
@@ -274,8 +281,8 @@ export const getExamById = async (req: Request, res: Response) => {
     },
     where: { id: parsedId },
   });
-  if(!result){
-    return res.status(404).json({erreur : "id invalide"})
+  if (!result) {
+    return res.status(404).json({ erreur: "id invalide" })
   }
 
   return res.json(result);
@@ -483,8 +490,51 @@ export const updateAnnale = async (req: Request, res: Response) => {
         }
       }
     }
+    // 1. Fetch the newly verified exam with DEEP relations
+    const verifiedExam = await prisma.pastExam.findUnique({
+      where: { id: parsedExamId },
+      include: {
+        examtype: true,
+        annexe: true,
+        course: {
+          include: {
+            level: true,
+            parcours: {
+              include: {
+                majors: true
+              }
+            }
+          }
+        }
+      }
+    });
 
-    return res.status(200).json({ message: "Annale mise à jour avec succès" });
+    if (verifiedExam) {
+      const index = meiliClient.index('exams');
+
+      // Extract the major safely (assuming a course belongs to at least one major via parcours)
+      const majorName = verifiedExam.course.parcours[0]?.majors[0]?.name || "Non défini";
+
+      // 2. Add to Meilisearch index matching the frontend interface EXACTLY
+      await index.addDocuments([{
+        id: verifiedExam.id,
+        year: verifiedExam.year,
+        course: verifiedExam.course.name, // Frontend expects 'course'
+        type: verifiedExam.examtype.name, // Frontend expects 'type'
+        level: verifiedExam.course.level.name, // Now included!
+        major: majorName, // Now included!
+        path: verifiedExam.path, // Required by frontend
+        isVerified: verifiedExam.isVerified,
+        annexes: verifiedExam.annexe.map(a => ({
+          name: a.name,
+          type: a.type,
+          url: a.url || a.path
+        }))
+      }]);
+    }
+
+    return res.status(200).json({ message: "Annale validée et indexée avec succès" });
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur serveur" });
@@ -497,10 +547,10 @@ export const deletePastExam = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Id manquant ou invalide" });
     }
     const examId = parseInt(req.params.id);
-    if (isNaN(examId)){
+    if (isNaN(examId)) {
       return res.status(400).json({ error: "Id invalide" });
     }
-    
+
     const existingExam = await prisma.pastExam.findUnique({
       where: { id: examId },
       include: { annexe: true },
@@ -537,7 +587,8 @@ export const deletePastExam = async (req: Request, res: Response) => {
         safeDeleteFile(annexe.path);
       }
     }
-
+    const index = meiliClient.index('exams');
+    await index.deleteDocument(examId);
   } catch (error) {
     console.error("====== ERREUR LORS DE LA SUPPRESSION ======");
     console.error(error);
@@ -545,5 +596,109 @@ export const deletePastExam = async (req: Request, res: Response) => {
     if (!res.headersSent) {
       return res.status(500).json({ error: "Erreur serveur lors de la suppression" });
     }
+  }
+};
+
+/**
+ * Route: GET /api/pastExams/public/:id
+ * Purpose: Fetch deep details for the frontend (Search result click)
+ */
+export const getPublicExam = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id invalide" });
+    }
+    if (isNaN(parsedId)) return res.status(400).json({ error: "Id invalide" });
+
+    const exam = await prisma.pastExam.findUnique({
+      where: {
+        id: parsedId,
+        isVerified: true // SECURITY: Only return if validated
+      },
+      include: {
+        examtype: true,
+        annexe: true,
+        course: {
+          include: {
+            level: true,
+            parcours: {
+              include: { majors: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!exam) return res.status(404).json({ error: "Annale introuvable ou non vérifiée" });
+
+    return res.json(exam);
+  } catch (err) {
+    console.error("Erreur getPublicExam:", err);
+    return res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
+/**
+ * Route: GET /api/pastExams/public/:id/file
+ * Purpose: Serve the PDF securely to users
+ */
+export const getPublicFile = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id invalide" });
+    }
+    if (isNaN(parsedId)) return res.status(400).json({ error: "Id invalide" });
+
+    const exam = await prisma.pastExam.findUnique({
+      where: {
+        id: parsedId,
+        isVerified: true // SECURITY: Only serve validated files
+      },
+      select: { path: true, year: true, course: { select: { name: true } } }
+    });
+
+    if (!exam) return res.status(404).json({ error: "Fichier introuvable" });
+
+    // Use the same root as your colleague's code
+    const EXAMS_ROOT = "/app/files";
+
+    // Path resolution
+    const normalizedDbPath = exam.path.replace("../files", EXAMS_ROOT).replace("files/", EXAMS_ROOT + "/");
+    const realPath = path.resolve(normalizedDbPath);
+
+    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+      return res.status(403).json({ error: "Accès non autorisé" });
+    }
+
+    const downloadName = `Ataccothèque_${exam.course.name}_${exam.year}.pdf`;
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
+
+    // Use the optimized Nginx/Express send method like in getFileInvalid
+    if (process.env.NODE_ENV === "production") {
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      res.setHeader("X-Accel-Redirect", nginxPath);
+      res.end();
+    } else {
+      res.sendFile(realPath, (err) => {
+        if (err && !res.headersSent) res.status(500).send("Erreur de fichier");
+      });
+    }
+  } catch (err) {
+    console.error("Erreur getPublicFile:", err);
+    return res.status(500).json({ error: "Erreur serveur" });
   }
 };
