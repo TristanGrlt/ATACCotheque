@@ -9,56 +9,51 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { BookOpen, Calendar, Archive, ArrowLeft, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { BookOpen, Calendar, ArrowLeft, Download, ChevronLeft, ChevronRight, Paperclip, Link as LinkIcon, FileText } from "lucide-react";
 import { API_ENDPOINT } from '@/config/env';
 
-// PDF.js type definitions
+// --- PDF.js Interfaces ---
 interface PDFViewport {
   width: number;
   height: number;
   scale: number;
 }
-
 interface PDFRenderContext {
   canvasContext: CanvasRenderingContext2D;
   viewport: PDFViewport;
 }
-
 interface PDFRenderTask {
   promise: Promise<void>;
   cancel: () => void;
 }
-
 interface PDFPage {
   getViewport(options: { scale: number }): PDFViewport;
   render(renderContext: PDFRenderContext): PDFRenderTask;
 }
-
 interface PDFDocument {
   numPages: number;
   getPage(pageNumber: number): Promise<PDFPage>;
 }
-
 interface PDFGetDocumentResponse {
   promise: Promise<PDFDocument>;
 }
-
 interface PDFJsLib {
   version: string;
-  GlobalWorkerOptions: {
-    workerSrc: string;
-  };
+  GlobalWorkerOptions: { workerSrc: string; };
   getDocument(url: string): PDFGetDocumentResponse;
 }
-
-// Declare PDF.js on window
 declare global {
-  interface Window {
-    pdfjsLib: PDFJsLib;
-  }
+  interface Window { pdfjsLib: PDFJsLib; }
 }
 
 
+// --- Data Interfaces ---
+interface Annexe {
+  id: number;
+  name: string;
+  type: string; // "FILE" or "URL"
+  url: string | null;
+}
 
 interface ExamDetail {
   id: string;
@@ -69,6 +64,7 @@ interface ExamDetail {
   year: number;
   path: string;
   title?: string;
+  annexes: Annexe[]; // Added Annexes
 }
 
 export function ExamDetail() {
@@ -80,6 +76,8 @@ export function ExamDetail() {
   );
   const [isLoading, setIsLoading] = useState(!exam);
   const [error, setError] = useState<string | null>(null);
+
+  // PDF.js State
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(true);
@@ -87,6 +85,8 @@ export function ExamDetail() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pdfDocRef = useRef<PDFDocument | null>(null);
   const renderTaskRef = useRef<PDFRenderTask | null>(null);
+
+  // 1. Fetch Deep Data from PostgreSQL
   const fetchExam = useCallback(async () => {
     if (!examId) return;
 
@@ -94,7 +94,6 @@ export function ExamDetail() {
       setIsLoading(true);
       setError(null);
 
-      // Fetch directly from our new secure backend route!
       const response = await fetch(`${API_ENDPOINT}/pastExam/public/${examId}`);
 
       if (!response.ok) {
@@ -104,66 +103,52 @@ export function ExamDetail() {
 
       const dbExam = await response.json();
 
-      // Map the deep PostgreSQL database relations to match your frontend ExamDetail interface
       const mappedExam: ExamDetail = {
-        id: dbExam.id.toString(), // Convert to string for consistency
+        id: dbExam.id.toString(),
         course: dbExam.course?.name || 'Inconnu',
         type: dbExam.examtype?.name || 'Inconnu',
         level: dbExam.course?.level?.name || 'Inconnu',
         major: dbExam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
         year: dbExam.year,
         path: dbExam.path,
+        annexes: dbExam.annexe || [], // Load annexes
       };
 
       setExam(mappedExam);
     } catch (err: any) {
       console.error('Failed to fetch exam', err);
-      setError(err.message || 'Impossible de charger les détails de l\'examen. Veuillez réessayer.');
+      setError(err.message || 'Impossible de charger les détails de l\'examen.');
     } finally {
       setIsLoading(false);
     }
   }, [examId]);
 
   useEffect(() => {
-    if (!exam) {
-      fetchExam();
-    }
+    if (!exam) fetchExam();
   }, [exam, fetchExam]);
 
-  // Initialize PDF.js and load document
+  // 2. Initialize PDF.js
   useEffect(() => {
     if (!exam) return;
 
     const initializePdf = async () => {
       try {
         setPdfLoading(true);
-
-        // Wait for PDF.js library to load
         let pdfjsLib = window.pdfjsLib;
         let attempts = 0;
 
         while (!pdfjsLib && attempts < 10) {
-          console.log('Waiting for PDF.js library...');
           await new Promise(resolve => setTimeout(resolve, 100));
           pdfjsLib = window.pdfjsLib;
           attempts++;
         }
 
-        if (!pdfjsLib) {
-          throw new Error('PDF.js library failed to load');
-        }
+        if (!pdfjsLib) throw new Error('PDF.js library failed to load');
 
-        console.log('PDF.js library loaded, version:', pdfjsLib.version);
-
-        // Set worker source for PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-        // Load PDF from backend
-        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${examId}/file`;
-        console.log('Loading PDF from:', pdfUrl);
-
+        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${exam.id}/file`;
         const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-        console.log('PDF loaded successfully, total pages:', pdf.numPages);
 
         pdfDocRef.current = pdf;
         setNumPages(pdf.numPages);
@@ -171,7 +156,7 @@ export function ExamDetail() {
         setPdfReady(true);
         setPdfLoading(false);
       } catch (err) {
-        console.error('PDF initialization error:', err);
+        console.error('PDF init error:', err);
         setError(`Failed to load PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setPdfLoading(false);
       }
@@ -180,8 +165,7 @@ export function ExamDetail() {
     initializePdf();
   }, [exam]);
 
-  // Render current page whenever page number changes
-  // Render current page whenever page number changes
+  // 3. Render PDF Page
   useEffect(() => {
     if (!pdfReady || !pdfDocRef.current || !canvasRef.current) return;
 
@@ -196,7 +180,6 @@ export function ExamDetail() {
           return;
         }
 
-        // 1. If a render is already in progress, cancel it!
         if (renderTaskRef.current) {
           renderTaskRef.current.cancel();
           renderTaskRef.current = null;
@@ -215,44 +198,29 @@ export function ExamDetail() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.restore();
 
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        // 2. Start the new render task and save it to our ref
+        const renderContext = { canvasContext: context, viewport: viewport };
         const renderTask = page.render(renderContext);
         renderTaskRef.current = renderTask;
 
-        // 3. Wait for the render to finish
         await renderTask.promise;
-
-        // 4. Clear the ref once successful
         renderTaskRef.current = null;
         setPdfLoading(false);
 
       } catch (err: any) {
-        // 5. IMPORTANT: Ignore the error if it was caused by our intentional cancellation
-        if (err.name === 'RenderingCancelledException') {
-          console.log('Previous render cancelled safely.');
-          return;
-        }
-
+        if (err.name === 'RenderingCancelledException') return;
         console.error('PDF rendering error:', err);
-        setError(`Failed to render page: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setError(`Failed to render page.`);
         setPdfLoading(false);
       }
     };
 
     renderCurrentPage();
 
-    // Cleanup function: cancel any ongoing render if the component unmounts
     return () => {
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
+      if (renderTaskRef.current) renderTaskRef.current.cancel();
     };
   }, [pageNumber, pdfReady]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -273,9 +241,7 @@ export function ExamDetail() {
         </button>
         <Alert variant="destructive">
           <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>
-            {error || 'Une erreur est survenue lors du chargement de l\'examen'}
-          </AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
     );
@@ -283,88 +249,112 @@ export function ExamDetail() {
 
   return (
     <div className="p-10 space-y-6 max-w-full mx-auto">
-      {/* Back Button */}
       <button
         onClick={() => navigate('/search')}
-        className="flex items-center gap-2 text-primary hover:text-primary/80 hover:bg-primary/10 px-3 py-2 rounded-lg transition-all cursor-pointer"
+        className="flex items-center gap-2 text-primary hover:text-primary/80 hover:bg-primary/10 px-3 py-2 rounded-lg transition-all cursor-pointer w-fit"
       >
         <ArrowLeft className="h-4 w-4" />
         Retour à la recherche
       </button>
 
-      {/* Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column: Details */}
-        <Card className="border-l-4 border-l-primary h-fit">
-          <CardHeader className="pb-6">
-            <div className="space-y-4">
-              <div>
-                <CardTitle className="text-2xl font-bold text-primary mb-2">
-                  {exam.course}
-                </CardTitle>
-                {exam.title && (
-                  <p className="text-sm text-muted-foreground">{exam.title}</p>
-                )}
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-              {/* Metadata Badges */}
-              <div className="flex flex-wrap gap-2">
-                {exam.type && (
-                  <Badge variant="default">
-                    {exam.type}
+        {/* Left Column: Details & Annexes */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="border-l-4 border-l-primary h-fit shadow-md">
+            <CardHeader className="pb-6">
+              <div className="space-y-4">
+                <div>
+                  <CardTitle className="text-2xl font-bold text-primary mb-2">
+                    {exam.course}
+                  </CardTitle>
+                  {exam.title && (
+                    <p className="text-sm text-muted-foreground">{exam.title}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {exam.type && <Badge variant="default">{exam.type}</Badge>}
+                  <Badge variant="secondary" className="gap-1">
+                    <BookOpen className="h-3 w-3" />
+                    {exam.major}
                   </Badge>
-                )}
-                <Badge variant="secondary" className="gap-1">
-                  <BookOpen className="h-3 w-3" />
-                  {exam.major}
-                </Badge>
-                <Badge variant="outline">{exam.level}</Badge>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  {exam.year}
+                  <Badge variant="outline">{exam.level}</Badge>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground ml-1">
+                    <Calendar className="h-4 w-4" />
+                    {exam.year}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
 
-          <CardContent className="space-y-6">
-            {/* File Path */}
-            <div className="space-y-2 p-4 bg-accent rounded-lg">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Archive className="h-4 w-4" />
-                Fichier
+            <CardContent className="space-y-6">
+              {/* Leaky File Path Block REMOVED! */}
+
+              <div className="space-y-3">
+                <a
+                  href={`${API_ENDPOINT}/pastExam/public/${exam.id}/file`}
+                  download
+                  className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium w-full justify-center shadow-sm"
+                >
+                  <Download className="h-4 w-4" />
+                  Télécharger le Sujet
+                </a>
               </div>
-              <p className="text-sm text-muted-foreground font-mono break-all">{exam.path}</p>
-            </div>
 
-            {/* Download Section */}
-            <div className="space-y-3">
-              <a
-                href={`${API_ENDPOINT}/pastExam/public/${exam.id}/file`}
-                download
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium w-full justify-center"
-              >
-                <Download className="h-4 w-4" />
-                Télécharger le PDF
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+              {/* NEW: Annexes Section */}
+              {exam.annexes && exam.annexes.length > 0 && (
+                <div className="pt-6 border-t space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                    <Paperclip className="h-4 w-4" /> Annexes & Ressources
+                  </h3>
+                  <div className="flex flex-col gap-2">
+                    {exam.annexes.map((annexe) => {
+                      // Note: Assumes your colleague's /adminAnnexe route can be public, 
+                      // or replace with your public annexe route if you made one!
+                      const annexeHref = annexe.type === 'URL'
+                        ? annexe.url
+                        : `${API_ENDPOINT}/pastExam/adminAnnexe/${annexe.id}`;
+
+                      return (
+                        <a
+                          key={annexe.id}
+                          href={annexeHref || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 px-3 py-2.5 bg-secondary/40 hover:bg-secondary rounded-md text-sm transition-colors group"
+                        >
+                          {annexe.type === 'URL' ? (
+                            <LinkIcon className="h-4 w-4 text-blue-500 group-hover:text-blue-600" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-orange-500 group-hover:text-orange-600" />
+                          )}
+                          <span className="font-medium truncate flex-1">{annexe.name}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Right Column: PDF Viewer */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Aperçu</p>
-          <div className="w-full bg-muted rounded-lg border border-input overflow-hidden flex flex-col">
+        <div className="lg:col-span-2 space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Aperçu du document</p>
+          <div className="w-full bg-muted rounded-xl border border-input overflow-hidden flex flex-col shadow-inner">
+
             {/* PDF Canvas */}
-            <div className="relative flex-1 overflow-auto flex items-center justify-center bg-gray-900 p-2 min-h-100 lg:min-h-150">
+            <div className="relative flex-1 overflow-auto flex items-center justify-center bg-gray-900 p-2 min-h-100 lg:min-h-175">
               {pdfLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-900/50 rounded-t-lg">
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-900/50">
                   <Spinner className="h-8 w-8 text-primary" />
                 </div>
               )}
               <canvas
                 ref={canvasRef}
-                className="shadow-lg max-w-full block"
+                className="shadow-2xl max-w-full block"
               />
             </div>
 
@@ -375,7 +365,6 @@ export function ExamDetail() {
                   onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
                   disabled={pageNumber <= 1}
                   className="p-2 rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Page précédente"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -386,7 +375,6 @@ export function ExamDetail() {
                   onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
                   disabled={pageNumber >= numPages}
                   className="p-2 rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Page suivante"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -394,6 +382,7 @@ export function ExamDetail() {
             )}
           </div>
         </div>
+
       </div>
     </div>
   );
