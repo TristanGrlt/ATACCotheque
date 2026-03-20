@@ -25,7 +25,6 @@ import {
   Landmark,
   Users,
   Brain,
-  Scale,
   History,
 
   // Arts & Design
