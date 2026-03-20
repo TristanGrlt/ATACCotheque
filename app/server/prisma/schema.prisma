@@ -155,6 +155,7 @@ model PastExam {
   courseId   Int
   examtype   ExamType @relation(fields: [examTypeId], references: [id])
   examTypeId Int
+  isVerified Boolean  @default(false)
   annexe     Annexe[]
 }
 
@@ -162,11 +163,11 @@ model Annexe {
   id         Int      @id @default(autoincrement())
   name       String
   type       Type
-  isVerifed  Boolean
   path       String?
   url        String?
-  pastExam   PastExam @relation(fields: [pastExamId], references: [id], onDelete: Cascade)
+  pastExam   PastExam @relation(fields: [pastExamId], references: [id])
   pastExamId Int
+  isVerified Boolean  @default(false)
 }
 
 enum Type {

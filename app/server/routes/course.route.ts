@@ -3,6 +3,7 @@ import {
   createCourse,
   deleteCourse,
   getCourse,
+  getFullCourse,
   updateCourse,
 } from "../controllers/course.controller.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
@@ -13,6 +14,7 @@ import { AppPermission } from "../generated/prisma/enums.js";
 const router = Router();
 
 router.get("/", getCourse);
+router.get("/full", getFullCourse);
 router.post(
   "/",
   verifyToken,

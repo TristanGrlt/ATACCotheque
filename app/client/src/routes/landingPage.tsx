@@ -1,111 +1,130 @@
-import { useState } from 'react'
-import reactLogo from '../assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useNavigate } from "react-router-dom";
+import {
+  Atom,
+  FlaskConical,
+  LayoutGrid,
+  Library,
+  Plus,
+  Search,
+  Sigma,
+  Target,
+  Terminal,
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card } from "../components/ui/card";
 
 export function LandingPage() {
-  const [count, setCount] = useState(0)
-
+  const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-16">
-        {/* Header avec les logos */}
-        <div className='flex w-full justify-center gap-8 md:gap-20 mb-16 animate-fade-in'>
-          <a 
-            href="https://vite.dev" 
-            target="_blank"
-            className="group transition-all duration-300 hover:scale-110"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-chart-1/20 blur-2xl rounded-full group-hover:bg-chart-1/40 transition-all duration-300"></div>
-              <img 
-                src={viteLogo} 
-                className="relative w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl" 
-                alt="Vite logo"
-              />
-            </div>
-          </a>
-          <a 
-            href="https://react.dev" 
-            target="_blank"
-            className="group transition-all duration-300 hover:scale-110"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-chart-2/20 blur-2xl rounded-full group-hover:bg-chart-2/40 transition-all duration-300"></div>
-              <img 
-                src={reactLogo} 
-                className="relative w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl animate-spin [animation-duration:20s]" 
-                alt="React logo" 
-              />
-            </div>
-          </a>
+    <>
+      <div className="min-h-screen bg-background pb-28 font-sans text-foreground selection:bg-primary/20">
+        <div className="text-center mb-8 pt-10 px-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+            Vos annales <span className="text-primary">partout !</span>
+          </h1>
+          <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto">
+            La plateforme collaborative de l'ATACC. <br className="sm:hidden" />
+            Annales et corrigés gratuits.
+          </p>
         </div>
 
-        {/* Titre principal avec gradient */}
-        <h1 className='text-5xl md:text-7xl font-bold text-center mb-8 bg-linear-to-r from-primary via-chart-1 to-chart-2 bg-clip-text text-transparent animate-fade-in'>
-          Vite + React
-        </h1>
+        {/* --- Barre de recherche --- */}
+        <div className="w-full max-w-xl mx-auto px-4 mt-2 relative">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="text-muted-foreground w-5 h-5" />
+            </div>
+            <Input
+              type="text"
+              className="pl-12"
+              placeholder="Chercher un cours..."
+            />
+          </div>
+        </div>
 
-        <p className='text-center text-muted-foreground text-lg md:text-xl mb-12 animate-fade-in [animation-delay:200ms]'>
-          Démo de Tailwind CSS v4 avec thème personnalisé
-        </p>
+        {/* --- Grille des Matières --- */}
+        <div className="max-w-xl mx-auto px-4 mt-10">
+          <h2 className="text-lg font-bold mb-4 text-foreground">Matières</h2>
 
-        {/* Card avec le compteur */}
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-card border border-border rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-sm animate-fade-in [animation-delay:400ms]">
-            <div className="flex flex-col items-center gap-8">
-              {/* Compteur stylisé */}
-              <div className="relative group">
-                <div className="absolute inset-0 bg-linear-to-r from-chart-1 via-chart-3 to-chart-4 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-                <button 
-                  onClick={() => setCount((count) => count + 1)} 
-                  className='relative bg-primary text-primary-foreground font-bold text-2xl px-12 py-6 rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-200 hover:bg-primary/90'
-                >
-                  <span className="flex items-center gap-3">
-                    <span className="text-4xl">🎯</span>
-                    <span>count is {count}</span>
-                  </span>
-                </button>
+          {/* Grille : 2 colonnes sur téléphone, 4 sur tablette/PC */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {/* Informatique */}
+            <Card className="p-4 rounded-2xl cursor-pointer text-center hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-primary/10 text-primary">
+                <Terminal className="w-6 h-6" />
               </div>
+              <h3 className="font-bold text-base text-foreground">Info</h3>
+              <p className="text-xs text-muted-foreground">128 fichiers</p>
+            </Card>
 
-              <p className='text-muted-foreground text-center'>
-                Edit <code className='bg-muted px-3 py-1 rounded-lg text-accent-foreground font-mono text-sm'>src/App.tsx</code> and save to test HMR
-              </p>
-            </div>
+            {/* Mathématiques */}
+            <Card className="p-4 rounded-2xl cursor-pointer text-center hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-amber-50 text-amber-500">
+                <Sigma className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-base text-foreground">Maths</h3>
+              <p className="text-xs text-muted-foreground">84 fichiers</p>
+            </Card>
+
+            {/* Physique */}
+            <Card className="p-4 rounded-2xl cursor-pointer text-center hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-rose-50 text-rose-500">
+                <Atom className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-base text-foreground">Physique</h3>
+              <p className="text-xs text-muted-foreground">65 fichiers</p>
+            </Card>
+
+            {/* Chimie */}
+            <Card className="p-4 rounded-2xl cursor-pointer text-center hover:shadow-md transition-shadow">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-emerald-50 text-emerald-500">
+                <FlaskConical className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-base text-foreground">Chimie</h3>
+              <p className="text-xs text-muted-foreground">42 fichiers</p>
+            </Card>
           </div>
         </div>
 
-        {/* Grille de features avec les couleurs du thème */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-6xl mx-auto animate-fade-in [animation-delay:600ms]">
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="w-12 h-12 bg-chart-1 rounded-xl flex items-center justify-center mb-4 text-2xl">
-              ⚡
-            </div>
-            <h3 className="text-xl font-semibold mb-2 text-card-foreground">Vite rapide</h3>
-            <p className="text-muted-foreground">HMR instantané et build ultra-rapide</p>
-          </div>
+        <nav className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 rounded-2xl p-2 flex justify-around sm:gap-2 items-center bg-background/90 backdrop-blur-xl border border-border shadow-2xl">
+          {/* Bouton Accueil - État Actif */}
+          <Button
+            onClick={() => navigate("/")}
+            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+          >
+            <LayoutGrid className="w-6 h-6" />
+          </Button>
 
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="w-12 h-12 bg-chart-2 rounded-xl flex items-center justify-center mb-4 text-2xl">
-              🎨
-            </div>
-            <h3 className="text-xl font-semibold mb-2 text-card-foreground">Tailwind v4</h3>
-            <p className="text-muted-foreground">Thème personnalisé avec variables CSS</p>
-          </div>
+          <div className="w-px h-6 bg-border mx-1 hidden sm:block"></div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="w-12 h-12 bg-chart-3 rounded-xl flex items-center justify-center mb-4 text-2xl">
-              ⚛️
-            </div>
-            <h3 className="text-xl font-semibold mb-2 text-card-foreground">React 19</h3>
-            <p className="text-muted-foreground">Les dernières fonctionnalités React</p>
-          </div>
-        </div>
+          {/* Bouton Bibliothèque - État Inactif */}
+          <Button
+            onClick={() => navigate("/search")}
+            variant="ghost"
+            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+          >
+            <Library className="w-6 h-6" />
+          </Button>
 
-        {/* Footer */}
-        <p className="text-center text-muted-foreground mt-16 text-sm animate-fade-in [animation-delay:800ms]">
-          Click on the Vite and React logos to learn more
-        </p>
+          {/* Bouton Manquants - État Inactif */}
+          <Button
+            variant="ghost"
+            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+          >
+            <Target className="w-6 h-6" />
+          </Button>
+
+          {/* Bouton Upload - État Inactif */}
+          <Button
+            onClick={() => navigate("/upload")}
+            variant="ghost"
+            className="flex-1 sm:flex-none h-12 sm:w-12 rounded-xl sm:rounded-full"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </nav>
       </div>
-    </div>
-  )
+    </>
+  );
 }

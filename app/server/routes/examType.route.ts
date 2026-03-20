@@ -3,6 +3,7 @@ import {
   createExamType,
   deleteExamType,
   getExamType,
+  getExamTypeFromCourse,
   updateExamType,
 } from "../controllers/examType.controller.js";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
@@ -13,6 +14,8 @@ import { verifyPerms } from "../middlewares/verifyPerms.js";
 const router = Router();
 
 router.get("/", getExamType);
+// get exam types for a course (ex: /examType?courseTypeId=42)
+router.get("/", getExamTypeFromCourse);
 router.post(
   "/",
   verifyToken,

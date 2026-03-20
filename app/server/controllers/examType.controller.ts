@@ -106,3 +106,30 @@ export const updateExamType = async (
       .json({ error: "Erreur lors de la mise à jour du type d'examen" });
   }
 };
+
+export const getExamTypeFromCourse = async (req: Request, res: Response) => {
+  const reqCourseTypeId = req.query.courseTypeId;
+  if (!reqCourseTypeId) {
+    return res.status(400).json({ error: "L'ID est manquant ou invalide" });
+  }
+  if (typeof reqCourseTypeId !== "string") {
+    return res
+      .status(400)
+      .json({ message: "L'ID doit être une chaîne de caractères valide" });
+  }
+
+  const courseTypeId = parseInt(reqCourseTypeId, 10);
+  if (isNaN(courseTypeId)) {
+    return res.status(400).json({ error: "L'ID n'est pas un nombre" });
+  }
+  const examTypeList = await prisma.course.findUnique({
+    where: {
+      id: courseTypeId,
+    },
+    include: {
+      examTypes: true,
+    },
+  });
+
+  res.json(examTypeList?.examTypes);
+};
