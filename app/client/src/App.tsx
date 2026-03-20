@@ -17,6 +17,9 @@ import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import Dashboard from './routes/admin/dashboard/dashboard.tsx'
 import { Upload } from './routes/upload.tsx'
+import { ValidExam } from './routes/validExam.tsx'
+import { ManageExam } from './routes/manageExam.tsx'
+
 
 function App() {
   const { isLoading } = useAuth()
@@ -33,7 +36,7 @@ function App() {
       <Route index element={<LandingPage />} />
       <Route path="search" element={<Search />} />
       <Route path="exam/:examId" element={<ExamDetail />} />
-      
+
       {/* Routes pour invités uniquement (non connectés) */}
       <Route element={<GuestRoute />}>
         <Route path='login' element={<Login />} />
@@ -45,15 +48,17 @@ function App() {
       {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
-      {/* Routes protégées par authentification */}      
+      {/* Routes protégées par authentification */}
       <Route path='upload' element={<Upload />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='dashboard' element={<Dashboard />} />
-          <Route path='toto' element={<LandingPage />} />
-          
+          <Route path='validExam' element={<ValidExam />} />
+          <Route path='manageExam' element={<ManageExam />} />
+
+
           {/* Routes protégées par permissions */}
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
             <Route path='users' element={<UserIndex />} />
@@ -67,5 +72,5 @@ function App() {
     </Routes>
   )
 }
- 
+
 export default App

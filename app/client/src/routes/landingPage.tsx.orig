@@ -1,12 +1,62 @@
 import { useNavigate } from 'react-router-dom';
-import { Atom, FlaskConical, LayoutGrid, Library, Plus, Search, Sigma, Target, Terminal } from 'lucide-react';
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import reactLogo from '../assets/react.svg'
+import viteLogo from '/vite.svg'
+import { Atom, FlaskConical, Info, LayoutGrid, Library, Moon, Plus, Search, Sigma, Sun, Target, Terminal } from 'lucide-react';
 
 export function LandingPage() {
   const navigate = useNavigate();
   return (
+<<<<<<< HEAD
+    <div className="min-h-screen bg-background">
+      {/* Simple Navigation Links */}
+      <nav className="flex gap-4 items-center justify-end p-4 border-b border-border">
+        <Link to="/search" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Rechercher
+        </Link>
+        <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Administration
+        </Link>
+      </nav>
+
+      <div className="container mx-auto px-4 py-16">
+        {/* Header avec les logos */}
+        <div className='flex w-full justify-center gap-8 md:gap-20 mb-16 animate-fade-in'>
+          <a 
+            href="https://vite.dev" 
+            target="_blank"
+            className="group transition-all duration-300 hover:scale-110"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-chart-1/20 blur-2xl rounded-full group-hover:bg-chart-1/40 transition-all duration-300"></div>
+              <img 
+                src={viteLogo} 
+                className="relative w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl" 
+                alt="Vite logo"
+              />
+            </div>
+          </a>
+          <a 
+            href="https://react.dev" 
+            target="_blank"
+            className="group transition-all duration-300 hover:scale-110"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-chart-2/20 blur-2xl rounded-full group-hover:bg-chart-2/40 transition-all duration-300"></div>
+              <img 
+                src={reactLogo} 
+                className="relative w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl animate-spin [animation-duration:20s]" 
+                alt="React logo" 
+              />
+            </div>
+          </a>
+        </div>
+=======
     <>
     <div className="min-h-screen bg-gray-50 pb-28 font-sans text-gray-900 selection:bg-blue-200">
       
+>>>>>>> feat/valid_exam
 
       <div className="text-center mb-8 pt-10 px-4">
         <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 tracking-tight leading-tight">

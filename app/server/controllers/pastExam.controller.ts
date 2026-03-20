@@ -3,6 +3,7 @@ import prisma from "../lib/prisma.js";
 import fs from "fs";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
+import { resourceLimits } from "worker_threads";
 
 interface MulterRequest extends Request {
   files: {
@@ -141,11 +142,408 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
       .json({ message: "Annale uploadée avec succès", data: newPastExam });
   } catch (error) {
     console.error("Erreur lors de l'upload ou du nettoyage :", error);
+    return res.status(500).json({
+      message:
+        "Erreur lors du traitement du fichier. Veuillez vérifier qu'il s'agit d'un PDF valide.",
+    });
+  }
+};
+export const getPastExamToReview = async (req: Request, res: Response) => {
+  try {
+    const result = await prisma.pastExam.findMany({
+      select: {
+        id: true,
+        year: true,
+        course: {
+          select: {
+            name: true,
+            parcours: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      where: {
+        isVerified: false,
+      },
+    });
+
+    const simplified = result.map(({ course, ...exam }) => ({
+      ...exam,
+      courseName: course.name,
+      parcours: course.parcours.map((p) => p.name),
+    }));
+
+    return res.json(simplified);
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des examens en attente",
+      error,
+    );
     return res
       .status(500)
-      .json({
-        message:
-          "Erreur lors du traitement du fichier. Veuillez vérifier qu'il s'agit d'un PDF valide.",
+      .json({ error: "Erreur lors de la récupération des examens en attente" });
+  }
+};
+
+const EXAMS_ROOT = "/app/files";
+
+export const getFileInvalid = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const result = await prisma.pastExam.findUnique({
+      select: {
+        id: true,
+        path: true,
+        year: true,
+        isVerified: true,
+        examtype: { select: { name: true } },
+        course: { select: { name: true } },
+      },
+      where: { id: parsedId },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: "Fichier introuvable" });
+    }
+
+    const courseName = result.course?.name ?? "inconnu";
+    const examType = result.examtype?.name ?? "inconnu";
+    const downloadName = `Ataccothèque_${courseName}_${examType}_${result.year}.pdf`;
+
+    // Protection path traversal
+    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
+    const realPath = path.resolve(normalizedDbPath);
+    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+      return res.status(403).json({ error: "Accès non autorisé" });
+    }
+
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
+
+    if (process.env.NODE_ENV === "production") {
+      // Nginx attend un chemin absolu configuré via un alias interne
+      // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      res.setHeader("X-Accel-Redirect", nginxPath);
+      res.end();
+    } else {
+      res.sendFile(realPath, (err) => {
+        if (err) {
+          console.error("Erreur de téléchargement en dev:", err);
+          if (!res.headersSent) res.status(500).send("Erreur de fichier");
+        }
       });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération du fichier:", error);
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération du fichier" });
+  }
+};
+
+export const getExamById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+  const parsedId = parseInt(id, 10);
+  if (isNaN(parsedId)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+
+  const result = await prisma.pastExam.findUnique({
+    select: {
+      id: true,
+      isVerified: true,
+      year: true,
+      examtype: { select: { id: true } },
+      course: { select: { id: true } },
+    },
+    where: { id: parsedId },
+  });
+  if(!result){
+    return res.status(404).json({erreur : "id invalide"})
+  }
+
+  return res.json(result);
+};
+
+export const getAnnexeById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+  const parsedId = parseInt(id, 10);
+  if (isNaN(parsedId)) {
+    return res.status(400).json({ error: "Id manquant ou invalide" });
+  }
+
+  const result = await prisma.annexe.findMany({
+    where: {
+      pastExamId: parsedId,
+    },
+  });
+
+  return res.json(result);
+};
+
+export const getAnnexeFile = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    const result = await prisma.annexe.findUnique({
+      select: {
+        id: true,
+        path: true,
+        name: true,
+      },
+      where: { id: parsedId },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: "Fichier introuvable" });
+    }
+
+    const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
+    if (!result.path) {
+      return res.status(404).json({ error: "Fichier introuvable" });
+    }
+    // Protection path traversal
+    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
+    const realPath = path.resolve(normalizedDbPath);
+    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+      return res.status(403).json({ error: "Accès non autorisé" });
+    }
+
+    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
+
+    if (process.env.NODE_ENV === "production") {
+      // Nginx attend un chemin absolu configuré via un alias interne
+      // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      res.setHeader("X-Accel-Redirect", nginxPath);
+      res.end();
+    } else {
+      res.sendFile(realPath, (err) => {
+        if (err) {
+          console.error("Erreur de téléchargement en dev:", err);
+          if (!res.headersSent) res.status(500).send("Erreur de fichier");
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération du fichier:", error);
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération du fichier" });
+  }
+};
+
+export const updateAnnale = async (req: Request, res: Response) => {
+  try {
+    const { examId, courseId, examTypeId, year, annexes_metadata } = req.body;
+    const files = (req as MulterRequest).files;
+    const parsedExamId = parseInt(examId);
+
+    const existingExam = await prisma.pastExam.findUnique({
+      where: { id: parsedExamId },
+      include: { annexe: true },
+    });
+
+    if (!existingExam) {
+      return res.status(404).json({ message: "Annale introuvable." });
+    }
+
+    let mainFilePath = existingExam.path;
+
+    if (files && files["file"] && files["file"].length > 0) {
+      const mainFile = files["file"][0];
+
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const courseDir = path.join(uploadDir, courseId);
+      if (!fs.existsSync(courseDir)) fs.mkdirSync(courseDir, { recursive: true });
+
+      if (mainFile.mimetype !== "application/pdf" || !mainFile.buffer.slice(0, 4).toString("utf8").startsWith("%PDF")) {
+        return res.status(400).json({ message: "Le fichier principal n'est pas un PDF valide." });
+      }
+
+      if (mainFilePath && fs.existsSync(mainFilePath)) {
+        fs.unlinkSync(mainFilePath);
+      }
+
+      const safeMainPdfBytes = await recreatepdf(mainFile.buffer);
+      const mainFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+      mainFilePath = path.join(courseDir, mainFilename);
+      fs.writeFileSync(mainFilePath, safeMainPdfBytes);
+    }
+
+    await prisma.pastExam.update({
+      where: { id: parsedExamId },
+      data: {
+        path: mainFilePath,
+        year: parseInt(year),
+        courseId: parseInt(courseId),
+        examTypeId: parseInt(examTypeId),
+        isVerified: true,
+      },
+    });
+
+    let annexesList: any[] = [];
+    if (annexes_metadata) {
+      try {
+        annexesList = JSON.parse(annexes_metadata);
+      } catch (e) {
+        return res.status(400).json({ message: "Format des annexes invalide." });
+      }
+    }
+
+    const incomingIds = annexesList.map((a: any) => a.id).filter(Boolean).map(Number);
+
+    for (const oldAnnexe of existingExam.annexe) {
+      if (!incomingIds.includes(oldAnnexe.id)) {
+        if (oldAnnexe.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+          fs.unlinkSync(oldAnnexe.path);
+        }
+        await prisma.annexe.delete({ where: { id: oldAnnexe.id } });
+      }
+    }
+
+    for (const annexe of annexesList) {
+      if (annexe.id) {
+        const annexeId = parseInt(annexe.id);
+        const oldAnnexe = existingExam.annexe.find(a => a.id === annexeId);
+
+        if (annexe.type === "URL") {
+          if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+            fs.unlinkSync(oldAnnexe.path);
+          }
+          await prisma.annexe.update({
+            where: { id: annexeId },
+            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, path: null, isVerified: true },
+          });
+        } else if (annexe.type === "FILE") {
+          if (annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
+            if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+              fs.unlinkSync(oldAnnexe.path);
+            }
+            const annexeFile = files[annexe.fileKey][0];
+            const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
+            const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+            const optionalFilePath = path.join(uploadDir, optFilename);
+            fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
+
+            await prisma.annexe.update({
+              where: { id: annexeId },
+              data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, url: null, isVerified: true },
+            });
+          } else {
+            await prisma.annexe.update({
+              where: { id: annexeId },
+              data: { name: annexe.comment || "Document annexe", isVerified: true },
+            });
+          }
+        }
+      } else {
+        if (annexe.type === "URL" && annexe.url) {
+          await prisma.annexe.create({
+            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, pastExamId: parsedExamId, isVerified: true },
+          });
+        } else if (annexe.type === "FILE" && annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
+          const annexeFile = files[annexe.fileKey][0];
+          const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
+          const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
+          const optionalFilePath = path.join(uploadDir, optFilename);
+          fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
+
+          await prisma.annexe.create({
+            data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, pastExamId: parsedExamId, isVerified: true },
+          });
+        }
+      }
+    }
+
+    return res.status(200).json({ message: "Annale mise à jour avec succès" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+export const deletePastExam = async (req: Request, res: Response) => {
+  try {
+    if (!req.params.id || Array.isArray(req.params.id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const examId = parseInt(req.params.id);
+    if (isNaN(examId)){
+      return res.status(400).json({ error: "Id invalide" });
+    }
+    
+    const existingExam = await prisma.pastExam.findUnique({
+      where: { id: examId },
+      include: { annexe: true },
+    });
+
+    if (!existingExam) {
+      return res.status(404).json({ error: "Annale introuvable" });
+    }
+
+    await prisma.annexe.deleteMany({
+      where: { pastExamId: examId }
+    });
+
+    await prisma.pastExam.delete({
+      where: { id: examId },
+    });
+
+    res.status(200).json({ message: "Annale supprimée avec succès" });
+
+
+    const safeDeleteFile = (filePath: string | null) => {
+      if (filePath && fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (fsError) {
+          console.warn(`Impossible de supprimer le fichier ${filePath} :`, fsError);
+        }
+      }
+    };
+
+    safeDeleteFile(existingExam.path);
+    for (const annexe of existingExam.annexe) {
+      if (annexe.type === "FILE") {
+        safeDeleteFile(annexe.path);
+      }
+    }
+
+  } catch (error) {
+    console.error("====== ERREUR LORS DE LA SUPPRESSION ======");
+    console.error(error);
+    // Si les headers sont déjà envoyés (si l'erreur a lieu après res.json), on ne renvoie pas d'erreur
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Erreur serveur lors de la suppression" });
+    }
   }
 };
