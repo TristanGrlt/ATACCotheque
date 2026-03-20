@@ -39,6 +39,7 @@ export const createCourse = async (req: Request, res: Response) => {
     levelId,
     parcoursIds = [],
     examTypeIds = [],
+    aliases = "",
   } = req.body;
 
   const trimedName = name?.trim();
@@ -58,10 +59,22 @@ export const createCourse = async (req: Request, res: Response) => {
     });
   }
 
+  const rawAliases = aliases;
+  if (typeof rawAliases !== "string" && typeof rawAliases !== "number") {
+    return res.status(400).json({ error: "Les alias doivent être une chaîne" });
+  }
+  const normalizedAliases = rawAliases
+    .toString()
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0)
+    .join(",");
+
   try {
     const course = await prisma.course.create({
       data: {
         name: trimedName,
+        aliases: normalizedAliases,
         semestre: parseInt(semestre, 10),
         levelId: parseInt(levelId, 10),
         parcours: {
@@ -83,17 +96,13 @@ export const createCourse = async (req: Request, res: Response) => {
     return res.status(201).json({
       id: course.id,
       name: course.name,
+      aliases: course.aliases,
       semestre: course.semestre,
       levelId: course.levelId,
       parcoursIds: course.parcours.map((p) => p.id),
       examTypeIds: course.examTypes.map((e) => e.id),
     });
   } catch (error: any) {
-    if (error.code === "P2002") {
-      return res
-        .status(409)
-        .json({ error: "Un cours avec ce nom existe déjà" });
-    }
     return res
       .status(500)
       .json({ error: "Erreur lors de la création du cours" });
@@ -126,7 +135,7 @@ export const updateCourse = async (
   res: Response,
 ) => {
   const { courseId } = req.params;
-  const { name, semestre, examTypeIds = [] } = req.body;
+  const { name, semestre, examTypeIds = [], aliases = "" } = req.body;
 
   if (!courseId || Array.isArray(courseId)) {
     return res.status(400).json({ error: "ID du cours manquant ou invalide" });
@@ -143,11 +152,23 @@ export const updateCourse = async (
     });
   }
 
+  const rawAliases = aliases;
+  if (typeof rawAliases !== "string" && typeof rawAliases !== "number") {
+    return res.status(400).json({ error: "Les alias doivent être une chaîne" });
+  }
+  const normalizedAliases = rawAliases
+    .toString()
+    .split(",")
+    .map((a) => a.trim())
+    .filter((a) => a.length > 0)
+    .join(",");
+
   try {
     const course = await prisma.course.update({
       where: { id: parseInt(courseId, 10) },
       data: {
         name: trimedName,
+        aliases: normalizedAliases,
         semestre: parseInt(semestre, 10),
         examTypes: {
           set: examTypeIds.map((id: number) => ({ id })),
@@ -165,17 +186,13 @@ export const updateCourse = async (
     return res.status(200).json({
       id: course.id,
       name: course.name,
+      aliases: course.aliases,
       semestre: course.semestre,
       levelId: course.levelId,
       parcoursIds: course.parcours.map((p) => p.id),
       examTypeIds: course.examTypes.map((e) => e.id),
     });
   } catch (error: any) {
-    if (error.code === "P2002") {
-      return res
-        .status(409)
-        .json({ error: "Un cours avec ce nom existe déjà" });
-    }
     return res
       .status(500)
       .json({ error: "Erreur lors de la mise à jour du cours" });

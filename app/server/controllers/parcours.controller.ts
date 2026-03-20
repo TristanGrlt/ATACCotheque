@@ -276,6 +276,7 @@ export const getParcoursLevelsCourses = async (req: Request, res: Response) => {
       courses.map((course) => ({
         id: course.id,
         name: course.name,
+        aliases: course.aliases,
         semestre: course.semestre,
         levelId: course.levelId,
         parcoursIds: course.parcours.map((p) => p.id),
@@ -345,6 +346,7 @@ export const connectCourseToParcoursLevels = async (
     return res.status(200).json({
       id: updatedCourse.id,
       name: updatedCourse.name,
+      aliases: updatedCourse.aliases,
       semestre: updatedCourse.semestre,
       levelId: updatedCourse.levelId,
       parcoursIds: updatedCourse.parcours.map((p) => p.id),
