@@ -1,49 +1,62 @@
+import 'dotenv/config';
 import { MeiliSearch } from 'meilisearch';
-import { Prisma } from '../generated/prisma/client.js';
 import prisma from '../lib/prisma.js';
-import dotenv from 'dotenv';
-dotenv.config();
 
+// Configuration
 const host = process.env.MEILI_HOST || 'http://meilisearch:7700';
 const apiKey = process.env.MEILI_MASTER_KEY || 'devMasterKey';
+const meiliClient = new MeiliSearch({ host, apiKey });
 
-const client = new MeiliSearch({
-  host: host,
-  apiKey: apiKey
-});
+async function seedMeilisearch() {
+  console.log(`🔎 Connecting to Meilisearch at: ${host}`);
+  const index = meiliClient.index('exams');
 
-const examQuery = {
-  include: {
-    examtype: true,
-    course: {
-      include: {
-        level: { include: { major: true } }
+  console.log('🗑️  Clearing existing Meilisearch documents...');
+  const deleteTask = await index.deleteAllDocuments();
+  console.log(`✅ Delete task queued. Task UID: ${deleteTask.taskUid}`);
+
+  console.log('🔄 Fetching exams from the PostgreSQL database...');
+  
+  const exams = await prisma.pastExam.findMany({
+    include: {
+      examtype: true,
+      course: {
+        include: {
+          level: true,
+          parcours: {
+            include: {
+              majors: true
+            }
+          }
+        }
       }
     }
+  });
+
+  if (exams.length === 0) {
+    console.log('⚠️ No PastExams found in database. Exiting.');
+    return;
   }
-} as const;
 
-type ExamWithRelations = Prisma.PastExamGetPayload<typeof examQuery>;
+  const documents = exams.map((exam) => {
+    const majorsArray = Array.from(new Set(
+      exam.course?.parcours?.flatMap(p => p.majors?.map(m => m.name) || []) || []
+    ));
 
-async function seed() {
-  console.log(`Connecting to Meili at: ${host}`);
-  const index = client.index('exams');
-  const exams = await prisma.pastExam.findMany(examQuery);
+    return {
+      id: exam.id.toString(),
+      course: exam.course?.name || 'N/A',
+      type: exam.examtype?.name || 'N/A',
+      level: exam.course?.level?.name || 'N/A',
+      major: majorsArray.length > 0 ? majorsArray.join(', ') : 'N/A',
+      year: exam.year,
+      path: exam.path
+    };
+  });
 
-  const documents = exams.map((exam: ExamWithRelations) => ({
-    id: exam.id.toString(),
-    course: exam.course.name,
-    type: exam.examtype.name,
-    level: exam.course.level.name,
-    major: exam.course.level.major.name,
-    year: exam.year,
-    path: exam.path
-  }));
-
-  console.log('Updating settings...');
+  console.log('⚙️  Applying Meilisearch index settings...');
   await index.updateFilterableAttributes(['level', 'major', 'year', 'type']);
 
-  // Configure Synonyms
   await index.updateSynonyms({
     'maths': ['mathématiques'],
     'mathématiques': ['maths'],
@@ -52,9 +65,18 @@ async function seed() {
     'algo': ['algorithmique']
   });
 
-  // Add Documents
-  const task = await index.addDocuments(documents);
-  console.log(`Synonyms configured and data sent. Task UID: ${task.taskUid}`);
+  console.log(`📤 Sending ${documents.length} documents to Meilisearch...`);
+  const addTask = await index.addDocuments(documents);
+  
+  console.log(`✅ Data sent successfully. Task UID: ${addTask.taskUid}`);
 }
 
-seed().catch(console.error).finally(() => prisma.$disconnect());
+seedMeilisearch()
+  .catch((e) => {
+    console.error('❌ Error during Meilisearch seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    console.log('🔌 Database disconnected.');
+  });

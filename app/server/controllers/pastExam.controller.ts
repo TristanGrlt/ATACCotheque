@@ -18,7 +18,7 @@ const meiliClient = new MeiliSearch({
   apiKey: apiKey
 });
 
-const uploadDir = "files";
+const uploadDir = process.env.UPLOAD_DIR || "/app/files";
 
 async function recreatepdf(pdfBuffer: Buffer): Promise<Uint8Array> {
   const oldPdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
@@ -56,10 +56,7 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
 
     const mainFile = files["file"][0];
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
+   
     const courseDir = path.join(uploadDir, courseId);
     if (!fs.existsSync(courseDir)) {
       fs.mkdirSync(courseDir, { recursive: true });
