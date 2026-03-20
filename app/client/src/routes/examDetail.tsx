@@ -9,8 +9,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
-import { BookOpen, Calendar, ArrowLeft, Download, ChevronLeft, ChevronRight, Paperclip, Link as LinkIcon, FileText } from "lucide-react";
+import { Edit, BookOpen, Calendar, ArrowLeft, Download, ChevronLeft, ChevronRight, Paperclip, Link as LinkIcon, FileText } from "lucide-react";
 import { API_ENDPOINT } from '@/config/env';
+import { useAuth } from '@/contexts/AuthContext';
+import { PERMISSIONS } from '@/config/permissions';
 
 // --- PDF.js Interfaces ---
 interface PDFViewport {
@@ -76,6 +78,8 @@ export function ExamDetail() {
   );
   const [isLoading, setIsLoading] = useState(!exam);
   const [error, setError] = useState<string | null>(null);
+  const { perms } = useAuth();
+  const canManageAnnales = perms.includes(PERMISSIONS.MANAGE_ANNALES);
 
   // PDF.js State
   const [pageNumber, setPageNumber] = useState(1);
@@ -249,13 +253,27 @@ export function ExamDetail() {
 
   return (
     <div className="p-10 space-y-6 max-w-full mx-auto">
-      <button
-        onClick={() => navigate('/search')}
-        className="flex items-center gap-2 text-primary hover:text-primary/80 hover:bg-primary/10 px-3 py-2 rounded-lg transition-all cursor-pointer w-fit"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Retour à la recherche
-      </button>
+      {/* Top Navigation Bar */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigate('/search')}
+          className="flex items-center gap-2 text-primary hover:text-primary/80 hover:bg-primary/10 px-3 py-2 rounded-lg transition-all cursor-pointer w-fit"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour à la recherche
+        </button>
+
+        {/* Edit Button (Conditionally Rendered) */}
+        {canManageAnnales && (
+          <button
+            onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}
+            className="flex items-center gap-2 bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-lg transition-all cursor-pointer shadow-sm"
+          >
+            <Edit className="h-4 w-4" />
+            Modifier l'annale
+          </button>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

@@ -56,13 +56,12 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path='admin' element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='dashboard' element={<Dashboard />} />
           <Route path='validExam' element={<ValidExam />} />
           <Route path='manageExam' element={<ManageExam />} />
 
 
           <Route path='dashboard' element={<AddUser />} />
-          
+
           {/* Routes protégées par permissions */}
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ANNALES]} />}>
             <Route path='exams' element={<ExamIndex />} />
