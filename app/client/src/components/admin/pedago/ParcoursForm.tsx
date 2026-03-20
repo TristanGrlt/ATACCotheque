@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 export interface Major {
   id: number;
   name: string;
+  icon?: string;
 }
 
 export interface ParcoursFormData {
@@ -32,7 +33,7 @@ export function ParcoursForm({
 }: ParcoursFormProps) {
   const [name, setName] = useState(initialData?.name ?? "");
   const [selectedMajorIds, setSelectedMajorIds] = useState<number[]>(
-    initialData?.majorIds ?? []
+    initialData?.majorIds ?? [],
   );
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function ParcoursForm({
 
   const toggleMajor = (id: number) => {
     setSelectedMajorIds((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
     );
   };
 

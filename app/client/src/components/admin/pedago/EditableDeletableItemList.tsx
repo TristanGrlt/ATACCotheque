@@ -3,6 +3,7 @@ import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { MajorIconMap } from "@/config/icons";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ export interface ItemBadge {
 export interface ListItem {
   id: number;
   name: string;
+  icon?: string;
   badges?: ItemBadge[];
 }
 
@@ -105,6 +107,16 @@ export function EditableDeletableItemList<T extends ListItem>({
                   "bg-accent border-primary/30 ring-1 ring-primary/20",
               )}
             >
+              {/* Optional Icon */}
+              {item.icon && MajorIconMap[item.icon] ? (
+                <span className="text-muted-foreground mr-1">
+                  {(() => {
+                    const IconComp = MajorIconMap[item.icon!];
+                    return <IconComp size={16} />;
+                  })()}
+                </span>
+              ) : null}
+
               {/* Item name */}
               <span className="font-medium">{item.name}</span>
 

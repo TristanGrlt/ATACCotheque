@@ -616,9 +616,12 @@ export function Pedago() {
           majors={majors}
           levels={levels}
           examTypes={examTypes}
-          onMajorAdded={async (major) => {
+          onMajorAdded={async (major, icon) => {
             try {
-              const { data } = await apiRequest.post("/major", { name: major });
+              const { data } = await apiRequest.post("/major", {
+                name: major,
+                icon,
+              });
               setMajors((prev) => [...prev, data]);
               toast.success("Filière ajoutée");
             } catch (error) {
@@ -626,9 +629,12 @@ export function Pedago() {
               throw error;
             }
           }}
-          onMajorUpdated={async (id, name) => {
+          onMajorUpdated={async (id, name, icon) => {
             try {
-              const { data } = await apiRequest.put(`/major/${id}`, { name });
+              const { data } = await apiRequest.put(`/major/${id}`, {
+                name,
+                icon,
+              });
               setMajors((prev) => prev.map((m) => (m.id === id ? data : m)));
               toast.success("Filière mise à jour");
             } catch (error) {

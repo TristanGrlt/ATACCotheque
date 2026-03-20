@@ -9,17 +9,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   EditableDeletableItemList,
   type ListItem,
 } from "@/components/admin/pedago/EditableDeletableItemList";
 import { FileText, Folder, Layers, Plus } from "lucide-react";
 import { useState } from "react";
+import { MajorIconMap } from "@/config/icons";
 
 // ── Types ──────────────────────────────────────────────
 
 export interface RefMajor {
   id: number;
   name: string;
+  icon?: string;
 }
 
 export interface RefLevel {
@@ -39,8 +48,8 @@ interface RefDialogProps {
   levels: RefLevel[];
   examTypes: RefExamType[];
   // Majors
-  onMajorAdded: (major: string) => Promise<void>;
-  onMajorUpdated: (id: number, name: string) => Promise<void>;
+  onMajorAdded: (major: string, icon?: string) => Promise<void>;
+  onMajorUpdated: (id: number, name: string, icon?: string) => Promise<void>;
   onMajorDeleted: (id: number) => Promise<void>;
   // Levels
   onLevelAdded: (level: string) => Promise<void>;
@@ -87,6 +96,62 @@ function RenameForm({
   );
 }
 
+function RenameMajorForm({
+  initialName,
+  initialIcon,
+  onSubmit,
+  onCancel,
+}: {
+  initialName: string;
+  initialIcon?: string;
+  onSubmit: (name: string, icon?: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [icon, setIcon] = useState(initialIcon || "Book");
+
+  return (
+    <div className="flex gap-2 p-2 border rounded-lg bg-muted flex-wrap">
+      <Select value={icon} onValueChange={setIcon}>
+        <SelectTrigger className="w-[140px] h-9">
+          <SelectValue placeholder="Icône" />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(MajorIconMap).map(([iconName, IconComp]) => (
+            <SelectItem key={iconName} value={iconName}>
+              <div className="flex items-center gap-2">
+                <IconComp size={16} />
+                <span>{iconName}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && name.trim()) onSubmit(name.trim(), icon);
+          if (e.key === "Escape") onCancel();
+        }}
+        placeholder="Nom..."
+        className="flex-1 h-9"
+      />
+      <Button
+        size="sm"
+        onClick={() => name.trim() && onSubmit(name.trim(), icon)}
+        className="h-9"
+      >
+        OK
+      </Button>
+      <Button size="sm" variant="outline" onClick={onCancel} className="h-9">
+        Annuler
+      </Button>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────
 
 export function RefDialog({
@@ -106,6 +171,7 @@ export function RefDialog({
   onExamTypeDeleted,
 }: RefDialogProps) {
   const [newItemName, setNewItemName] = useState("");
+  const [newItemIcon, setNewItemIcon] = useState("Book");
   const [activeTab, setActiveTab] = useState("majors");
 
   // ── Add ──
@@ -116,16 +182,14 @@ export function RefDialog({
 
     try {
       if (activeTab === "majors") {
-        const newMajor = name;
-        await onMajorAdded(newMajor);
+        await onMajorAdded(name, newItemIcon);
       } else if (activeTab === "levels") {
-        const newLevel = name;
-        await onLevelAdded(newLevel);
+        await onLevelAdded(name);
       } else {
-        const newExamType = name;
-        await onExamTypeAdded(newExamType);
+        await onExamTypeAdded(name);
       }
       setNewItemName("");
+      setNewItemIcon("Book");
     } catch (error) {
       throw error;
     }
@@ -133,10 +197,10 @@ export function RefDialog({
 
   // ── Rename ──
 
-  const handleRename = async (id: number, name: string) => {
+  const handleRename = async (id: number, name: string, icon?: string) => {
     try {
       if (activeTab === "majors") {
-        await onMajorUpdated(id, name);
+        await onMajorUpdated(id, name, icon);
       } else if (activeTab === "levels") {
         await onLevelUpdated(id, name);
       } else {
@@ -168,6 +232,7 @@ export function RefDialog({
   const majorItems: ListItem[] = majors.map((m) => ({
     id: m.id,
     name: m.name,
+    icon: m.icon,
     badges: [{ id: m.id, label: m.name }],
   }));
 
@@ -240,6 +305,25 @@ export function RefDialog({
           >
             {/* Add bar */}
             <div className="flex gap-2 px-6 py-4">
+              {activeTab === "majors" && (
+                <Select value={newItemIcon} onValueChange={setNewItemIcon}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Icône" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(MajorIconMap).map(
+                      ([iconName, IconComp]) => (
+                        <SelectItem key={iconName} value={iconName}>
+                          <div className="flex items-center gap-2">
+                            <IconComp size={16} />
+                            <span>{iconName}</span>
+                          </div>
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
               <Input
                 className="flex-1"
                 placeholder="Nom..."
@@ -259,16 +343,31 @@ export function RefDialog({
                 onDelete={handleDelete}
                 deleteLabel={deleteLabel}
                 emptyMessage="Aucun élément"
-                renderForm={(item, onCancel) => (
-                  <RenameForm
-                    initialName={item.name}
-                    onSubmit={(name) => {
-                      handleRename(item.id, name);
-                      onCancel();
-                    }}
-                    onCancel={onCancel}
-                  />
-                )}
+                renderForm={(item, onCancel) => {
+                  if (activeTab === "majors") {
+                    return (
+                      <RenameMajorForm
+                        initialName={item.name}
+                        initialIcon={item.icon}
+                        onSubmit={(name, icon) => {
+                          handleRename(item.id, name, icon);
+                          onCancel();
+                        }}
+                        onCancel={onCancel}
+                      />
+                    );
+                  }
+                  return (
+                    <RenameForm
+                      initialName={item.name}
+                      onSubmit={(name) => {
+                        handleRename(item.id, name);
+                        onCancel();
+                      }}
+                      onCancel={onCancel}
+                    />
+                  );
+                }}
               />
             </div>
           </TabsContent>

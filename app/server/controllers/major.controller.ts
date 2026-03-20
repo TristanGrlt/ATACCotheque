@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import prisma from '../lib/prisma.js';
+import { Request, Response } from "express";
+import prisma from "../lib/prisma.js";
 
 /**
  * Retrieves all majors from the database in ascending order by ID.
@@ -10,13 +10,15 @@ import prisma from '../lib/prisma.js';
 export const getMajor = async (req: Request, res: Response) => {
   try {
     const majors = await prisma.major.findMany({
-      orderBy: { id: 'asc' }
+      orderBy: { id: "asc" },
     });
     return res.status(200).json(majors);
   } catch (error) {
-    return res.status(500).json({ error: "Erreur lors de la récupération des filières" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération des filières" });
   }
-}
+};
 
 /**
  * Creates a new major with the provided name.
@@ -28,25 +30,32 @@ export const getMajor = async (req: Request, res: Response) => {
  * @throws Returns 500 on unexpected database errors
  */
 export const createMajor = async (req: Request, res: Response) => {
-  const { name } = req.body;
+  const { name, icon } = req.body;
 
   const trimedName = name?.trim();
-   if (!trimedName) {
-    return res.status(400).json({ error: "Le nom de la filière est obligatoire" });
+  const trimedIcon = icon?.trim();
+  if (!trimedName) {
+    return res
+      .status(400)
+      .json({ error: "Le nom de la filière est obligatoire" });
   }
 
   try {
     const major = await prisma.major.create({
-      data: { name : trimedName }
+      data: { name: trimedName, icon: trimedIcon },
     });
     return res.status(201).json(major);
   } catch (error: any) {
-    if (error.code === 'P2002') {
-      return res.status(409).json({ error: "Une filière avec ce nom existe déjà" });
+    if (error.code === "P2002") {
+      return res
+        .status(409)
+        .json({ error: "Une filière avec ce nom existe déjà" });
     }
-    return res.status(500).json({ error: "Erreur lors de la création de la filière" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la création de la filière" });
   }
-}
+};
 
 /**
  * Deletes a major by ID if it's not associated with any parcours.
@@ -66,24 +75,26 @@ export const deleteMajor = async (req: Request, res: Response) => {
 
   try {
     const parcoursWithMajor = await prisma.parcours.count({
-      where: { majors: { some: { id: parseInt(majorId, 10) } } }
+      where: { majors: { some: { id: parseInt(majorId, 10) } } },
     });
 
     if (parcoursWithMajor > 0) {
-      return res.status(403).json({ 
-        error: `Cette filière est associée à ${parcoursWithMajor} parcours. Impossible de la supprimer.` 
+      return res.status(403).json({
+        error: `Cette filière est associée à ${parcoursWithMajor} parcours. Impossible de la supprimer.`,
       });
     }
 
     await prisma.major.delete({
-      where: { id: parseInt(majorId, 10) }
+      where: { id: parseInt(majorId, 10) },
     });
 
     return res.status(200).json({ message: "La filière a bien été supprimée" });
   } catch (error) {
-    return res.status(500).json({ error: "Erreur lors de la suppression de la filière" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la suppression de la filière" });
   }
-}
+};
 
 /**
  * Updates an existing major's name by ID.
@@ -95,9 +106,12 @@ export const deleteMajor = async (req: Request, res: Response) => {
  * @throws Returns 409 if another major with the same name already exists (P2002 error)
  * @throws Returns 500 on unexpected database errors
  */
-export const updateMajor = async (req: Request<{ majorId: string }>, res: Response) => {
+export const updateMajor = async (
+  req: Request<{ majorId: string }>,
+  res: Response,
+) => {
   const { majorId } = req.params;
-  const { name } = req.body;
+  const { name, icon } = req.body;
 
   if (!majorId || Array.isArray(majorId)) {
     return res.status(400).json({ error: "ID de la filière est requis" });
@@ -105,24 +119,33 @@ export const updateMajor = async (req: Request<{ majorId: string }>, res: Respon
 
   const majorIdNumber = parseInt(majorId, 10);
   if (isNaN(majorIdNumber)) {
-    return res.status(400).json({ error: "ID de la filière doit être un nombre valide" });
+    return res
+      .status(400)
+      .json({ error: "ID de la filière doit être un nombre valide" });
   }
 
   const trimedName = name?.trim();
+  const trimedIcon = icon?.trim();
   if (!trimedName) {
-    return res.status(400).json({ error: "Le nom de la filière est obligatoire" });
+    return res
+      .status(400)
+      .json({ error: "Le nom de la filière est obligatoire" });
   }
 
   try {
     const updatedMajor = await prisma.major.update({
       where: { id: majorIdNumber },
-      data: { name : trimedName }
+      data: { name: trimedName, icon: trimedIcon },
     });
     return res.status(200).json(updatedMajor);
   } catch (error: any) {
-    if (error.code === 'P2002') {
-      return res.status(409).json({ error: "Une filière avec ce nom existe déjà" });
+    if (error.code === "P2002") {
+      return res
+        .status(409)
+        .json({ error: "Une filière avec ce nom existe déjà" });
     }
-    return res.status(500).json({ error: "Erreur lors de la mise à jour de la filière" });
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la mise à jour de la filière" });
   }
-}
+};
