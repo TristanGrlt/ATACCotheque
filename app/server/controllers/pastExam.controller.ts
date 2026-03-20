@@ -510,21 +510,17 @@ export const deletePastExam = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Annale introuvable" });
     }
 
-    // 1. On supprime d'abord les dépendances en BDD
     await prisma.annexe.deleteMany({
       where: { pastExamId: examId }
     });
 
-    // 2. On supprime le parent en BDD
     await prisma.pastExam.delete({
       where: { id: examId },
     });
 
-    // 3. ON RÉPOND AU FRONTEND ICI (avant de toucher aux fichiers)
     res.status(200).json({ message: "Annale supprimée avec succès" });
 
-    // 4. Seulement maintenant, on supprime les fichiers physiques.
-    // Si nodemon redémarre le serveur à cause de ça, le front n'en saura rien et la DB est déjà propre.
+
     const safeDeleteFile = (filePath: string | null) => {
       if (filePath && fs.existsSync(filePath)) {
         try {

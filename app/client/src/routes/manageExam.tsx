@@ -161,7 +161,8 @@ export function ManageExam() {
             }))
           );
         } else {
-            setAnnexes([{ type: "url", value: "", comment: "" }]);
+           
+            setAnnexes([]);
         }
       } catch (error: any) {
         console.error(getRequestMessage(error));
@@ -569,23 +570,27 @@ export function ManageExam() {
 
       <div className={`flex flex-col bg-muted/10 p-2 ${isMobile ? "h-[70vh] w-full" : "grow overflow-hidden h-full"}`}>
         <Tabs defaultValue="annale" className="flex flex-col h-full rounded-xl border border-border bg-card overflow-hidden">
-          <TabsList className="mx-4 mt-4 w-fit max-w-full flex-wrap bg-muted">
-            <TabsTrigger value="annale" className="data-[state=active]:bg-background">
-              Annale Principale
-            </TabsTrigger>
-            
-            {annexes
-              .filter(a => a.id && a.type === "fichier")
-              .map((annexe, i) => (
-              <TabsTrigger 
-                key={`tab-${annexe.id}`} 
-                value={`annexe-${annexe.id}`} 
-                className="data-[state=active]:bg-background"
-              >
-                Annexe {i + 1}
+          
+          {/* MODIFICATION 2 : On cache les onglets s'il n'y a aucune annexe PDF */}
+          {annexes.filter(a => a.id && a.type === "fichier").length > 0 && (
+            <TabsList className="mx-4 mt-4 w-fit max-w-full flex-wrap bg-muted">
+              <TabsTrigger value="annale" className="data-[state=active]:bg-background">
+                Annale Principale
               </TabsTrigger>
-            ))}
-          </TabsList>
+              
+              {annexes
+                .filter(a => a.id && a.type === "fichier")
+                .map((annexe, i) => (
+                <TabsTrigger 
+                  key={`tab-${annexe.id}`} 
+                  value={`annexe-${annexe.id}`} 
+                  className="data-[state=active]:bg-background"
+                >
+                  Annexe {i + 1}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
 
           <TabsContent value="annale" className="flex-1 mt-2 mb-0 h-full w-full">
             <iframe
