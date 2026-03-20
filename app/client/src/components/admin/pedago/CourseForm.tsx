@@ -14,6 +14,7 @@ export interface CourseFormData {
   name: string;
   semestre: number;
   examTypeIds: number[];
+  aliases: string;
 }
 
 interface CourseFormProps {
@@ -33,19 +34,21 @@ export function CourseForm({
 }: CourseFormProps) {
   const [name, setName] = useState(initialData?.name ?? "");
   const [semestre, setSemestre] = useState(initialData?.semestre ?? 1);
+  const [aliases, setAliases] = useState(initialData?.aliases ?? "");
   const [selectedExamTypeIds, setSelectedExamTypeIds] = useState<number[]>(
-    initialData?.examTypeIds ?? []
+    initialData?.examTypeIds ?? [],
   );
 
   useEffect(() => {
     setName(initialData?.name ?? "");
     setSemestre(initialData?.semestre ?? 1);
+    setAliases(initialData?.aliases ?? "");
     setSelectedExamTypeIds(initialData?.examTypeIds ?? []);
   }, [initialData]);
 
   const toggleExamType = (id: number) => {
     setSelectedExamTypeIds((prev) =>
-      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id],
     );
   };
 
@@ -54,6 +57,7 @@ export function CourseForm({
     onSubmit({
       name: name.trim(),
       semestre,
+      aliases: aliases.trim(),
       examTypeIds: selectedExamTypeIds,
     });
   };
@@ -80,6 +84,14 @@ export function CourseForm({
             />
           </Field>
         </div>
+        <Field>
+          <FieldLabel>Alias (séparés par des virgules)</FieldLabel>
+          <Input
+            placeholder="Ex : Algo, Algorithmics"
+            value={aliases}
+            onChange={(e) => setAliases(e.target.value)}
+          />
+        </Field>
         <Field>
           <FieldLabel>Types d'examen associés</FieldLabel>
           <ScrollArea>

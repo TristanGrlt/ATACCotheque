@@ -283,6 +283,7 @@ export function Pedago() {
       const { data: newCourse } = await apiRequest.post("/course", {
         name: data.name,
         semestre: data.semestre,
+        aliases: data.aliases,
         levelId: selectedLevelId,
         parcoursIds: [selectedParcoursId],
         examTypeIds: data.examTypeIds,
@@ -302,6 +303,7 @@ export function Pedago() {
       const { data: updatedCourse } = await apiRequest.put(`/course/${id}`, {
         name: data.name,
         semestre: data.semestre,
+        aliases: data.aliases,
         examTypeIds: data.examTypeIds,
       });
       setCourses((prev) => prev.map((c) => (c.id === id ? updatedCourse : c)));
@@ -572,6 +574,7 @@ export function Pedago() {
                 initialData={{
                   name: item.name,
                   semestre: item.semestre,
+                  aliases: (item as any).aliases ?? "",
                   examTypeIds: item.examTypeIds,
                 }}
                 onSubmit={(data) => {

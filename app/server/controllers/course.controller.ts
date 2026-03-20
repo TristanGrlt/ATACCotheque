@@ -8,10 +8,13 @@ export const getCourse = async (req: Request, res: Response) => {
       orderBy: { id: "asc" },
       include: {
         parcours: {
-          select: { id: true },
+          select: { id: true, name: true },
         },
         examTypes: {
           select: { id: true },
+        },
+        level: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -19,9 +22,12 @@ export const getCourse = async (req: Request, res: Response) => {
       courses.map((course) => ({
         id: course.id,
         name: course.name,
+        aliases: course.aliases,
         semestre: course.semestre,
         levelId: course.levelId,
+        levelName: course.level?.name ?? null,
         parcoursIds: course.parcours.map((p) => p.id),
+        parcours: course.parcours.map((p) => ({ id: p.id, name: p.name })),
         examTypeIds: course.examTypes.map((e) => e.id),
       })),
     );
@@ -86,10 +92,13 @@ export const createCourse = async (req: Request, res: Response) => {
       },
       include: {
         parcours: {
-          select: { id: true },
+          select: { id: true, name: true },
         },
         examTypes: {
           select: { id: true },
+        },
+        level: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -99,7 +108,9 @@ export const createCourse = async (req: Request, res: Response) => {
       aliases: course.aliases,
       semestre: course.semestre,
       levelId: course.levelId,
+      levelName: course.level?.name ?? null,
       parcoursIds: course.parcours.map((p) => p.id),
+      parcours: course.parcours.map((p) => ({ id: p.id, name: p.name })),
       examTypeIds: course.examTypes.map((e) => e.id),
     });
   } catch (error: any) {
@@ -176,10 +187,13 @@ export const updateCourse = async (
       },
       include: {
         parcours: {
-          select: { id: true },
+          select: { id: true, name: true },
         },
         examTypes: {
           select: { id: true },
+        },
+        level: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -189,7 +203,9 @@ export const updateCourse = async (
       aliases: course.aliases,
       semestre: course.semestre,
       levelId: course.levelId,
+      levelName: course.level?.name ?? null,
       parcoursIds: course.parcours.map((p) => p.id),
+      parcours: course.parcours.map((p) => ({ id: p.id, name: p.name })),
       examTypeIds: course.examTypes.map((e) => e.id),
     });
   } catch (error: any) {

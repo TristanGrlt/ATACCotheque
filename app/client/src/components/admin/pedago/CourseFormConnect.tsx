@@ -18,8 +18,11 @@ export interface Course {
   name: string;
   semestre: number;
   levelId: number;
+  levelName?: string | null;
   parcoursIds: number[];
   examTypeIds: number[];
+  aliases?: string;
+  parcours?: { id: number; name: string }[];
 }
 
 export interface CourseFormConnectData {
@@ -78,7 +81,20 @@ export function CourseFormConnect({
                 <SelectLabel>Cours disponibles</SelectLabel>
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={course.id.toString()}>
-                    {course.name} (S{course.semestre})
+                    <div className="flex flex-col gap-0.5">
+                      <span>
+                        {course.name}
+                        {course.aliases ? ` — ${course.aliases}` : ""}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {(course.parcours || [])
+                          .map(
+                            (p) =>
+                              `${p.name}${course.levelName ? ` (${course.levelName})` : ""}`,
+                          )
+                          .join(" · ") || ""}
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectGroup>
