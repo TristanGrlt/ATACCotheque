@@ -206,13 +206,26 @@ docker compose ps
 
 ## Lors du développement
 
-### Auto-complétion et erreurs IDE
+### Auto-complétion et détection d'erreurs dans l'IDE
 
-Afin que votre IDE de choix parvienne à faire de l'auto-complétion et l'affichage des erreurs partout, les dépendances du projet doivent aussi être installées en local pour être reconnues par celui-ci. Pour cela, exécuter la commande suivante à la racine du répertoire `app/server` et `app/client` :
+Pour que votre IDE (VS Code, WebStorm, etc.) puisse vous proposer l'auto-complétion et détecter correctement les erreurs, il doit avoir accès aux dépendances du projet directement sur votre machine (en dehors de Docker).
+
+Pour cela, exécutez la commande suivante à la racine des répertoires app/server et app/client :
 
 ```bash
 # Installer les dépendances localement
 bun install
+```
+
+#### Le cas particulier de Prisma :
+
+Prisma est une dépendance un peu spéciale car son client TypeScript est généré dynamiquement à partir de votre fichier de schéma (schema.prisma).
+
+En plus des commandes de base expliquées plus bas, vous devez régénérer le client Prisma localement après chaque modification du schéma ou chaque nouvelle migration. Cela permet d'actualiser les types sur votre machine et d'indiquer à votre IDE que les modèles ou énumérations que vous utilisez existent réellement.
+
+```bash
+# À exécuter dans le répertoire app/server après une modification de la BDD
+bunx prisma generate
 ```
 
 ### Installation de nouvelles dépendances

@@ -40,11 +40,18 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB}?schema=public
       MEILI_HOST: http://meilisearch:770
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
       API_ENDPOINT: /api
       CORS_ORIGIN: http://localhost:8099
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID}
+      WEBAUTHN_ORIGIN: ${WEBAUTHN_ORIGIN}
     depends_on:
       postgresql:
         condition: service_healthy
+    volumes:
+      - ../files:/app/files
     command: >
       sh -c "bunx prisma migrate deploy &&
              bunx prisma db seed &&
@@ -63,6 +70,8 @@ services:
     depends_on:
       - backend
     restart: always
+    volumes:
+      - ../files:/app/files:ro
     networks:
       - ataccotheque-network
 

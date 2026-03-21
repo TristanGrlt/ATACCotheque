@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppPermission } from "../generated/prisma/enums.js";
+import { AppPermission } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 
 export const verifyPerms = (perm: AppPermission) => {

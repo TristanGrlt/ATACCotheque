@@ -8,7 +8,9 @@ ENV VITE_API_ENDPOINT=${VITE_API_ENDPOINT}
 RUN bun run build
 
 FROM nginx:alpine
-COPY nginx/nginx.conf /etc/nginx/nginx.conf
+# On copie la config dans conf.d au lieu d'écraser la config globale
+COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=frontend-build /app/client/dist /usr/share/nginx/html
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

@@ -10,7 +10,7 @@ import {
 } from "../controllers/user.controller.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
-import { AppPermission } from "../generated/prisma/client.js";
+import { AppPermission } from "@prisma/client";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { loginLimiter } from "../lib/rateLimiter.js";
 import { reinitMfa } from "../controllers/mfa.controller.js";
