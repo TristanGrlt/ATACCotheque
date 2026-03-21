@@ -11,7 +11,6 @@ COPY . .
 ENV VITE_API_ENDPOINT=${VITE_API_ENDPOINT}
 RUN bun run build
 
-# Stage de production (reste sur Nginx)
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
