@@ -36,22 +36,42 @@ export function ValidExam() {
     fetchToReview();
   }, []);
 
+  if (reviewExam.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
+        <h1 className="text-4xl font-bold mb-4 text-center">
+          Aucune annale en attente de validation pour le moment
+        </h1>
+        <p className="text-muted-foreground text-center max-w-2xl">
+          Toutes les annales soumises ont été révisées ou il n'y a pas encore
+          d'annales soumises. Revenez plus tard pour voir les nouvelles annales
+          en attente de validation.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-3">
       {reviewExam.map((exam) => (
         <Card className="relative  w-full max-w-sm  pt-0">
-        <iframe src={`${API_ENDPOINT}/pastExam/adminFile/${exam.id}`} ></iframe>
+          <iframe
+            src={`${API_ENDPOINT}/pastExam/adminFile/${exam.id}`}
+          ></iframe>
           <CardHeader>
             <CardAction>
               <Badge variant="secondary">{exam.year}</Badge>
             </CardAction>
             <CardTitle>{exam.courseName} </CardTitle>
-            <CardDescription>
-             {exam.parcours.join(", ")}
-            </CardDescription>
+            <CardDescription>{exam.parcours.join(", ")}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button className="w-full" onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}>Réviser l'annale</Button>
+            <Button
+              className="w-full"
+              onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}
+            >
+              Réviser l'annale
+            </Button>
           </CardFooter>
         </Card>
       ))}
