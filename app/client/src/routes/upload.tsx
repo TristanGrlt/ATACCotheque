@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import logo from "/atacc_logo.png";
 import {
   Select,
   SelectContent,
@@ -84,12 +83,6 @@ export function Upload() {
   const [selectedYear, setSelectedYear] = useState("");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedFileOption, setSelectedFileOption] = useState<File | null>(
-    null,
-  );
-
-  const [selectedComment, setSelectedComment] = useState("");
-  const [selectedUrl, setSelectedUrl] = useState("");
 
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -260,10 +253,9 @@ export function Upload() {
   };
 
   return (
-    // pb-32 pour laisser de la place au dock de navigation flottant en bas
-    <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-6 md:p-10 pb-32 font-sans text-foreground selection:bg-primary/20">
+    <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-3 md:p-10 pb-48 font-sans text-foreground selection:bg-primary/20">
       {loading ? (
-        <Card className="w-full max-w-3xl rounded-3xl border-border/70 shadow-lg">
+        <Card className="w-full max-w-2xl rounded-3xl border-border/70 shadow-lg">
           <CardHeader className="text-center pt-10 pb-6 px-6">
             <Skeleton className="w-16 h-16 rounded-2xl mx-auto mb-5" />
             <Skeleton className="h-8 w-2/3 mx-auto mb-2" />
@@ -279,25 +271,24 @@ export function Upload() {
           </CardContent>
         </Card>
       ) : (
-        // max-w-xl pour un formulaire plus large
-        <Card className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card shadow-lg">
+        <Card className="w-full max-w-2xl rounded-3xl border border-border/70 bg-card shadow-lg">
           {/* --- En-tête de Carte (Intégré comme demandé) --- */}
           <CardHeader className="text-center pt-10 pb-6 px-6 sm:px-10">
             <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-5 mx-auto border border-border/50">
-              {/* Icône de nuage teinté comme sur l'image */}
-              <UploadCloud className="w-9 h-9 text-slate-700" />
+              <UploadCloud className="w-9 h-9 accent-muted" />
             </div>
             <CardTitle className="text-3xl font-bold tracking-tight text-foreground mb-1">
-              Partager un fichier sinon l'URSAF
+              Partager un fichier avec
+              <span className="text-primary select-none"> l'ATACCothèque</span>
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              Aidez les futurs étudiants.ça suffit enough ça suffit enough
+              Aidez les futurs étudiants en partageant vos annales, corrigés...
             </CardDescription>
           </CardHeader>
 
           <CardContent className="px-6 sm:px-10 pb-10">
             <form encType="multipart/form-data" onSubmit={handleSubmit}>
-              <FieldGroup className="space-y-6">
+              <FieldGroup className="">
                 {/* Message d'erreur */}
                 {errorMessage && (
                   <div className="bg-destructive/10 text-destructive text-sm font-semibold p-3 rounded-xl flex items-center gap-2 border border-destructive/20">
@@ -306,10 +297,9 @@ export function Upload() {
                   </div>
                 )}
 
-                {/* Champ complet "TITRE" -> Mappe à la Combobox de recherche de cours */}
                 <Field>
                   <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                    CHOISISSEZ LA FILIERE SVP (PAS DE CONNERIE)
+                    CHOISISSEZ UN COURS
                   </FieldLabel>
                   <Combobox
                     value={selectedCourse ? selectedCourse.course : ""}
@@ -330,8 +320,8 @@ export function Upload() {
                     onInputValueChange={setInputValue}
                   >
                     <ComboboxInput
-                      placeholder="Ex: Algèbre - Partiel 2024 (Rechercher cours)"
-                      className="h-12 rounded-xl bg-background border-border/70"
+                      placeholder="Ex: Algèbre - Algorithmique"
+                      className=" rounded-xl bg-background border-border/70"
                     />
                     <ComboboxContent className="rounded-xl border-border/70 shadow-xl">
                       {filteredCourses.length === 0 && (
@@ -342,7 +332,7 @@ export function Upload() {
                           <ComboboxItem
                             key={course.id}
                             value={course.course}
-                            className="rounded-lg m-1"
+                            className="rounded-lg"
                           >
                             <Item size="sm" className="p-0">
                               <ItemContent>
@@ -361,9 +351,7 @@ export function Upload() {
                   </Combobox>
                 </Field>
 
-                {/* Grille responsive : 2 colonnes pour MATIÈRE (Type) et TYPE (Année) */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Image "MATIÈRE" -> Mappe au Select Type d'examen */}
                   <Field>
                     <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
                       TYPE D'EXAMEN
@@ -392,7 +380,6 @@ export function Upload() {
                     </Select>
                   </Field>
 
-                  {/* Image "TYPE" -> Mappe au Select Année (Widening) */}
                   <Field>
                     <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
                       ANNÉE
@@ -421,18 +408,15 @@ export function Upload() {
                   </Field>
                 </div>
 
-                {/* Zone de dépot de fichier pointillée (Principal) */}
                 <Field className="pt-2">
                   <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">
-                    TELEVERSER UNE ANNALE (PDF SVP POTO)
+                    TELEVERSER UNE ANNALE (PDF)
                   </FieldLabel>
-                  {/* Grand label pointillé servant de zone de clic géante */}
                   <label
                     htmlFor="file-main"
                     className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
                     <div className="flex justify-center mb-4">
-                      {/* Icône FileUp au centre */}
                       <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                     <p className="font-semibold text-foreground text-sm tracking-tight">
@@ -443,12 +427,11 @@ export function Upload() {
                     </p>
                     {/* Affiche le nom du fichier s'il est sélectionné */}
                     {selectedFile && (
-                      <span className="text-primary font-bold text-xs mt-3 block truncate">
+                      <span className="text-muted-foreground font-bold text-xs mt-3 block truncate">
                         Fichier sélectionné : {selectedFile.name}
                       </span>
                     )}
                   </label>
-                  {/* Input caché, activé par le label via htmlFor/id */}
                   <Input
                     id="file-main"
                     name="file-main"
@@ -459,37 +442,30 @@ export function Upload() {
                   />
                 </Field>
 
-                {/* Annexes optionnelles (Collapsible conservé et re-stylé) */}
                 <Collapsible
                   open={isOpen}
                   onOpenChange={setIsOpen}
                   className="w-full border border-border/70 p-4 rounded-2xl bg-muted/20 transition-all shadow-inner mt-4"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex-1">
-                      <h4 className="text-sm font-bold text-foreground">
-                        Annexes optionnelles
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        Corrigés, codes sources, liens...
-                      </p>
+                  <CollapsibleTrigger asChild>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-foreground">
+                          Annexes optionnelles
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Corrigés, codes sources, liens...
+                        </p>
+                      </div>
+                      <ChevronsUpDown className="h-4 w-4 text-foreground" />
                     </div>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-9 rounded-full hover:bg-muted/50"
-                      >
-                        <ChevronsUpDown className="h-4 w-4 text-foreground" />
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
+                  </CollapsibleTrigger>
 
                   <CollapsibleContent className="space-y-4 pt-4 border-t border-border/70 mt-4">
                     {annexes.map((annexe, index) => (
                       <Card
                         key={index}
-                        className="p-4 border border-border/70 rounded-xl bg-card space-y-4 shadow relative group"
+                        className="p-4 border border-border/70 rounded-xl bg-card shadow relative group"
                       >
                         <div className="flex items-end gap-2">
                           <Field className="flex-1">
@@ -517,7 +493,7 @@ export function Upload() {
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="size-10 rounded-lg text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
+                              className="size-9"
                               onClick={addAnnexe}
                               disabled={annexes.length >= 5}
                             >
@@ -526,9 +502,9 @@ export function Upload() {
                             {annexes.length > 1 && (
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="destructive"
                                 size="icon"
-                                className="size-10 rounded-lg text-destructive border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
+                                className="size-9"
                                 onClick={() => removeAnnexe(index)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -566,7 +542,7 @@ export function Upload() {
                                 <span className="flex-1 truncate">
                                   {annexe.value instanceof File
                                     ? annexe.value.name
-                                    : "Toucher pour choisir..."}
+                                    : "Cliquer pour choisir..."}
                                 </span>
                               </label>
                             )}
@@ -600,12 +576,10 @@ export function Upload() {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {/* Bouton Envoyer customisé (Sombre comme image) */}
                 <div className="pt-4">
                   <Button
                     type="submit"
                     disabled={submitting}
-                    // Couleur sombre spécifique bg-slate-950
                     className="w-full h-12 rounded-xl
                      font-semibold tracking-wide text-sm transition-colors shadow-md"
                   >
