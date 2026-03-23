@@ -224,7 +224,7 @@ export function LandingPage() {
                 <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-foreground">
-                    Plus de {(totalPastExams % 10) * 10} annales
+                    Plus de {10 * Math.floor(totalPastExams / 10)} annales
                   </p>
                 </div>
               </div>
