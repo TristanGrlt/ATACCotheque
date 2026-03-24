@@ -23,6 +23,7 @@ import {
   ChevronsUpDown,
   FileUp,
   Loader2,
+  CheckCircle,
   Plus,
   Trash2,
   UploadCloud,
@@ -70,6 +71,8 @@ type Annexe = {
 
 export function Upload() {
   const navigate = useNavigate();
+
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -244,13 +247,71 @@ export function Upload() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate("/");
+      setIsSuccess(true);
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-4 font-sans text-foreground selection:bg-primary/20">
+        {/* Style CSS injecté pour l'animation des confettis */}
+        <style>{`
+          @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+          }
+        `}</style>
+
+        {/* Génération de 75 confettis avec des couleurs, positions et délais aléatoires */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-40">
+          {[...Array(75)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm opacity-0"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: "-10%",
+                backgroundColor: [
+                  "#ef4444",
+                  "#3b82f6",
+                  "#10b981",
+                  "#f59e0b",
+                  "#8b5cf6",
+                  "#ec4899",
+                ][Math.floor(Math.random() * 6)],
+                animation: `confetti-fall ${2 + Math.random() * 3}s linear ${Math.random() * 1.5}s forwards`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Carte de remerciement */}
+        <Card className="w-full max-w-lg rounded-3xl border border-border/70 bg-card shadow-2xl z-50 animate-in zoom-in-95 fade-in duration-500">
+          <CardContent className="pt-10 pb-10 px-6 sm:px-10 text-center flex flex-col items-center">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle className="w-10 h-10 text-primary" />
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground mb-4">
+              Merci pour votre contribution !
+            </h2>
+            <p className="text-muted-foreground text-base mb-8">
+              Votre document sera prochainement ajouté au catalogue.
+            </p>
+            <Button
+              onClick={() => navigate("/")}
+              className="w-full h-12 rounded-xl font-semibold shadow-md"
+            >
+              Retour à l'accueil
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-3 md:p-10 pb-48 font-sans text-foreground selection:bg-primary/20">
