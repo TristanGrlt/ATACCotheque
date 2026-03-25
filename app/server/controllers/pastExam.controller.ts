@@ -3,7 +3,6 @@ import prisma from "../lib/prisma.js";
 import fs from "fs";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
-import { resourceLimits } from "worker_threads";
 
 interface MulterRequest extends Request {
   files: {
@@ -15,12 +14,16 @@ const uploadDir = "files";
 
 async function recreatepdf(pdfBuffer: Buffer): Promise<Uint8Array> {
   const oldPdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  if (oldPdf.getPageCount() > 500) {
+    throw new Error("PDF trop volumineux");
+  }
   const newPdf = await PDFDocument.create();
   const pageIndices = oldPdf.getPageIndices();
+
   const copiedPages = await newPdf.copyPages(oldPdf, pageIndices);
   copiedPages.forEach((page) => newPdf.addPage(page));
 
- const oldTitle = oldPdf.getTitle() || "";
+  const oldTitle = oldPdf.getTitle() || "";
   const oldAuthor = oldPdf.getAuthor() || "";
   newPdf.setTitle("Ataccothèque " + oldTitle);
   newPdf.setAuthor(oldAuthor);
@@ -46,7 +49,11 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const courseDir = path.join(uploadDir, courseId);
+    const safeCourseId = parseInt(courseId).toString();
+    if (isNaN(parseInt(courseId))) {
+      return res.status(400).json({ message: "Erreur id cours" });
+    }
+    const courseDir = path.join(uploadDir, safeCourseId);
     if (!fs.existsSync(courseDir)) {
       fs.mkdirSync(courseDir, { recursive: true });
     }
@@ -66,8 +73,22 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const safeMainPdfBytes = await recreatepdf(mainFile.buffer);
     const mainFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
     const mainFilePath = path.join(courseDir, mainFilename);
-    fs.writeFileSync(mainFilePath, safeMainPdfBytes);
-
+    let newPastExam;
+    try {
+      newPastExam = await prisma.pastExam.create({
+        data: {
+          path: mainFilePath,
+          year: parseInt(year),
+          courseId: parseInt(courseId),
+          examTypeId: parseInt(examTypeId),
+          isVerified: false,
+        },
+      });
+      fs.writeFileSync(mainFilePath, safeMainPdfBytes);
+    } catch (e) {
+      if (fs.existsSync(mainFilePath)) fs.unlinkSync(mainFilePath);
+      throw e;
+    }
     let annexesList: any[] = [];
     if (annexes_metadata) {
       try {
@@ -78,23 +99,21 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
           .json({ message: "Format des annexes invalide." });
       }
     }
-    const newPastExam = await prisma.pastExam.create({
-      data: {
-        path: mainFilePath,
-        year: parseInt(year),
-        courseId: parseInt(courseId),
-        examTypeId: parseInt(examTypeId),
-        isVerified: false,
-      },
-    });
 
-    // 5. Boucle sur la liste dynamique des annexes
     for (const annexe of annexesList) {
       if (annexe.type === "url" && annexe.url) {
-        // Enregistrement d'une annexe de type URL
+        try {
+          const allowedUrl = new URL(annexe.url);
+
+          if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+            return res.status(400).json({ message: "URL non autorisée." });
+          }
+        } catch (e) {
+          return res.status(400).json({ message: "Format de l'URL invalide." });
+        }
         await prisma.annexe.create({
           data: {
-            name: annexe.comment || "Lien externe",
+            name: annexe.comment?.slice(0, 200) || "Lien externe",
             type: "URL",
             url: annexe.url,
             pastExamId: newPastExam.id,
@@ -119,7 +138,7 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
 
             await prisma.annexe.create({
               data: {
-                name: annexe.comment || "Document annexe",
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
                 type: "FILE",
                 path: optionalFilePath,
                 pastExamId: newPastExam.id,
@@ -170,7 +189,7 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
           },
         ],
       },
-      distinct: ['id'],
+      distinct: ["id"],
     });
 
     const simplified = result.map(({ course, ...exam }) => ({
@@ -403,7 +422,11 @@ export const updateAnnale = async (req: Request, res: Response) => {
 
       if (!fs.existsSync(uploadDir))
         fs.mkdirSync(uploadDir, { recursive: true });
-      const courseDir = path.join(uploadDir, courseId);
+      const safeCourseId = parseInt(courseId).toString();
+      if (isNaN(parseInt(courseId))) {
+        return res.status(400).json({ message: "Erreur id cours" });
+      }
+      const courseDir = path.join(uploadDir, safeCourseId);
       if (!fs.existsSync(courseDir))
         fs.mkdirSync(courseDir, { recursive: true });
 
@@ -479,10 +502,21 @@ export const updateAnnale = async (req: Request, res: Response) => {
           ) {
             fs.unlinkSync(oldAnnexe.path);
           }
+          try {
+            const allowedUrl = new URL(annexe.url);
+
+            if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+              return res.status(400).json({ message: "URL non autorisée." });
+            }
+          } catch (e) {
+            return res
+              .status(400)
+              .json({ message: "Format de l'URL invalide." });
+          }
           await prisma.annexe.update({
             where: { id: annexeId },
             data: {
-              name: annexe.comment || "Lien externe",
+              name: annexe.comment?.slice(0, 200) || "Lien externe",
               type: "URL",
               url: annexe.url,
               path: null,
@@ -511,7 +545,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
             await prisma.annexe.update({
               where: { id: annexeId },
               data: {
-                name: annexe.comment || "Document annexe",
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
                 type: "FILE",
                 path: optionalFilePath,
                 url: null,
@@ -522,7 +556,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
             await prisma.annexe.update({
               where: { id: annexeId },
               data: {
-                name: annexe.comment || "Document annexe",
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
                 isVerified: true,
               },
             });
@@ -530,9 +564,20 @@ export const updateAnnale = async (req: Request, res: Response) => {
         }
       } else {
         if (annexe.type === "URL" && annexe.url) {
+          try {
+            const allowedUrl = new URL(annexe.url);
+
+            if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+              return res.status(400).json({ message: "URL non autorisée." });
+            }
+          } catch (e) {
+            return res
+              .status(400)
+              .json({ message: "Format de l'URL invalide." });
+          }
           await prisma.annexe.create({
             data: {
-              name: annexe.comment || "Lien externe",
+              name: annexe.comment?.slice(0, 200) || "Lien externe",
               type: "URL",
               url: annexe.url,
               pastExamId: parsedExamId,
@@ -553,7 +598,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
 
           await prisma.annexe.create({
             data: {
-              name: annexe.comment || "Document annexe",
+              name: annexe.comment?.slice(0, 200) || "Document annexe",
               type: "FILE",
               path: optionalFilePath,
               pastExamId: parsedExamId,
@@ -622,7 +667,6 @@ export const deletePastExam = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("====== ERREUR LORS DE LA SUPPRESSION ======");
     console.error(error);
-    // Si les headers sont déjà envoyés (si l'erreur a lieu après res.json), on ne renvoie pas d'erreur
     if (!res.headersSent) {
       return res
         .status(500)
