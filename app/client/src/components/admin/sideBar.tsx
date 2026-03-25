@@ -85,7 +85,7 @@ export function SideBar() {
   const currentItem = items.find(
     (i) => i.url === lastSegment || location.pathname.endsWith(`/${i.url}`),
   );
-  const sectionTitle = currentItem ? currentItem.title : "error";
+  const sectionTitle = currentItem ? currentItem.title : "Admin";
 
   return (
     <SidebarProvider
