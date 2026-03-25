@@ -19,7 +19,7 @@ async function seedDefaultRoles() {
   const defaultRoles = [
     {
       name: "Admin",
-      permissions: ["MANAGE_USERS"] as AppPermission[],
+      permissions: ["MANAGE_USERS", "MANAGE_EXAMS"] as AppPermission[],
     },
     {
       name: "User",
