@@ -159,8 +159,18 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
         },
       },
       where: {
-        isVerified: false,
+        OR: [
+          { isVerified: false },
+          {
+            annexe: {
+              some: {
+                isVerified: false,
+              },
+            },
+          },
+        ],
       },
+      distinct: ['id'],
     });
 
     const simplified = result.map(({ course, ...exam }) => ({
