@@ -14,9 +14,10 @@ import { AppPermission } from "@prisma/client";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
+import { uploadLimiter } from "../lib/rateLimiter.js";
 
 const router = Router();
-router.post("/upload", uploadMiddleware, uploadAllPastExam);
+router.post("/upload", uploadLimiter, uploadMiddleware, uploadAllPastExam);
 router.get(
   "/toReview",
   verifyToken,

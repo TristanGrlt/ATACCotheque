@@ -1,8 +1,8 @@
-import rateLimit from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
-import type { Request } from 'express';
-import { JWT_SECRET } from '../app.js';
-import type { PreAuthJwtPayload } from '../types/jwt.types.js';
+import rateLimit from "express-rate-limit";
+import jwt from "jsonwebtoken";
+import type { Request } from "express";
+import { JWT_SECRET } from "../app.js";
+import type { PreAuthJwtPayload } from "../types/jwt.types.js";
 
 /**
  * Helper pour extraire une clé IP compatible IPv6.
@@ -10,9 +10,9 @@ import type { PreAuthJwtPayload } from '../types/jwt.types.js';
  * sinon req.socket.remoteAddress.
  */
 const safeIpKey = (req: Request): string =>
-  req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
-  ?? req.socket?.remoteAddress
-  ?? 'unknown';
+  req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ??
+  req.socket?.remoteAddress ??
+  "unknown";
 
 /**
  * Rate limiter pour POST /user/login.
@@ -22,10 +22,24 @@ const safeIpKey = (req: Request): string =>
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
-  standardHeaders: 'draft-8',
+  standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
-    error: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.',
+    error: "Trop de tentatives de connexion. Réessayez dans 15 minutes.",
+  },
+});
+
+/**
+ * Clé : adresse IP.
+ * 10 tentatives par fenêtre de 15 minutes.
+ */
+export const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Trop d'envoit de fichiers. Réessayez dans 15 minutes.",
   },
 });
 
@@ -40,7 +54,7 @@ export const loginLimiter = rateLimit({
 export const mfaLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
-  standardHeaders: 'draft-8',
+  standardHeaders: "draft-8",
   legacyHeaders: false,
   // Clé personnalisée : userId depuis le pre-auth cookie
   keyGenerator: (req: Request): string => {
@@ -49,7 +63,7 @@ export const mfaLimiter = rateLimit({
       if (!token) return safeIpKey(req);
 
       const decoded = jwt.verify(token, JWT_SECRET) as PreAuthJwtPayload;
-      if (decoded?.type === 'pre-auth' && decoded.userId) {
+      if (decoded?.type === "pre-auth" && decoded.userId) {
         return `mfa:${decoded.userId}`;
       }
     } catch {
@@ -58,6 +72,6 @@ export const mfaLimiter = rateLimit({
     return safeIpKey(req);
   },
   message: {
-    error: 'Trop de tentatives MFA incorrectes. Réessayez dans 15 minutes.',
+    error: "Trop de tentatives MFA incorrectes. Réessayez dans 15 minutes.",
   },
 });
