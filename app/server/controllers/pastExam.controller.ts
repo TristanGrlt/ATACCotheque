@@ -20,15 +20,8 @@ async function recreatepdf(pdfBuffer: Buffer): Promise<Uint8Array> {
   const copiedPages = await newPdf.copyPages(oldPdf, pageIndices);
   copiedPages.forEach((page) => newPdf.addPage(page));
 
-  let oldTitle = oldPdf.getTitle();
-  if (oldTitle == undefined) {
-    oldTitle = "";
-  }
-
-  let oldAuthor = oldPdf.getAuthor();
-  if (oldAuthor == undefined) {
-    oldAuthor = "";
-  }
+ const oldTitle = oldPdf.getTitle() || "";
+  const oldAuthor = oldPdf.getAuthor() || "";
   newPdf.setTitle("Ataccothèque " + oldTitle);
   newPdf.setAuthor(oldAuthor);
   newPdf.setProducer("Générateur Sécurisé ataccothèque");
