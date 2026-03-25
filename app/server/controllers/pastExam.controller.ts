@@ -190,6 +190,12 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
 
 const EXAMS_ROOT = "/app/files";
 
+function normalizeDbFilePath(dbPath: string): string {
+  return dbPath
+    .replace("../files", EXAMS_ROOT)
+    .replace("files/", `${EXAMS_ROOT}/`);
+}
+
 export const getFileInvalid = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -223,7 +229,7 @@ export const getFileInvalid = async (req: Request, res: Response) => {
     const downloadName = `Ataccothèque_${courseName}_${examType}_${result.year}.pdf`;
 
     // Protection path traversal
-    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
+    const normalizedDbPath = normalizeDbFilePath(result.path);
     const realPath = path.resolve(normalizedDbPath);
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
       return res.status(403).json({ error: "Accès non autorisé" });
@@ -331,7 +337,7 @@ export const getAnnexeFile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Fichier introuvable" });
     }
     // Protection path traversal
-    const normalizedDbPath = result.path.replace("../files", EXAMS_ROOT);
+    const normalizedDbPath = normalizeDbFilePath(result.path);
     const realPath = path.resolve(normalizedDbPath);
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
       return res.status(403).json({ error: "Accès non autorisé" });
@@ -576,7 +582,6 @@ export const getPublicExam = async (req: Request, res: Response) => {
     if (isNaN(parsedId)) {
       return res.status(400).json({ error: "Id invalide" });
     }
-    if (isNaN(parsedId)) return res.status(400).json({ error: "Id invalide" });
 
     const exam = await prisma.pastExam.findUnique({
       where: {
@@ -634,11 +639,8 @@ export const getPublicFile = async (req: Request, res: Response) => {
 
     if (!exam) return res.status(404).json({ error: "Fichier introuvable" });
 
-    // Use the same root as your colleague's code
-    const EXAMS_ROOT = "/app/files";
-
     // Path resolution
-    const normalizedDbPath = exam.path.replace("../files", EXAMS_ROOT).replace("files/", EXAMS_ROOT + "/");
+    const normalizedDbPath = normalizeDbFilePath(exam.path);
     const realPath = path.resolve(normalizedDbPath);
 
     if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {

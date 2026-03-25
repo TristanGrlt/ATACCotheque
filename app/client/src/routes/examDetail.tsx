@@ -66,7 +66,7 @@ interface ExamDetail {
   year: number;
   path: string;
   title?: string;
-  annexes: Annexe[]; // Added Annexes
+  annexes: Annexe[];
 }
 
 export function ExamDetail() {
@@ -328,11 +328,9 @@ export function ExamDetail() {
                   </h3>
                   <div className="flex flex-col gap-2">
                     {exam.annexes.map((annexe) => {
-                      // Note: Assumes your colleague's /adminAnnexe route can be public, 
-                      // or replace with your public annexe route if you made one!
                       const annexeHref = annexe.type === 'URL'
                         ? annexe.url
-                        : `${API_ENDPOINT}/pastExam/adminAnnexe/${annexe.id}`;
+                        : `${API_ENDPOINT}/pastExam/annexe/${annexe.id}`;
 
                       return (
                         <a

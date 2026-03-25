@@ -15,6 +15,7 @@ const router = Router();
 // ==========================================
 router.get('/public/:id', getPublicExam);
 router.get('/public/:id/file', getPublicFile);
+router.get('/annexe/:id', getAnnexeFile);
 router.post('/upload', uploadAllPastExam);
 
 // ==========================================
