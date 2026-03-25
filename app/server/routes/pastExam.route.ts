@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   deletePastExam, getAnnexeById, getAnnexeFile, getExamById,
   getFileInvalid, getPastExamToReview, updateAnnale,
-  uploadAllPastExam, getAllPastExams, getPublicExam, getPublicFile
+  uploadAllPastExam, getAllPastExams, getPublicExam, getPublicFile, rebuildSearchIndex
 } from "../controllers/pastExam.controller.js";
 import { uploadMiddleware } from '../middlewares/multer.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
@@ -30,6 +30,7 @@ router.use(verifyToken);
 router.get('/toReview', verifyPerms('MANAGE_ANNALES'), getPastExamToReview);
 router.get('/list', verifyPerms('MANAGE_ANNALES'), getAllPastExams);
 router.put('/updateAnnale', verifyPerms('MANAGE_ANNALES'), uploadMiddleware, updateAnnale);
+router.post('/search/rebuild', verifyPerms('MANAGE_ANNALES'), rebuildSearchIndex);
 
 // ==========================================
 // 4. SPECIFIC DYNAMIC ROUTES
