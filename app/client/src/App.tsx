@@ -16,8 +16,8 @@ import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
 import { MfaChallenge } from "./routes/mfaChallenge.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 import { Upload } from "./routes/upload.tsx";
-import { ValidExam } from "./routes/admin/validExam/validExam.tsx";
-import { ManageExam } from "./routes/manageExam.tsx";
+import { ValidExam } from "./routes/admin/exam/validExam.tsx";
+import { ManageExam } from "./routes/admin/exam/manageExam.tsx";
 
 function App() {
   const { isLoading } = useAuth();
@@ -52,8 +52,6 @@ function App() {
         <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="validExam" element={<ValidExam />} />
-          <Route path="manageExam" element={<ManageExam />} />
 
           {/* Routes protégées par permissions */}
           <Route
@@ -64,6 +62,16 @@ function App() {
             }
           >
             <Route path="users" element={<UserIndex />} />
+          </Route>
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_EXAMS]}
+              />
+            }
+          >
+            <Route path="validExam" element={<ValidExam />} />
+            <Route path="manageExam" element={<ManageExam />} />
           </Route>
         </Route>
       </Route>

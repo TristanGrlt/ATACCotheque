@@ -94,6 +94,7 @@ model Role {
 
 enum AppPermission {
   MANAGE_USERS
+  MANAGE_EXAMS
 }
 
 model UserRole {

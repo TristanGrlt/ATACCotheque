@@ -11,7 +11,7 @@ import {
 import { API_ENDPOINT } from "@/config/env";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 type reviewExam = {
   id: number;
   path: string;
@@ -66,12 +66,9 @@ export function ValidExam() {
             <CardDescription>{exam.parcours.join(", ")}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button
-              className="w-full"
-              onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}
-            >
-              Réviser l'annale
-            </Button>
+            <Link to={`/admin/manageExam?id=${exam.id}`} className="w-full">
+              <Button className="w-full">Réviser l'annale</Button>
+            </Link>
           </CardFooter>
         </Card>
       ))}
