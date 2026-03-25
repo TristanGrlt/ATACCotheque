@@ -3,12 +3,16 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 ARG VITE_API_ENDPOINT=/api
+ARG VITE_MEILI_HOST
+ARG VITE_MEILI_API_KEY
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
 ENV VITE_API_ENDPOINT=${VITE_API_ENDPOINT}
+ENV VITE_MEILI_HOST=${VITE_MEILI_HOST}
+ENV VITE_MEILI_API_KEY=${VITE_MEILI_API_KEY}
 RUN bun run build
 
 # Stage de production (reste sur Nginx)

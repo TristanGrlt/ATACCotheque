@@ -51,6 +51,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_ENDPOINT: /api
+        VITE_MEILI_HOST: ${VITE_MEILI_HOST}
+        VITE_MEILI_API_KEY: ${VITE_MEILI_API_KEY}
     container_name: ataccotheque-frontend
     restart: always
     depends_on:
