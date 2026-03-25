@@ -87,6 +87,7 @@ function renderHighlightedText(value?: string): ReactNode {
 
 export function Search() {
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<SearchHit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +106,14 @@ export function Search() {
   const [types, setTypes] = useState<string[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(hitCount / pageSize));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // Fetch available filter options on mount
   useEffect(() => {
@@ -145,7 +154,7 @@ export function Search() {
       if (typeFilter) filters.push(`type = "${typeFilter}"`);
       const filterString = filters.length > 0 ? filters.join(' AND ') : undefined;
 
-      const search = await client.index('exams').search(query || '', {
+      const search = await client.index('exams').search(debouncedQuery || '', {
         filter: filterString,
         limit: pageSize,
         offset: (page - 1) * pageSize,
@@ -184,7 +193,7 @@ export function Search() {
         setIsSearching(false);
       }
     }
-  }, [query, levelFilter, majorFilter, typeFilter, page, pageSize]);
+  }, [debouncedQuery, levelFilter, majorFilter, typeFilter, page, pageSize]);
 
   useEffect(() => {
     performSearch();

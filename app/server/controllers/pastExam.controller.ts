@@ -44,16 +44,28 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const { courseId, examTypeId, year, annexes_metadata } = req.body;
     const files = (req as MulterRequest).files;
 
+    if (!courseId || !examTypeId || !year) {
+      return res.status(400).json({ message: "Les champs courseId, examTypeId et year sont obligatoires." });
+    }
+
+    const parsedCourseId = parseInt(courseId, 10);
+    const parsedExamTypeId = parseInt(examTypeId, 10);
+    const parsedYear = parseInt(year, 10);
+
+    if (isNaN(parsedCourseId) || isNaN(parsedExamTypeId) || isNaN(parsedYear)) {
+      return res.status(400).json({ message: "courseId, examTypeId et year doivent etre valides." });
+    }
+
     if (!files || !files["file"] || files["file"].length === 0) {
       return res
         .status(400)
-        .json({ message: "Le fichier principal est manquant." });
+        .json({ message: "Le fichier principal est manquant (multipart/form-data attendu)." });
     }
 
     const mainFile = files["file"][0];
 
 
-    const courseDir = path.join(uploadDir, courseId);
+    const courseDir = path.join(uploadDir, String(parsedCourseId));
     if (!fs.existsSync(courseDir)) {
       fs.mkdirSync(courseDir, { recursive: true });
     }
@@ -88,9 +100,9 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const newPastExam = await prisma.pastExam.create({
       data: {
         path: mainFilePath,
-        year: parseInt(year),
-        courseId: parseInt(courseId),
-        examTypeId: parseInt(examTypeId),
+        year: parsedYear,
+        courseId: parsedCourseId,
+        examTypeId: parsedExamTypeId,
         isVerified: false,
       },
     });
@@ -191,9 +203,28 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
 const EXAMS_ROOT = "/app/files";
 
 function normalizeDbFilePath(dbPath: string): string {
-  return dbPath
-    .replace("../files", EXAMS_ROOT)
-    .replace("files/", `${EXAMS_ROOT}/`);
+  const rawPath = dbPath.trim();
+
+  // Keep absolute paths unchanged (e.g. /app/files/...).
+  if (path.isAbsolute(rawPath)) {
+    return path.normalize(rawPath);
+  }
+
+  // Migrate legacy relative storage formats.
+  if (rawPath === "../files" || rawPath === "files") {
+    return EXAMS_ROOT;
+  }
+
+  if (rawPath.startsWith("../files/")) {
+    return path.join(EXAMS_ROOT, rawPath.slice("../files/".length));
+  }
+
+  if (rawPath.startsWith("files/")) {
+    return path.join(EXAMS_ROOT, rawPath.slice("files/".length));
+  }
+
+  // Last resort: keep path anchored under EXAMS_ROOT.
+  return path.join(EXAMS_ROOT, rawPath);
 }
 
 export const getFileInvalid = async (req: Request, res: Response) => {

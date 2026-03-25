@@ -328,19 +328,26 @@ export function ExamDetail() {
                   </h3>
                   <div className="flex flex-col gap-2">
                     {exam.annexes.map((annexe) => {
-                      const annexeHref = annexe.type === 'URL'
+                      const isUrlAnnexe = annexe.type === 'URL';
+                      const annexeHref = isUrlAnnexe
                         ? annexe.url
-                        : `${API_ENDPOINT}/pastExam/annexe/${annexe.id}`;
+                        : (annexe.id ? `${API_ENDPOINT}/pastExam/annexe/${annexe.id}` : null);
+                      const isDisabled = !annexeHref;
 
                       return (
                         <a
                           key={annexe.id}
                           href={annexeHref || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 px-3 py-2.5 bg-secondary/40 hover:bg-secondary rounded-md text-sm transition-colors group"
+                          target={isDisabled ? undefined : "_blank"}
+                          rel={isDisabled ? undefined : "noopener noreferrer"}
+                          onClick={(event) => {
+                            if (isDisabled) {
+                              event.preventDefault();
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors group ${isDisabled ? 'bg-secondary/20 text-muted-foreground cursor-not-allowed' : 'bg-secondary/40 hover:bg-secondary'}`}
                         >
-                          {annexe.type === 'URL' ? (
+                          {isUrlAnnexe ? (
                             <LinkIcon className="h-4 w-4 text-blue-500 group-hover:text-blue-600" />
                           ) : (
                             <FileText className="h-4 w-4 text-orange-500 group-hover:text-orange-600" />
