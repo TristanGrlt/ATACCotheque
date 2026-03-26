@@ -267,7 +267,7 @@ export function ExamDetail() {
         {canManageAnnales && (
           <button
             onClick={() => navigate(`/admin/manageExam?id=${exam.id}`)}
-            className="flex items-center gap-2 bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-lg transition-all cursor-pointer shadow-sm"
+            className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg transition-all cursor-pointer shadow-sm"
           >
             <Edit className="h-4 w-4" />
             Modifier l'annale
@@ -347,9 +347,9 @@ export function ExamDetail() {
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors group ${isDisabled ? 'bg-secondary/20 text-muted-foreground cursor-not-allowed' : 'bg-secondary/40 hover:bg-secondary'}`}
                         >
                           {isUrlAnnexe ? (
-                            <LinkIcon className="h-4 w-4 text-blue-500 group-hover:text-blue-600" />
+                            <LinkIcon className="h-4 w-4 text-primary group-hover:text-primary/80" />
                           ) : (
-                            <FileText className="h-4 w-4 text-orange-500 group-hover:text-orange-600" />
+                            <FileText className="h-4 w-4 text-primary group-hover:text-primary/80" />
                           )}
                           <span className="font-medium truncate flex-1">{annexe.name}</span>
                         </a>
