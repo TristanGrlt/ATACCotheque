@@ -202,6 +202,17 @@ export function LandingPage() {
                     <Card
                       key={subject.name}
                       className="group relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 "
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        navigate(`/search?major=${encodeURIComponent(subject.name)}`)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          navigate(`/search?major=${encodeURIComponent(subject.name)}`);
+                        }
+                      }}
                     >
                       <div className="flex flex-col items-center gap-2">
                         {/* Icon container */}

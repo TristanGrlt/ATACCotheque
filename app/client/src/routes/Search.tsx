@@ -88,6 +88,7 @@ function renderHighlightedText(value?: string): ReactNode {
 export function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
+  const initialMajorFilter = searchParams.get('major') ?? '';
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchHit[]>([]);
@@ -100,7 +101,7 @@ export function Search() {
   const requestIdRef = useRef(0);
 
   const [levelFilter, setLevelFilter] = useState('');
-  const [majorFilter, setMajorFilter] = useState('');
+  const [majorFilter, setMajorFilter] = useState(initialMajorFilter);
   const [typeFilter, setTypeFilter] = useState('');
 
   const [levels, setLevels] = useState<string[]>([]);
@@ -111,11 +112,18 @@ export function Search() {
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') ?? '';
+    const nextMajor = searchParams.get('major') ?? '';
+
     if (nextQuery !== query) {
       setQuery(nextQuery);
       setPage(1);
     }
-  }, [searchParams, query]);
+
+    if (nextMajor !== majorFilter) {
+      setMajorFilter(nextMajor);
+      setPage(1);
+    }
+  }, [searchParams, query, majorFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -284,8 +292,17 @@ export function Search() {
             className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             value={majorFilter}
             onChange={(e) => {
-              setMajorFilter(e.target.value);
+              const nextMajor = e.target.value;
+              setMajorFilter(nextMajor);
               setPage(1);
+
+              const nextSearchParams = new URLSearchParams(searchParams);
+              if (nextMajor) {
+                nextSearchParams.set('major', nextMajor);
+              } else {
+                nextSearchParams.delete('major');
+              }
+              setSearchParams(nextSearchParams, { replace: true });
             }}
           >
             <option value="">Toutes les filières</option>
