@@ -6,7 +6,7 @@
 */
 -- AlterEnum
 BEGIN;
-CREATE TYPE "AppPermission_new" AS ENUM ('MANAGE_USERS', 'MANAGE_EXAMS');
+CREATE TYPE "AppPermission_new" AS ENUM ('MANAGE_USERS', 'MANAGE_PEDAGO', 'MANAGE_EXAMS');
 ALTER TABLE "Role" ALTER COLUMN "permissions" TYPE "AppPermission_new"[] USING ("permissions"::text::"AppPermission_new"[]);
 ALTER TYPE "AppPermission" RENAME TO "AppPermission_old";
 ALTER TYPE "AppPermission_new" RENAME TO "AppPermission";

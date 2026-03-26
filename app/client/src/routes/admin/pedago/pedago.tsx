@@ -94,7 +94,7 @@ export function Pedago() {
     };
     const fetchExamType = async () => {
       try {
-        const { data } = await apiRequest.get("/exam-type");
+        const { data } = await apiRequest.get("/examType");
         setExamTypes(data);
       } catch (error) {
         toast.error("Erreur lors du chargement des Examens");
@@ -687,7 +687,7 @@ export function Pedago() {
           }}
           onExamTypeAdded={async (major) => {
             try {
-              const { data } = await apiRequest.post("/exam-type", {
+              const { data } = await apiRequest.post("/examType", {
                 name: major,
               });
               setExamTypes((prev) => [...prev, data]);
@@ -699,7 +699,7 @@ export function Pedago() {
           }}
           onExamTypeUpdated={async (id, name) => {
             try {
-              const { data } = await apiRequest.put(`/exam-type/${id}`, {
+              const { data } = await apiRequest.put(`/examType/${id}`, {
                 name,
               });
               setExamTypes((prev) => prev.map((m) => (m.id === id ? data : m)));
@@ -711,7 +711,7 @@ export function Pedago() {
           }}
           onExamTypeDeleted={async (id) => {
             try {
-              await apiRequest.delete(`/exam-type/${id}`);
+              await apiRequest.delete(`/examType/${id}`);
               setExamTypes((prev) => prev.filter((m) => m.id !== id));
               toast.success("Examens supprimée");
             } catch (error) {

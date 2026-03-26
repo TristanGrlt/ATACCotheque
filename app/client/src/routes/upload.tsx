@@ -71,7 +71,6 @@ export function Upload() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [annexes, setAnnexes] = useState<Annexe[]>([
@@ -125,11 +124,9 @@ export function Upload() {
     if (selectedCourse) {
       const fetchExamType = async () => {
         try {
-          const { data } = await apiRequest.get("/examType", {
-            params: {
-              courseTypeId: selectedCourse.id,
-            },
-          });
+          const { data } = await apiRequest.get(
+            `/examType/course/${selectedCourse.id}`,
+          );
           setExamType(data);
         } catch (error) {
           console.log(getRequestMessage(error));
@@ -416,7 +413,7 @@ export function Upload() {
                             </Select>
                           </Field>
 
-                          <div className="flex gap-1 mb-[2px]">
+                          <div className="flex gap-1 mb-0.5">
                             <Button
                               type="button"
                               variant="outline"

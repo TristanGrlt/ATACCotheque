@@ -19,7 +19,11 @@ async function seedDefaultRoles() {
   const defaultRoles = [
     {
       name: "Admin",
-      permissions: ["MANAGE_USERS", "MANAGE_EXAMS","MANAGE_PEDAGO"] as AppPermission[],
+      permissions: [
+        "MANAGE_USERS",
+        "MANAGE_EXAMS",
+        "MANAGE_PEDAGO",
+      ] as AppPermission[],
     },
     {
       name: "User",
@@ -91,11 +95,11 @@ async function main() {
 
     await seedDefaultRoles();
     await seedAdminUser();
-    await seedMajor();
-    await seedLevel();
-    await seedParcours();
-    await seedExamType();
-    await seedCourse();
+    // await seedMajor();
+    // await seedLevel();
+    // await seedParcours();
+    // await seedExamType();
+    // await seedCourse();
 
     console.log("\n✨ Seed completed successfully!");
   } else {

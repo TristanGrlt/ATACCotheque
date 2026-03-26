@@ -11,7 +11,7 @@ import {
 import { API_ENDPOINT } from "@/config/env";
 import { apiRequest, getRequestMessage } from "@/services/api";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 type reviewExam = {
   id: number;
   path: string;
@@ -21,7 +21,6 @@ type reviewExam = {
 };
 
 export function ValidExam() {
-  const navigate = useNavigate();
   const [reviewExam, setReviewExam] = useState<reviewExam[]>([]);
   useEffect(() => {
     const fetchToReview = async () => {

@@ -8,14 +8,13 @@ import {
 } from "../controllers/examType.controller.js";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
-import { AppPermission } from "../generated/prisma/enums.js";
+import { AppPermission } from "@prisma/client";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
 
 const router = Router();
 
 router.get("/", getExamType);
-// get exam types for a course (ex: /examType?courseTypeId=42)
-router.get("/", getExamTypeFromCourse);
+router.get("/course/:id", getExamTypeFromCourse);
 router.post(
   "/",
   verifyToken,
