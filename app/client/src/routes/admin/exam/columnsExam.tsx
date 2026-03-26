@@ -53,18 +53,10 @@ export const createColumnsExam = ({ onEdit, onDelete, onOpenDetails }: ColumnAct
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onEdit(exam)}
-            title="Modifier"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
             onClick={() => onOpenDetails(exam)}
             title="Gérer les fichiers et annexes"
           >
-            <ExternalLink className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           </Button>
           <Button
             size="sm"

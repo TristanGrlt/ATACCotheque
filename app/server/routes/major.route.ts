@@ -5,7 +5,7 @@ import {
   getMajor,
   updateMajor,
 } from "../controllers/major.controller.js";
-import { AppPermission } from "../generated/prisma/enums.js";
+import { AppPermission } from "@prisma/client";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
 import { verifyToken } from "../middlewares/verifyToken.js";

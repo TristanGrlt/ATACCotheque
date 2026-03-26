@@ -12,7 +12,7 @@ import {
   updateParcours,
 } from "../controllers/parcours.controller.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
-import { AppPermission } from "../generated/prisma/enums.js";
+import { AppPermission } from "@prisma/client";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
 

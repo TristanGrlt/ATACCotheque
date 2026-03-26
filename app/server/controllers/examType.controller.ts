@@ -3,6 +3,7 @@ import prisma from "../lib/prisma.js";
 import { deletePastExamWithFiles } from "../utils/cascadeDelete.js";
 
 export const getExamType = async (req: Request, res: Response) => {
+  console.log("getExamType called");
   try {
     const examTypes = await prisma.examType.findMany({
       orderBy: { id: "asc" },
@@ -108,28 +109,36 @@ export const updateExamType = async (
 };
 
 export const getExamTypeFromCourse = async (req: Request, res: Response) => {
-  const reqCourseTypeId = req.query.courseTypeId;
-  if (!reqCourseTypeId) {
+  console.log("getExamTypeFromCourse called with query:", req.query);
+  const reqCourseTypeId = req.params.id;
+  if (!reqCourseTypeId || typeof reqCourseTypeId !== "string") {
     return res.status(400).json({ error: "L'ID est manquant ou invalide" });
   }
-  if (typeof reqCourseTypeId !== "string") {
-    return res
-      .status(400)
-      .json({ message: "L'ID doit être une chaîne de caractères valide" });
-  }
-
   const courseTypeId = parseInt(reqCourseTypeId, 10);
   if (isNaN(courseTypeId)) {
     return res.status(400).json({ error: "L'ID n'est pas un nombre" });
   }
-  const examTypeList = await prisma.course.findUnique({
-    where: {
-      id: courseTypeId,
-    },
-    include: {
-      examTypes: true,
-    },
-  });
 
-  res.json(examTypeList?.examTypes);
+  try {
+    const course = await prisma.course.findUnique({
+      where: {
+        id: courseTypeId,
+      },
+      include: {
+        examTypes: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+    if (!course) {
+      return res.status(404).json({ error: "Cours introuvable" });
+    }
+
+    return res.status(200).json(course.examTypes);
+  } catch (error) {
+    console.error("Erreur getExamTypeFromCourse:", error);
+    return res.status(500).json({
+      error: "Erreur lors de la récupération des types d'examens",
+    });
+  }
 };

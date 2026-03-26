@@ -79,7 +79,7 @@ export function ExamDetail() {
   const [isLoading, setIsLoading] = useState(!exam);
   const [error, setError] = useState<string | null>(null);
   const { perms } = useAuth();
-  const canManageAnnales = perms.includes(PERMISSIONS.MANAGE_ANNALES);
+  const canManageAnnales = perms.includes(PERMISSIONS.MANAGE_EXAMS);
 
   // PDF.js State
   const [pageNumber, setPageNumber] = useState(1);

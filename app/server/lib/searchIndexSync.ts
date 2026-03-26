@@ -1,5 +1,5 @@
 import { MeiliSearch } from 'meilisearch';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Prisma } from '@prisma/client';
 
 type SearchSyncPrisma = {
   pastExam: {

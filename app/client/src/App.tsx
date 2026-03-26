@@ -8,9 +8,7 @@ import { ProtectedRoute } from './components/protectedRoute.tsx'
 import { PermissionRoute } from './components/permissionRoute.tsx'
 import { GuestRoute } from './components/guestRoute.tsx'
 import { UserIndex } from './routes/admin/user/userIndex.tsx'
-import { AddUser } from './components/admin/user/addUser.tsx'
 import { ExamIndex } from './routes/admin/exam/examIndex.tsx'
-import { ExamsReview } from './routes/admin/exam/examsReview.tsx'
 import { NotFound } from './routes/notFound.tsx'
 import { Unauthorized } from './routes/unauthorized.tsx'
 import { useAuth } from './contexts/AuthContext.tsx'
@@ -19,8 +17,8 @@ import { PERMISSIONS } from './config/permissions.ts'
 import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
 import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import { Upload } from './routes/upload.tsx'
-import { ValidExam } from './routes/validExam.tsx'
-import { ManageExam } from './routes/manageExam.tsx'
+import { ValidExam } from './routes/admin/exam/validExam.tsx'
+import { ManageExam } from './routes/admin/exam/manageExam.tsx'
 import { Pedago } from "./routes/admin/pedago/pedago.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 
@@ -55,23 +53,21 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path='validExam' element={<ValidExam />} />
-          <Route path='manageExam' element={<ManageExam />} />
+          
 
 
-          <Route path='dashboard' element={<AddUser />} />
+          <Route path='dashboard' element={<Dashboard />} />
 
           {/* Routes protégées par permissions */}
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_ANNALES]} />}>
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_EXAMS]} />}>
             <Route path='exams' element={<ExamIndex />} />
+            <Route path='validExam' element={<ValidExam />} />
+            <Route path='manageExam' element={<ManageExam />} />
+            
           </Route>
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.REVIEW_ANNALES]} />}>
-            <Route path='exams-review' element={<ExamsReview />} />
+          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_PEDAGO]} />}>
+            <Route path="pedago" element={<Pedago />} />
           </Route>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="pedago" element={<Pedago />} />
-
-          {/* Routes protégées par permissions */}
           <Route
             element={
               <PermissionRoute

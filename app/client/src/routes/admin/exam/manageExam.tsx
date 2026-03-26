@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -37,7 +37,8 @@ import {
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_ENDPOINT } from "@/config/env";
-import { useIsMobile } from "@/hooks/use-mobile"; 
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DeleteConfirmDialog } from "@/components/deleteConfirmDialog";
 
 type Course = {
   id: number;
@@ -66,6 +67,7 @@ export function ManageExam() {
   const examId = searchParams.get("id");
 
   const isMobile = useIsMobile();
+  const isInitializingRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -81,8 +83,9 @@ export function ManageExam() {
 
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(true);
-  
+
   const [annexes, setAnnexes] = useState<AnnexeForm[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -99,57 +102,76 @@ export function ManageExam() {
   }, []);
 
   const all_course = useMemo(() => {
-    if (!courses) return [];
+    if (!courses || courses.length === 0) {
+      return [];
+    }
+    
     const courseMap = new Map();
-    courses.forEach((majorData: any) => {
-      majorData.parcours?.forEach((parcoursData: any) => {
-        parcoursData.courses?.forEach((courseData: any) => {
-          if (courseMap.has(courseData.id)) {
-            const existingCourse = courseMap.get(courseData.id);
-            if (!existingCourse.parcours.includes(parcoursData.name)) {
-              existingCourse.parcours += ` et ${parcoursData.name}`;
-            }
-          } else {
-            courseMap.set(courseData.id, {
-              id: courseData.id,
-              course: courseData.name,
-              level: courseData.level?.name || "",
-              major: majorData.name,
-              parcours: parcoursData.name,
-            });
-          }
+    
+    // API returns flat array of courses, each with parcours array
+    courses.forEach((courseData: any) => {
+      // If parcours array exists, create entry for each parcours
+      if (courseData.parcours && courseData.parcours.length > 0) {
+        courseData.parcours.forEach((parcoursData: any) => {
+          const key = `${courseData.id}_${parcoursData.id}`;
+          courseMap.set(key, {
+            id: courseData.id,
+            course: courseData.name,
+            level: courseData.levelName || "",
+            major: courseData.name,
+            parcours: parcoursData.name,
+          });
         });
-      });
+      } else {
+        // Fallback if no parcours
+        courseMap.set(courseData.id, {
+          id: courseData.id,
+          course: courseData.name,
+          level: courseData.levelName || "",
+          major: courseData.name,
+          parcours: "",
+        });
+      }
     });
+    
     return Array.from(courseMap.values());
   }, [courses]);
 
   useEffect(() => {
     if (!examId || all_course.length === 0) return;
-    
+
     const fetchExam = async () => {
       try {
+        isInitializingRef.current = true;
+
         const { data } = await apiRequest.get(`/pastExam/${examId}`);
 
         const found = all_course.find((c: Course) => c.id === data.course.id);
+
         if (found) {
-          setSelectedCourse(found);
-          setInputValue(found.course);
-          
+          // Fetch exam types FIRST
           try {
             const { data: typeData } = await apiRequest.get("/examType", {
               params: { courseTypeId: found.id },
             });
+
+            // Set all form fields at once
             setExamType(typeData);
+            setSelectedCourse(found);
+            setInputValue(found.course);
+            setSelectedYear(String(data.year));
             setSelectedExamId(String(data.examtype.id));
           } catch (error) {
-            console.error("Erreur lors du chargement des types d'examens:", error);
+            console.error(
+              "Erreur lors du chargement des types d'examens:",
+              error,
+            );
           }
         }
 
-        setSelectedYear(String(data.year));
-
-        const { data: annexeData } = await apiRequest.get(`/pastExam/annexeById/${examId}`);
+        const { data: annexeData } = await apiRequest.get(
+          `/pastExam/annexeById/${examId}`,
+        );
         if (annexeData.length > 0) {
           setAnnexes(
             annexeData.map((a: any) => ({
@@ -157,12 +179,11 @@ export function ManageExam() {
               type: a.type === "FILE" ? "fichier" : "url",
               value: a.type === "URL" ? a.url : null,
               comment: a.name,
-              originalUrl: a.type === "URL" ? a.url : null
-            }))
+              originalUrl: a.type === "URL" ? a.url : null,
+            })),
           );
         } else {
-           
-            setAnnexes([]);
+          setAnnexes([]);
         }
       } catch (error: any) {
         console.error(getRequestMessage(error));
@@ -171,6 +192,8 @@ export function ManageExam() {
         } else {
           setErrorMessage("Impossible de charger les données de cette annale.");
         }
+      } finally {
+        isInitializingRef.current = false;
       }
     };
     fetchExam();
@@ -181,7 +204,10 @@ export function ManageExam() {
     years.push(i);
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: (f: File | null) => void) => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (f: File | null) => void,
+  ) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
@@ -197,7 +223,11 @@ export function ManageExam() {
     setAnnexes(annexes.filter((_, i) => i !== index));
   };
 
-  const updateAnnexe = (index: number, field: keyof AnnexeForm, value: string | File | null) => {
+  const updateAnnexe = (
+    index: number,
+    field: keyof AnnexeForm,
+    value: string | File | null,
+  ) => {
     const newAnnexes = [...annexes];
     newAnnexes[index] = { ...newAnnexes[index], [field]: value };
     setAnnexes(newAnnexes);
@@ -211,45 +241,60 @@ export function ManageExam() {
   }, [all_course, inputValue]);
 
   const handleCourseSelect = (val: string | null) => {
+    // Skip course selection logic during initialization
+    if (isInitializingRef.current) {
+      return;
+    }
+
     if (!val) {
       setSelectedCourse(null);
       setExamType([]);
       setSelectedExamId("");
       return;
     }
-    
+
     const found = all_course.find((c: any) => c.course === val);
     if (found) {
       setSelectedCourse((prevCourse) => {
         if (prevCourse?.id === found.id) {
           return prevCourse;
         }
-        
+
         setInputValue(found.course);
-        setSelectedExamId(""); 
-        setExamType([]); 
-        
-        apiRequest.get("/examType", { params: { courseTypeId: found.id } })
+        setSelectedExamId("");
+        setExamType([]);
+
+        apiRequest
+          .get("/examType", { params: { courseTypeId: found.id } })
           .then(({ data }) => setExamType(data))
-          .catch(err => console.error("Erreur types examens:", err));
+          .catch((err) => console.error("Erreur types examens:", err));
 
         return found;
       });
     }
   };
 
-  const handleDelete = async () => {
-      if(!window.confirm("Êtes-vous sûr de vouloir supprimer cette annale définitivement ?")) return;
-      
-      setSubmitting(true);
-      try {
-          await apiRequest.delete(`/pastExam/${examId}`);
-          navigate("/");
-      } catch (error: any) {
-          const serverError = error.response?.data?.error || error.response?.data?.message || getRequestMessage(error);
-          setErrorMessage(serverError || "Erreur lors de la suppression");
-          setSubmitting(false);
-      }
+  const handleDelete = () => {
+    setErrorMessage("");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setSubmitting(true);
+    setErrorMessage("");
+    try {
+      await apiRequest.delete(`/pastExam/${examId}`);
+      navigate(-1);
+    } catch (error: any) {
+      const serverError =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        getRequestMessage(error);
+      setErrorMessage(serverError || "Erreur lors de la suppression");
+      setSubmitting(false);
+    } finally {
+      setDeleteDialogOpen(false);
+    }
   };
 
   const handleValidate = async () => {
@@ -261,7 +306,7 @@ export function ManageExam() {
       setSubmitting(false);
       return;
     }
-    
+
     if (annexes.length > 5) {
       setErrorMessage("Vous ne pouvez pas ajouter plus de 5 annexes.");
       setSubmitting(false);
@@ -281,17 +326,20 @@ export function ManageExam() {
 
       const metadata = annexes.map((formAnnexe, index) => {
         const basePayload: any = {
-            id: formAnnexe.id,
-            type: formAnnexe.type === "url" ? "URL" : "FILE",
-            comment: formAnnexe.comment
+          id: formAnnexe.id,
+          type: formAnnexe.type === "url" ? "URL" : "FILE",
+          comment: formAnnexe.comment,
         };
 
         if (formAnnexe.type === "url") {
-            basePayload.url = formAnnexe.value;
-        } else if (formAnnexe.type === "fichier" && formAnnexe.value instanceof File) {
-            const fileKey = `annexe_file_${index}`;
-            formData.append(fileKey, formAnnexe.value);
-            basePayload.fileKey = fileKey;
+          basePayload.url = formAnnexe.value;
+        } else if (
+          formAnnexe.type === "fichier" &&
+          formAnnexe.value instanceof File
+        ) {
+          const fileKey = `annexe_file_${index}`;
+          formData.append(fileKey, formAnnexe.value);
+          basePayload.fileKey = fileKey;
         }
         return basePayload;
       });
@@ -302,7 +350,7 @@ export function ManageExam() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate("/");
+      navigate(-1);
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
@@ -311,7 +359,16 @@ export function ManageExam() {
   };
 
   return (
-    <div className={`flex w-full bg-background ${isMobile ? "flex-col" : "h-screen overflow-hidden"}`}>
+    <div
+      className={`flex w-full bg-background ${isMobile ? "flex-col" : "h-screen overflow-hidden"}`}
+    >
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer cette annale ?"
+        description="Cette action est irréversible."
+      />
       {loading ? (
         <Card className={`w-full m-4 ${isMobile ? "" : "max-w-xs"}`}>
           <CardHeader>
@@ -323,13 +380,21 @@ export function ManageExam() {
           </CardContent>
         </Card>
       ) : (
-        <div className={`w-full bg-card flex-shrink-0 ${isMobile ? "border-b border-border" : "max-w-md overflow-y-auto border-r border-border h-full"}`}>
-          <Card className={`w-full shadow-none border-none ${isMobile ? "pb-6" : "pb-12"}`}>
+        <div
+          className={`w-full bg-card shrink-0 ${isMobile ? "border-b border-border" : "max-w-md overflow-y-auto border-r border-border h-full"}`}
+        >
+          <Card
+            className={`w-full shadow-none border-none ${isMobile ? "pb-6" : "pb-12"}`}
+          >
             <CardHeader className="pb-4">
               <div className="flex flex-col items-center gap-2 text-center">
                 <a>
                   <div className="flex h-16 items-center justify-center rounded-md">
-                    <img src={logo} alt="atacc logo" className="h-full object-contain" />
+                    <img
+                      src={logo}
+                      alt="atacc logo"
+                      className="h-full object-contain"
+                    />
                   </div>
                 </a>
                 <h1 className="text-xl font-bold tracking-tight text-foreground">
@@ -383,7 +448,7 @@ export function ManageExam() {
                   <Field>
                     <FieldLabel>Type d'examen</FieldLabel>
                     <Select
-                      key={examType.length ? "loaded" : "empty"} 
+                      key={examType.length ? "loaded" : "empty"}
                       value={selectedExamId}
                       onValueChange={setSelectedExamId}
                       disabled={!selectedCourse || examType.length === 0}
@@ -405,7 +470,10 @@ export function ManageExam() {
 
                   <Field>
                     <FieldLabel>Année académique</FieldLabel>
-                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <Select
+                      value={selectedYear}
+                      onValueChange={setSelectedYear}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Année" />
                       </SelectTrigger>
@@ -432,7 +500,8 @@ export function ManageExam() {
                       className="cursor-pointer file:cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Ne chargez un fichier que si vous souhaitez écraser le document principal actuel (PDF uniquement).
+                      Ne chargez un fichier que si vous souhaitez écraser le
+                      document principal actuel (PDF uniquement).
                     </p>
                   </Field>
 
@@ -446,7 +515,11 @@ export function ManageExam() {
                         Annexes ({annexes.length}/5)
                       </h4>
                       <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground"
+                        >
                           <ChevronsUpDown className="h-4 w-4" />
                         </Button>
                       </CollapsibleTrigger>
@@ -465,14 +538,22 @@ export function ManageExam() {
                               </FieldLabel>
                               <Select
                                 value={annexe.type}
-                                onValueChange={(val) => updateAnnexe(index, "type", val as "url" | "fichier")}
+                                onValueChange={(val) =>
+                                  updateAnnexe(
+                                    index,
+                                    "type",
+                                    val as "url" | "fichier",
+                                  )
+                                }
                               >
                                 <SelectTrigger className="h-9">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="url">Lien URL</SelectItem>
-                                  <SelectItem value="fichier">Fichier PDF</SelectItem>
+                                  <SelectItem value="fichier">
+                                    Fichier PDF
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </Field>
@@ -492,21 +573,39 @@ export function ManageExam() {
                           <div className="grid grid-cols-1 gap-3">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-muted-foreground uppercase">
-                                Source {annexe.id && annexe.type === 'fichier' && !annexe.value ? "(Fichier existant)" : ""}
+                                Source{" "}
+                                {annexe.id &&
+                                annexe.type === "fichier" &&
+                                !annexe.value
+                                  ? "(Fichier existant)"
+                                  : ""}
                               </label>
                               {annexe.type === "url" ? (
                                 <Input
                                   className="h-9"
                                   placeholder="https://..."
-                                  value={typeof annexe.value === "string" ? annexe.value : (annexe.originalUrl || "")}
-                                  onChange={(e) => updateAnnexe(index, "value", e.target.value)}
+                                  value={
+                                    typeof annexe.value === "string"
+                                      ? annexe.value
+                                      : annexe.originalUrl || ""
+                                  }
+                                  onChange={(e) =>
+                                    updateAnnexe(index, "value", e.target.value)
+                                  }
                                 />
                               ) : (
                                 <Input
                                   className="h-9 text-xs py-1.5 cursor-pointer file:cursor-pointer"
                                   type="file"
                                   accept=".pdf"
-                                  onChange={(e) => e.target.files && updateAnnexe(index, "value", e.target.files[0])}
+                                  onChange={(e) =>
+                                    e.target.files &&
+                                    updateAnnexe(
+                                      index,
+                                      "value",
+                                      e.target.files[0],
+                                    )
+                                  }
                                 />
                               )}
                             </div>
@@ -518,7 +617,9 @@ export function ManageExam() {
                                 className="h-9"
                                 placeholder="Ex: Correction détaillée"
                                 value={annexe.comment}
-                                onChange={(e) => updateAnnexe(index, "comment", e.target.value)}
+                                onChange={(e) =>
+                                  updateAnnexe(index, "comment", e.target.value)
+                                }
                               />
                             </div>
                           </div>
@@ -568,30 +669,40 @@ export function ManageExam() {
         </div>
       )}
 
-      <div className={`flex flex-col bg-muted/10 p-2 ${isMobile ? "h-[70vh] w-full" : "grow overflow-hidden h-full"}`}>
-        <Tabs defaultValue="annale" className="flex flex-col h-full rounded-xl border border-border bg-card overflow-hidden">
-          
-          {annexes.filter(a => a.id && a.type === "fichier").length > 0 && (
+      <div
+        className={`flex flex-col bg-muted/10 p-2 ${isMobile ? "h-[70vh] w-full" : "grow overflow-hidden h-full"}`}
+      >
+        <Tabs
+          defaultValue="annale"
+          className="flex flex-col h-full rounded-xl border border-border bg-card overflow-hidden"
+        >
+          {annexes.filter((a) => a.id && a.type === "fichier").length > 0 && (
             <TabsList className="mx-4 mt-4 w-fit max-w-full flex-wrap bg-muted">
-              <TabsTrigger value="annale" className="data-[state=active]:bg-background">
+              <TabsTrigger
+                value="annale"
+                className="data-[state=active]:bg-background"
+              >
                 Annale Principale
               </TabsTrigger>
-              
+
               {annexes
-                .filter(a => a.id && a.type === "fichier")
+                .filter((a) => a.id && a.type === "fichier")
                 .map((annexe, i) => (
-                <TabsTrigger 
-                  key={`tab-${annexe.id}`} 
-                  value={`annexe-${annexe.id}`} 
-                  className="data-[state=active]:bg-background"
-                >
-                  Annexe {i + 1}
-                </TabsTrigger>
-              ))}
+                  <TabsTrigger
+                    key={`tab-${annexe.id}`}
+                    value={`annexe-${annexe.id}`}
+                    className="data-[state=active]:bg-background"
+                  >
+                    Annexe {i + 1}
+                  </TabsTrigger>
+                ))}
             </TabsList>
           )}
 
-          <TabsContent value="annale" className="flex-1 mt-2 mb-0 h-full w-full">
+          <TabsContent
+            value="annale"
+            className="flex-1 mt-2 mb-0 h-full w-full"
+          >
             <iframe
               className="w-full h-full border-none"
               src={`${API_ENDPOINT}/pastExam/adminFile/${examId}`}
@@ -600,20 +711,20 @@ export function ManageExam() {
           </TabsContent>
 
           {annexes
-            .filter(a => a.id && a.type === "fichier")
+            .filter((a) => a.id && a.type === "fichier")
             .map((annexe) => (
-            <TabsContent
-              key={`content-${annexe.id}`}
-              value={`annexe-${annexe.id}`}
-              className="flex-1 mt-2 mb-0 h-full w-full"
-            >
-              <iframe
-                className="w-full h-full border-none"
-                src={`${API_ENDPOINT}/pastExam/adminAnnexe/${annexe.id}`}
-                title="Viewer de l'annexe"
-              />
-            </TabsContent>
-          ))}
+              <TabsContent
+                key={`content-${annexe.id}`}
+                value={`annexe-${annexe.id}`}
+                className="flex-1 mt-2 mb-0 h-full w-full"
+              >
+                <iframe
+                  className="w-full h-full border-none"
+                  src={`${API_ENDPOINT}/pastExam/adminAnnexe/${annexe.id}`}
+                  title="Viewer de l'annexe"
+                />
+              </TabsContent>
+            ))}
         </Tabs>
       </div>
     </div>

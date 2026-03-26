@@ -1,14 +1,14 @@
-import { PrismaClient } from '../generated/prisma/client.js';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'
 import { rebuildExamsIndex, syncExamsForUpdatedEntities } from './searchIndexSync.js';
 
 const globalForPrisma = global as unknown as {
-    prisma: PrismaClient
-}
+  prisma: PrismaClient;
+};
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
-})
+});
 
 const basePrisma = globalForPrisma.prisma || new PrismaClient({
   adapter,
@@ -126,4 +126,4 @@ const prisma = basePrisma.$extends({
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = basePrisma
 
-export default prisma
+export default prisma;

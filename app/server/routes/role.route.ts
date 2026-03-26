@@ -8,7 +8,7 @@ import {
 import { verify } from "node:crypto";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
-import { AppPermission } from "../generated/prisma/enums.js";
+import { AppPermission } from "@prisma/client";
 import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 
 const router = Router();
