@@ -406,9 +406,8 @@ async function serveAnnexeFile(
   res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
 
   if (process.env.NODE_ENV === "production") {
-    // Nginx attend un chemin absolu configuré via un alias interne
-    // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
-    const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+    // Nginx is configured with internal location /files mapped to /app/files.
+    const nginxPath = realPath.replace(EXAMS_ROOT, "/files");
     res.setHeader("X-Accel-Redirect", nginxPath);
     res.end();
   } else {
@@ -837,7 +836,7 @@ export const getPublicFile = async (req: Request, res: Response) => {
 
     // Use the optimized Nginx/Express send method like in getFileInvalid
     if (process.env.NODE_ENV === "production") {
-      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/files");
       res.setHeader("X-Accel-Redirect", nginxPath);
       res.end();
     } else {
