@@ -70,12 +70,7 @@ export function Upload() {
   const [selectedYear, setSelectedYear] = useState("");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedFileOption, setSelectedFileOption] = useState<File | null>(
-    null,
-  );
 
-  const [selectedComment, setSelectedComment] = useState("");
-  const [selectedUrl, setSelectedUrl] = useState("");
 
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);

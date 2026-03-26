@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 // Path mounted via docker-compose.dev.yml
 const EXAMS_ROOT = "/app/data/exams";
-const IMPORT_LIMIT = 10; // Change to 0 for a full import of all 800+ files
+const IMPORT_LIMIT = 0; // Change to 0 for a full import of all 800+ files
 
 async function importExams() {
   let fileCount = 0;

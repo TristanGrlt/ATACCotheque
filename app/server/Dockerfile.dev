@@ -10,6 +10,8 @@ RUN bun install
 
 RUN bunx prisma generate
 
+RUN mkdir -p /app/files && chown -R bun:bun /app
+USER bun
 
 EXPOSE 3000
 

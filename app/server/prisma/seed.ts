@@ -17,9 +17,9 @@ async function isFirstStartup() {
 
 async function seedDefaultRoles() {
   const defaultRoles = [
-    {
-      name: "Admin",
-      permissions: ["MANAGE_USERS"] as AppPermission[],
+    { 
+      name: 'Admin', 
+      permissions: ['MANAGE_USERS', 'MANAGE_ROLES', 'REVIEW_ANNALES', 'MANAGE_ANNALES', 'MANAGE_PEDAGO'] as AppPermission[]
     },
     {
       name: "User",

@@ -44,7 +44,6 @@ app.use("/level", levelRouter);
 app.use("/parcours", parcoursRouter);
 app.use("/exam-type", examTypeRouter);
 app.use("/course", courseRouter);
-app.use("/course", courseRouter);
 app.use("/examType", examTypeRouter);
 app.use("/pastExam", pastExam);
 
