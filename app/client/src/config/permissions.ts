@@ -1,5 +1,6 @@
 export const PERMISSIONS = {
-  MANAGE_USERS: 'MANAGE_USERS',
+  MANAGE_USERS: "MANAGE_USERS",
+  MANAGE_PEDAGO: "MANAGE_PEDAGO",
   MANAGE_ROLES: 'MANAGE_ROLES',
   REVIEW_ANNALES: 'REVIEW_ANNALES',
   MANAGE_ANNALES: 'MANAGE_ANNALES',
@@ -7,10 +8,17 @@ export const PERMISSIONS = {
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
-export const PERMISSION_DETAILS: Record<PermissionKey, { label: string; description: string }> = {
+export const PERMISSION_DETAILS: Record<
+  PermissionKey,
+  { label: string; description: string }
+> = {
   MANAGE_USERS: {
     label: "Gestion des utilisateurs",
-    description: "Permet de voir, modifier ou supprimer des utilisateurs."
+    description: "Permet de voir, modifier ou supprimer des utilisateurs.",
+  },
+  MANAGE_PEDAGO: {
+    label: "Gestion pédagogique",
+    description: "Permet de gérer les parcours, niveaux, cours et examens.",
   },
   MANAGE_ROLES: {
     label: "Gestion des rôles",

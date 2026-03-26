@@ -21,15 +21,16 @@ import { MfaChallenge } from './routes/mfaChallenge.tsx'
 import { Upload } from './routes/upload.tsx'
 import { ValidExam } from './routes/validExam.tsx'
 import { ManageExam } from './routes/manageExam.tsx'
-
+import { Pedago } from "./routes/admin/pedago/pedago.tsx";
+import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 
 function App() {
-  const { isLoading } = useAuth()
+  const { isLoading } = useAuth();
 
   // Attendre que l'authentification soit vérifiée avant de rendre les routes
   // Évite les redirections indésirables et le flicker
   if (isLoading) {
-    return <Loading />
+    return <Loading />;
   }
 
   return (
@@ -38,23 +39,21 @@ function App() {
       <Route index element={<LandingPage />} />
       <Route path="search" element={<Search />} />
       <Route path="exam/:examId" element={<ExamDetail />} />
+      <Route path="upload" element={<Upload />} />
 
       {/* Routes pour invités uniquement (non connectés) */}
       <Route element={<GuestRoute />}>
-        <Route path='login' element={<Login />} />
+        <Route path="login" element={<Login />} />
       </Route>
 
-      { /* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
+      {/* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
       <Route path="onboarding" element={<OnboardingPage />} />
 
       {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
-      {/* Routes protégées par authentification */}
-      <Route path='upload' element={<Upload />} />
-
       <Route element={<ProtectedRoute />}>
-        <Route path='admin' element={<SideBar />}>
+        <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path='validExam' element={<ValidExam />} />
           <Route path='manageExam' element={<ManageExam />} />
@@ -69,17 +68,26 @@ function App() {
           <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.REVIEW_ANNALES]} />}>
             <Route path='exams-review' element={<ExamsReview />} />
           </Route>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="pedago" element={<Pedago />} />
+
           {/* Routes protégées par permissions */}
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_USERS]} />}>
-            <Route path='users' element={<UserIndex />} />
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_USERS]}
+              />
+            }
+          >
+            <Route path="users" element={<UserIndex />} />
           </Route>
         </Route>
       </Route>
       {/* Pages d'erreur */}
-      <Route path='unauthorized' element={<Unauthorized />} />
-      <Route path='*' element={<NotFound />} />
+      <Route path="unauthorized" element={<Unauthorized />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

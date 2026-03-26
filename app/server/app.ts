@@ -1,17 +1,20 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import healthRouter from './routes/health.route.js';
-import userRouter from './routes/user.route.js';
-import roleRouter from './routes/role.route.js';
-import onboardingRouter from './routes/onboarding.route.js';
-import mfaRouter from './routes/mfa.route.js';
-import passkeyRouter from './routes/passkey.route.js';
-import courseRouter from './routes/course.route.js';
-import examTypeRouter from './routes/examType.route.js';
+import express, { Request, Response } from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import healthRouter from "./routes/health.route.js";
+import userRouter from "./routes/user.route.js";
+import roleRouter from "./routes/role.route.js";
+import onboardingRouter from "./routes/onboarding.route.js";
+import mfaRouter from "./routes/mfa.route.js";
+import passkeyRouter from "./routes/passkey.route.js";
+import majorRouter from "./routes/major.route.js";
+import levelRouter from "./routes/level.route.js";
+import parcoursRouter from "./routes/parcours.route.js";
+import examTypeRouter from "./routes/examType.route.js";
+import courseRouter from "./routes/course.route.js";
 
-import cookieParser from 'cookie-parser';
-import pastExam from './routes/pastExam.route.js';
+import cookieParser from "cookie-parser";
+import pastExam from "./routes/pastExam.route.js";
 
 dotenv.config();
 
@@ -19,30 +22,36 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes
-app.use('/health', healthRouter);
-app.use('/auth/passkey', passkeyRouter);
-app.use('/user/mfa', mfaRouter);
-app.use('/user', userRouter);
-app.use('/role', roleRouter);
-app.use('/onboarding', onboardingRouter);
-app.use('/course', courseRouter);
-app.use('/examType', examTypeRouter);
-app.use('/pastExam', pastExam);
-
-
+app.use("/health", healthRouter);
+app.use("/auth/passkey", passkeyRouter);
+app.use("/user/mfa", mfaRouter);
+app.use("/user", userRouter);
+app.use("/role", roleRouter);
+app.use("/onboarding", onboardingRouter);
+app.use("/major", majorRouter);
+app.use("/level", levelRouter);
+app.use("/parcours", parcoursRouter);
+app.use("/exam-type", examTypeRouter);
+app.use("/course", courseRouter);
+app.use("/examType", examTypeRouter);
+app.use("/pastExam", pastExam);
 
 // JWT_SECRET
 if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not defined. Server stopped.");
+  throw new Error(
+    "JWT_SECRET environment variable is not defined. Server stopped.",
+  );
 }
 export const JWT_SECRET = process.env.JWT_SECRET;
 
