@@ -3,7 +3,7 @@ import { Spinner } from "./ui/spinner";
 
 export const Loading = () => {
   return (
-    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="bg-animated-gradient flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader>
           <div className="flex flex-col items-center pt-6">
