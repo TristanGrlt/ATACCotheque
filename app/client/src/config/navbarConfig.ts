@@ -1,11 +1,16 @@
-import { LayoutGrid, Library, Plus, Contact } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+  Contact,
+  LayoutGrid,
+  Library,
+  Plus,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface NavbarItem {
   title: string;
   url: string;
   onDoubleClick?: () => void;
-  icon: ReactNode;
+  icon: LucideIcon;
 }
 
 export const NAVBAR_ITEMS: NavbarItem[] = [

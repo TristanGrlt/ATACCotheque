@@ -23,7 +23,7 @@ export function NavbarLayout() {
       {/* Navbar */}
       <nav className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 rounded-2xl p-2 flex justify-around gap-1 sm:gap-2 items-center bg-background/90 backdrop-blur-xl border border-border shadow-2xl">
         {NAVBAR_ITEMS.map((item) => {
-          const IconComponent = item.icon as any;
+          const IconComponent = item.icon;
           const active = isActive(item.url);
 
           return (
