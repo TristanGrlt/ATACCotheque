@@ -21,6 +21,9 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// The API runs behind nginx in Docker, so trust one proxy hop for req.ip and rate limiting.
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(
   cors({
