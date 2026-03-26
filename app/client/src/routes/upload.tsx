@@ -90,7 +90,7 @@ export function Upload() {
       setFile(e.target.files[0]);
     }
   };
- const addAnnexe = () => {
+  const addAnnexe = () => {
     if (annexes.length < 5) {
       setAnnexes([...annexes, { type: "url", value: "", comment: "" }]);
     }
@@ -115,7 +115,7 @@ export function Upload() {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const { data } = await apiRequest.get("/course");
+        const { data } = await apiRequest.get("/course/full");
         setCourses(data);
       } catch (error) {
         console.log(getRequestMessage(error));
@@ -190,17 +190,17 @@ export function Upload() {
   }, [all_course, inputValue]);
 
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
-   event.preventDefault();
+    event.preventDefault();
     setSubmitting(true);
     setErrorMessage("");
-  
+
     if (!selectedCourse || !selectedExamId || !selectedFile || !selectedYear) {
-      setErrorMessage('Veuillez remplir tous les champs obligatoires.');
+      setErrorMessage("Veuillez remplir tous les champs obligatoires.");
       setSubmitting(false);
       return;
     }
     if (annexes.length > 5) {
-      setErrorMessage('Vous ne pouvez pas ajouter plus de 5 annexes.');
+      setErrorMessage("Vous ne pouvez pas ajouter plus de 5 annexes.");
       setSubmitting(false);
       return;
     }
@@ -209,28 +209,35 @@ export function Upload() {
       formData.append("courseId", String(selectedCourse.id));
       formData.append("examTypeId", selectedExamId);
       formData.append("year", selectedYear);
-      formData.append("file", selectedFile); 
-      
-      const metadata = annexes.map((annexe, index) => {
-        if (annexe.type === 'url') {
-          return { type: 'url', comment: annexe.comment, url: annexe.value };
-        } else if (annexe.type === 'fichier' && annexe.value instanceof File) {
-          const fileKey = `annexe_file_${index}`;
-          formData.append(fileKey, annexe.value);
-          return { type: 'fichier', comment: annexe.comment, fileKey: fileKey };
-        }
-        return null;
-      }).filter(Boolean); 
+      formData.append("file", selectedFile);
 
-  
-      formData.append('annexes_metadata', JSON.stringify(metadata));
+      const metadata = annexes
+        .map((annexe, index) => {
+          if (annexe.type === "url") {
+            return { type: "url", comment: annexe.comment, url: annexe.value };
+          } else if (
+            annexe.type === "fichier" &&
+            annexe.value instanceof File
+          ) {
+            const fileKey = `annexe_file_${index}`;
+            formData.append(fileKey, annexe.value);
+            return {
+              type: "fichier",
+              comment: annexe.comment,
+              fileKey: fileKey,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      formData.append("annexes_metadata", JSON.stringify(metadata));
 
       await apiRequest.post("/pastExam/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate('/'); 
-
+      navigate("/");
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
@@ -422,7 +429,6 @@ export function Upload() {
                               className="size-9 text-blue-600 border-blue-200 hover:bg-blue-50"
                               onClick={addAnnexe}
                               disabled={annexes.length >= 5}
-
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -494,7 +500,7 @@ export function Upload() {
                 </Collapsible>
 
                 <div className="flex justify-center space-x-3 mt-8">
-                  <Button  type="submit" disabled={submitting}>
+                  <Button type="submit" disabled={submitting}>
                     {submitting && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
