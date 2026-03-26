@@ -56,6 +56,21 @@ const meiliClient = new MeiliSearch({
 
 const examsIndex = meiliClient.index('exams');
 
+let settingsEnsured = false;
+
+async function ensureExamsIndexSettings(): Promise<void> {
+  if (settingsEnsured) {
+    return;
+  }
+
+  await examsIndex.updateSettings({
+    filterableAttributes: ['level', 'major', 'year', 'type'],
+    sortableAttributes: ['year'],
+  });
+
+  settingsEnsured = true;
+}
+
 function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
   const majorName = exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non defini';
 
@@ -81,6 +96,8 @@ async function upsertDocumentsFromExams(
   prisma: SearchSyncPrisma,
   whereClause: Prisma.PastExamWhereInput
 ): Promise<void> {
+  await ensureExamsIndexSettings();
+
   if (typeof prisma.pastExam.findMany !== 'function') {
     throw new Error('Invalid prisma client: pastExam.findMany is missing.');
   }
@@ -155,6 +172,7 @@ export async function syncExamsForUpdatedEntities(
 }
 
 export async function rebuildExamsIndex(prisma: SearchSyncPrisma): Promise<void> {
+  await ensureExamsIndexSettings();
   await examsIndex.deleteAllDocuments();
   await upsertDocumentsFromExams(prisma, {
     isVerified: true,

@@ -6,7 +6,7 @@ FROM base AS builder
 COPY package.json bun.lock tsconfig.json ./
 COPY prisma ./prisma
 ENV PRISMA_CLIENT_ENGINE_TYPE=binary
-ENV DATABSE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB}?schema=public"
+ENV DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB}?schema=public"
 RUN bun install --frozen-lockfile
 RUN bunx prisma generate
 COPY . .
@@ -20,6 +20,8 @@ COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/dist ./dist
+
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 
 # On installe UNIQUEMENT les dépendances de prod, et on génère le client Prisma dedans
 RUN bun install --frozen-lockfile --production
