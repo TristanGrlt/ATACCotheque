@@ -3,6 +3,7 @@ import {
   createMajor,
   deleteMajor,
   getMajor,
+  getMajorStat,
   updateMajor,
 } from "../controllers/major.controller.js";
 import { AppPermission } from "@prisma/client";
@@ -13,6 +14,7 @@ import { verifyToken } from "../middlewares/verifyToken.js";
 const router = Router();
 
 router.get("/", getMajor);
+router.get("/stats", getMajorStat);
 router.post(
   "/",
   verifyToken,
