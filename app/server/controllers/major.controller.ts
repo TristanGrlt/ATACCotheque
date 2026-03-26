@@ -157,6 +157,7 @@ export const getMajorStat = async (req: Request, res: Response) => {
 
   const pastExamCounts = await prisma.pastExam.groupBy({
     by: ["courseId"],
+    where: { isVerified: true },
     _count: { _all: true },
   });
 
@@ -201,12 +202,16 @@ export const getMajorStat = async (req: Request, res: Response) => {
     }
   }
 
-  const stats = majors.map((m) => ({
-    name: m.name,
-    pastExamCount: majorPastExamCount.get(m.id) || 0,
-  }));
+  const stats = majors
+    .map((m) => ({
+      name: m.name,
+      pastExamCount: majorPastExamCount.get(m.id) || 0,
+    }))
+    .filter((major) => major.pastExamCount > 0);
 
-  const totalCount = await prisma.pastExam.count();
+  const totalCount = await prisma.pastExam.count({
+    where: { isVerified: true },
+  });
 
   return res.status(200).json({
     subjects: stats,
