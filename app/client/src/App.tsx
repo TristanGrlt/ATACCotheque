@@ -11,11 +11,12 @@ import { NotFound } from "./routes/notFound.tsx";
 import { Unauthorized } from "./routes/unauthorized.tsx";
 import { useAuth } from "./contexts/AuthContext.tsx";
 import { Loading } from "./components/loading.tsx";
-import { PERMISSIONS } from "./config/permissions.ts";
-import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
-import { MfaChallenge } from "./routes/mfaChallenge.tsx";
-import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
+import { Pedago } from "./routes/admin/pedago/pedago.tsx";
 import { Upload } from "./routes/upload.tsx";
+import { PERMISSIONS } from "./config/permissions.ts";
+import { MfaChallenge } from "./routes/mfaChallenge.tsx";
+import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
+import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 import { ValidExam } from "./routes/admin/exam/validExam.tsx";
 import { ManageExam } from "./routes/admin/exam/manageExam.tsx";
 
@@ -33,6 +34,7 @@ function App() {
       {/* Routes publiques */}
       <Route index element={<LandingPage />} />
       <Route path="sandbox" element={<SearchSandbox />} />
+      <Route path="upload" element={<Upload />} />
 
       {/* Routes pour invités uniquement (non connectés) */}
       <Route element={<GuestRoute />}>
@@ -45,13 +47,12 @@ function App() {
       {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
-      {/* Routes protégées par authentification */}
-      <Route path="upload" element={<Upload />} />
-
       <Route element={<ProtectedRoute />}>
         <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="toto" element={<LandingPage />} />
+          <Route path="pedago" element={<Pedago />} />
 
           {/* Routes protégées par permissions */}
           <Route

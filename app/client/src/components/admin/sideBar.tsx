@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   EllipsisVertical,
+  GraduationCap,
   Home,
   Inbox,
   LogOut,
@@ -70,6 +71,12 @@ const items = [
     url: "users",
     icon: User,
     permission: PERMISSIONS.MANAGE_USERS,
+  },
+  {
+    title: "Maquette pédagogique",
+    url: "pedago",
+    icon: GraduationCap,
+    permission: PERMISSIONS.MANAGE_PEDAGO,
   },
 ];
 

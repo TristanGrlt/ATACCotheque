@@ -94,6 +94,7 @@ model Role {
 
 enum AppPermission {
   MANAGE_USERS
+  MANAGE_PEDAGO
   MANAGE_EXAMS
 }
 
@@ -110,14 +111,16 @@ model UserRole {
 model Major {
   id   Int    @id @default(autoincrement())
   name String @unique // ex: Informatique, Mathématiques
+  icon String @default("Book")
 
   parcours Parcours[]
 }
 
 model Level {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique // ex: L1, L2, L3, M1, M2
-  courses Course[]
+  id       Int        @id @default(autoincrement())
+  name     String     @unique // ex: L1, L2, L3, M1, M2
+  courses  Course[]
+  parcours Parcours[]
 }
 
 model Parcours {
@@ -125,11 +128,13 @@ model Parcours {
   name    String   @unique // ex: "Portail IEEEA", "Informatique", "Master SSI"
   majors  Major[]
   courses Course[]
+  levels  Level[]
 }
 
 model Course {
   id        Int        @id @default(autoincrement())
   name      String
+  aliases   String     @default("")
   semestre  Int
   parcours  Parcours[]
   level     Level      @relation(fields: [levelId], references: [id])

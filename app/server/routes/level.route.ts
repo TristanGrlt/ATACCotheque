@@ -1,41 +1,38 @@
 import { Router } from "express";
 import {
-  createExamType,
-  deleteExamType,
-  getExamType,
-  getExamTypeFromCourse,
-  updateExamType,
-} from "../controllers/examType.controller.js";
-import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
-import { verifyToken } from "../middlewares/verifyToken.js";
+  createLevel,
+  deleteLevel,
+  getLevel,
+  updateLevel,
+} from "../controllers/level.controller.js";
 import { AppPermission } from "../generated/prisma/enums.js";
+import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
+import { verifyToken } from "../middlewares/verifyToken.js";
 
 const router = Router();
 
-router.get("/", getExamType);
-// get exam types for a course (ex: /examType?courseTypeId=42)
-router.get("/", getExamTypeFromCourse);
+router.get("/", getLevel);
 router.post(
   "/",
   verifyToken,
   verifyOnboardingCompleted,
   verifyPerms(AppPermission.MANAGE_PEDAGO),
-  createExamType,
+  createLevel,
 );
 router.put(
-  "/:examTypeId",
+  "/:levelId",
   verifyToken,
   verifyOnboardingCompleted,
   verifyPerms(AppPermission.MANAGE_PEDAGO),
-  updateExamType,
+  updateLevel,
 );
 router.delete(
-  "/:examTypeId",
+  "/:levelId",
   verifyToken,
   verifyOnboardingCompleted,
   verifyPerms(AppPermission.MANAGE_PEDAGO),
-  deleteExamType,
+  deleteLevel,
 );
 
 export default router;

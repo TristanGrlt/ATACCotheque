@@ -19,7 +19,7 @@ async function seedDefaultRoles() {
   const defaultRoles = [
     {
       name: "Admin",
-      permissions: ["MANAGE_USERS", "MANAGE_EXAMS"] as AppPermission[],
+      permissions: ["MANAGE_USERS", "MANAGE_EXAMS","MANAGE_PEDAGO"] as AppPermission[],
     },
     {
       name: "User",
@@ -230,6 +230,7 @@ async function seedCourse() {
       await prisma.course.create({
         data: {
           name: "POO2",
+          aliases: "",
           semestre: 5, // C'est un entier selon ton schéma ! (5 pour S5)
           levelId: levelL3.id,
           // Relation N:M - Le cours appartient aux DEUX parcours
