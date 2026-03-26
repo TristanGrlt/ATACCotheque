@@ -17,6 +17,7 @@ import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
 import { MfaChallenge } from "./routes/mfaChallenge.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 import { Upload } from "./routes/upload.tsx";
+import { Contact } from "./routes/contact.tsx";
 
 function App() {
   const { isLoading } = useAuth();
@@ -34,6 +35,7 @@ function App() {
         <Route index element={<LandingPage />} />
         <Route path="search" element={<SearchSandbox />} />
         <Route path="upload" element={<Upload />} />
+        <Route path="contact" element={<Contact />} />
       </Route>
 
       {/* Routes for guests only (not authenticated) */}
