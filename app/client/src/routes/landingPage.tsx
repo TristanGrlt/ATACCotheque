@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -108,12 +108,6 @@ export function LandingPage() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const handleLandingSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedQuery = landingQuery.trim();
-    navigate(trimmedQuery ? `/search?q=${encodeURIComponent(trimmedQuery)}` : "/search");
-  };
-
   return (
     <>
       <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20">
@@ -160,7 +154,11 @@ export function LandingPage() {
         <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative ">
           <form
             className="relative group background bg-background/80 rounded-full"
-            onSubmit={handleLandingSearchSubmit}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const trimmedQuery = landingQuery.trim();
+              navigate(trimmedQuery ? `/search?q=${encodeURIComponent(trimmedQuery)}` : "/search");
+            }}
           >
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="text-muted-foreground w-4 h-4" />
@@ -238,7 +236,7 @@ export function LandingPage() {
                 <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-foreground">
-                    Plus de {10 * Math.floor(totalPastExams / 10)} annales
+                    Plus de {totalPastExams < 10 ? totalPastExams : 10 * Math.floor(totalPastExams / 10)} annales
                   </p>
                 </div>
               </div>
