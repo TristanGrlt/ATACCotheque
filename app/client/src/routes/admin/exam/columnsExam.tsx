@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Pencil, Trash2, ExternalLink } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export type Exam = {
@@ -13,12 +13,11 @@ export type Exam = {
 }
 
 type ColumnActions = {
-  onEdit: (exam: Exam) => void
   onDelete: (exam: Exam) => void
   onOpenDetails: (exam: Exam) => void
 }
 
-export const createColumnsExam = ({ onEdit, onDelete, onOpenDetails }: ColumnActions): ColumnDef<Exam>[] => [
+export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): ColumnDef<Exam>[] => [
   {
     accessorKey: 'id',
     header: 'ID',

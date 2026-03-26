@@ -307,7 +307,6 @@ export function ExamDetail() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Leaky File Path Block REMOVED! */}
 
               <div className="space-y-3">
                 <a

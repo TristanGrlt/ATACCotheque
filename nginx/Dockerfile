@@ -5,6 +5,8 @@ RUN bun install --frozen-lockfile
 COPY app/client .
 ARG VITE_API_ENDPOINT=/api
 ENV VITE_API_ENDPOINT=${VITE_API_ENDPOINT}
+ARG VITE_MEILI_API_KEY=ecba5a5016dcbec142710846d0a15bf2827a2e742ba293db45a4b5cb8481be87
+ENV VITE_MEILI_API_KEY=${VITE_MEILI_API_KEY}
 RUN bun run build
 
 FROM nginx:alpine

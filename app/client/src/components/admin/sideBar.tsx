@@ -64,7 +64,7 @@ const items = [
     title: "Annales",
     url: "exams",
     icon: Monitor,
-    permission: PERMISSIONS.MANAGE_ANNALES,
+    permission: PERMISSIONS.MANAGE_EXAMS,
   },
   {
     title: "Annale en attente",

@@ -46,7 +46,7 @@ export function ExamIndex() {
   }, [examToDelete, setData, refetch]);
 
   const columns = useMemo(
-    () => createColumnsExam({ onEdit: handleEdit, onDelete: handleDelete, onOpenDetails: handleOpenDetails }),
+    () => createColumnsExam({ onDelete: handleDelete, onOpenDetails: handleOpenDetails }),
     [handleEdit, handleDelete]
   );
 
