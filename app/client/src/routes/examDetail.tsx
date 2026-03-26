@@ -128,8 +128,8 @@ export function ExamDetail() {
   }, [examId]);
 
   useEffect(() => {
-    if (!exam) fetchExam();
-  }, [exam, fetchExam]);
+    fetchExam();
+  }, [fetchExam]);
 
   // 2. Initialize PDF.js
   useEffect(() => {
