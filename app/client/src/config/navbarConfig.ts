@@ -1,4 +1,4 @@
-import { LayoutGrid, Library, Target, Plus } from "lucide-react";
+import { LayoutGrid, Library, Plus, Contact } from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface NavbarItem {
@@ -23,13 +23,14 @@ export const NAVBAR_ITEMS: NavbarItem[] = [
     icon: Library,
   },
   {
-    title: "Manquants",
-    url: "/missing",
-    icon: Target,
+    title: "Contact",
+    url: "/contact",
+    icon: Contact,
   },
   {
     title: "Ajouter",
     url: "/upload",
     icon: Plus,
   },
+
 ];
