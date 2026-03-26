@@ -21,6 +21,8 @@ import { ValidExam } from './routes/admin/exam/validExam.tsx'
 import { ManageExam } from './routes/admin/exam/manageExam.tsx'
 import { Pedago } from "./routes/admin/pedago/pedago.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
+import { NavbarLayout } from "./components/navbar.tsx";
+import { Contact } from "./routes/contact.tsx";
 
 function App() {
   const { isLoading } = useAuth();
@@ -35,9 +37,15 @@ function App() {
     <Routes>
       {/* Routes publiques */}
       <Route index element={<LandingPage />} />
-      <Route path="search" element={<Search />} />
       <Route path="exam/:examId" element={<ExamDetail />} />
-      <Route path="upload" element={<Upload />} />
+
+      {/* Routes with Navbar Layout */}
+      <Route element={<NavbarLayout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="search" element={<Search />} />
+        <Route path="upload" element={<Upload />} />
+        <Route path="contact" element={<Contact />} />
+      </Route>
 
       {/* Routes pour invités uniquement (non connectés) */}
       <Route element={<GuestRoute />}>
@@ -47,7 +55,7 @@ function App() {
       {/* Route pour l'onboarding (vérifie l'authentification et la non réalisation de son onboarding pour y accéder) */}
       <Route path="onboarding" element={<OnboardingPage />} />
 
-      {/* Route MFA challenge — accessible uniquement avec le pre_auth cookie, pas de guard auth */}
+      {/* MFA challenge route */}
       <Route path="mfa-challenge" element={<MfaChallenge />} />
 
       <Route element={<ProtectedRoute />}>

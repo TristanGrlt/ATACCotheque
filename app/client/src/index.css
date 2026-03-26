@@ -54,7 +54,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(63% 50% 37);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -88,7 +88,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.269 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: oklch(65.93% 0.23005 35.209);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -121,5 +121,107 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* 1. Define the variables for LIGHT mode (the default) */
+  .bg-animated-gradient {
+    --glow-intensity: 15%;      /* How much orange is mixed in */
+    --glow-opacity-base: 0.5;   /* The dimmest the pulse gets */
+    --glow-opacity-peak: 0.8;   /* The brightest the pulse gets */
+    --glow-size: 65%;           /* How far the light spreads */
+
+    background-color: var(--background);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* 2. Override those variables for DARK mode */
+  .dark .bg-animated-gradient {
+    --glow-intensity: 30%;      /* Usually needs to be lower in dark mode */
+    --glow-opacity-base: 0.4;   
+    --glow-opacity-peak: 0.5;   
+    --glow-size: 70%;           /* Slightly tighter glow in dark mode */
+  }
+
+  /* 3. The organic movement and soft pulse keyframes */
+  @keyframes gentle-wander-pulse {
+    0%, 100% {
+      opacity: var(--glow-opacity-base);
+      transform: scale(1) translate(0, 0);
+    }
+    33% {
+      opacity: var(--glow-opacity-peak);
+      /* Moves slightly right and down, scales up a tiny bit */
+      transform: scale(1.05) translate(2%, 1%); 
+    }
+    66% {
+      opacity: var(--glow-opacity-base);
+      /* Moves slightly left and up, shrinks a tiny bit */
+      transform: scale(0.98) translate(-1%, -1%);
+    }
+  }
+
+  /* 4. The actual glowing orb */
+  .bg-animated-gradient::before {
+    content: "";
+    position: absolute;
+    /* Expanding the absolute area slightly so it has room to wander */
+    top: -20%;
+    left: -10%;
+    right: -10%;
+    bottom: 0;
+    z-index: -1; 
+    background: radial-gradient(
+      circle at 50% 30%,
+      color-mix(in oklch, var(--primary) var(--glow-intensity), transparent) 0%,
+      transparent var(--glow-size)
+    );
+    /* 12s makes the wandering feel relaxed and unhurried */
+    animation: gentle-wander-pulse 12s ease-in-out infinite;
+  }
+
+  @keyframes logo-rain {
+    0% {
+      transform: translateY(-10vh) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      /* Falls off the bottom of the screen while spinning */
+      transform: translateY(110vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  .animate-logo-rain {
+    animation: logo-rain linear forwards;
+  }
+
+  @keyframes logo-dance-bounce {
+    0%, 100% {
+      /* Position de départ, rotation légère à gauche */
+      transform: translateY(0) rotate(-5deg) scale(1);
+    }
+    25% {
+      /* Rebondit vers le haut, tourne à droite, s'agrandit un peu */
+      transform: translateY(-20px) rotate(5deg) scale(1.05);
+    }
+    50% {
+      /* Revient en bas, tourne à gauche, taille normale */
+      transform: translateY(0) rotate(-5deg) scale(1);
+    }
+    75% {
+      /* Petit rebond vers le haut, tourne à droite, s'agrandit un peu */
+      transform: translateY(-10px) rotate(5deg) scale(1.03);
+    }
+  }
+
+  .animate-logo-dance-bounce {
+    /* Origine de la transformation au centre pour une rotation et un scale corrects */
+    transform-origin: center;
+    /* Durée de 1.5s pour un mouvement dynamique, en boucle infinie */
+    animation: logo-dance-bounce 1.5s ease-in-out infinite;
   }
 }
