@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   deletePastExam, getAnnexeById, getAnnexeFile, getExamById,
   getFileInvalid, getPastExamToReview, updateAnnale,
-  uploadAllPastExam, getAllPastExams, getPublicExam, getPublicFile, rebuildSearchIndex
+  uploadAllPastExam, getAllPastExams, getPublicExam, getPublicFile, rebuildSearchIndex, getPublicAnnexeFile
 } from "../controllers/pastExam.controller.js";
 import { uploadMiddleware } from '../middlewares/multer.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
@@ -15,7 +15,7 @@ const router = Router();
 // ==========================================
 router.get('/public/:id', getPublicExam);
 router.get('/public/:id/file', getPublicFile);
-router.get('/annexe/:id', getAnnexeFile);
+router.get('/public/annexe/:id', getPublicAnnexeFile);
 router.post('/upload', uploadMiddleware, uploadAllPastExam);
 
 // ==========================================

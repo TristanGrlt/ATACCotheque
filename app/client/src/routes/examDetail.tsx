@@ -331,7 +331,7 @@ export function ExamDetail() {
                       const isUrlAnnexe = annexe.type === 'URL';
                       const annexeHref = isUrlAnnexe
                         ? annexe.url
-                        : (annexe.id ? `${API_ENDPOINT}/pastExam/annexe/${annexe.id}` : null);
+                        : (annexe.id ? `${API_ENDPOINT}/pastExam/public/annexe/${annexe.id}` : null);
                       const isDisabled = !annexeHref;
 
                       return (
