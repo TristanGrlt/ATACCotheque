@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MeiliSearch } from 'meilisearch';
 import {
   Card,
@@ -86,8 +86,10 @@ function renderHighlightedText(value?: string): ReactNode {
 }
 
 export function Search() {
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchHit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,14 @@ export function Search() {
   const [types, setTypes] = useState<string[]>([]);
 
   const totalPages = Math.max(1, Math.ceil(hitCount / pageSize));
+
+  useEffect(() => {
+    const nextQuery = searchParams.get('q') ?? '';
+    if (nextQuery !== query) {
+      setQuery(nextQuery);
+      setPage(1);
+    }
+  }, [searchParams, query]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -233,8 +243,17 @@ export function Search() {
           placeholder="Rechercher (ex: 'Algèbre', 'Analyse')..."
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
+            const nextQuery = e.target.value;
+            setQuery(nextQuery);
             setPage(1);
+
+            const nextSearchParams = new URLSearchParams(searchParams);
+            if (nextQuery.trim()) {
+              nextSearchParams.set('q', nextQuery);
+            } else {
+              nextSearchParams.delete('q');
+            }
+            setSearchParams(nextSearchParams, { replace: true });
           }}
           className="pl-10 h-11 text-base shadow-sm"
         />

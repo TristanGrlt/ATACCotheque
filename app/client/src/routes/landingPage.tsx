@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Atom,
   FlaskConical,
@@ -49,12 +50,14 @@ type Subject = {
 };
 
 export function LandingPage() {
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [titleClicks, setTitleClicks] = useState(0);
   const [isRaining, setIsRaining] = useState(false);
   const [totalPastExams, setTotalPastExams] = useState(0);
+  const [landingQuery, setLandingQuery] = useState("");
 
   const handleTitleClick = () => {
     if (titleClicks >= 9) {
@@ -105,6 +108,12 @@ export function LandingPage() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
+  const handleLandingSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedQuery = landingQuery.trim();
+    navigate(trimmedQuery ? `/search?q=${encodeURIComponent(trimmedQuery)}` : "/search");
+  };
+
   return (
     <>
       <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20">
@@ -149,16 +158,21 @@ export function LandingPage() {
 
         {/* --- Barre de recherche --- */}
         <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative ">
-          <div className="relative group background bg-background/80 rounded-full">
+          <form
+            className="relative group background bg-background/80 rounded-full"
+            onSubmit={handleLandingSearchSubmit}
+          >
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="text-muted-foreground w-4 h-4" />
             </div>
             <Input
               type="text"
+              value={landingQuery}
+              onChange={(event) => setLandingQuery(event.target.value)}
               className="pl-10 py-6 text-sm w-full rounded-full"
               placeholder="Chercher par un cours, une matière, un niveau..."
             />
-          </div>
+          </form>
         </div>
 
         {/* --- Grille des Matières --- */}
