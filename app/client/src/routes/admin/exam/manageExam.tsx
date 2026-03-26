@@ -262,7 +262,7 @@ export function ManageExam() {
     setErrorMessage("");
     try {
       await apiRequest.delete(`/pastExam/${examId}`);
-      navigate("/");
+      navigate(-1);
     } catch (error: any) {
       const serverError =
         error.response?.data?.error ||
@@ -328,7 +328,7 @@ export function ManageExam() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate("/");
+      navigate(-1);
     } catch (err: any) {
       setErrorMessage(getRequestMessage(err) || "Erreur lors de l'envoi");
     } finally {
@@ -359,7 +359,7 @@ export function ManageExam() {
         </Card>
       ) : (
         <div
-          className={`w-full bg-card flex-shrink-0 ${isMobile ? "border-b border-border" : "max-w-md overflow-y-auto border-r border-border h-full"}`}
+          className={`w-full bg-card shrink-0 ${isMobile ? "border-b border-border" : "max-w-md overflow-y-auto border-r border-border h-full"}`}
         >
           <Card
             className={`w-full shadow-none border-none ${isMobile ? "pb-6" : "pb-12"}`}
