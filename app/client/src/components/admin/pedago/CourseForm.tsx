@@ -96,18 +96,26 @@ export function CourseForm({
           <FieldLabel>Types d'examen associés</FieldLabel>
           <ScrollArea>
             <div className="flex flex-wrap gap-2 max-h-32">
-              {examTypes.map((examType) => (
-                <Toggle
-                  key={examType.id}
-                  variant="outline"
-                  pressed={selectedExamTypeIds.includes(examType.id)}
-                  onPressedChange={() => toggleExamType(examType.id)}
-                >
-                  <span className="px-2 py-1 rounded-full text-xs">
-                    {examType.name}
-                  </span>
-                </Toggle>
-              ))}
+              {examTypes.map((examType) => {
+                const isSelected = selectedExamTypeIds.includes(examType.id);
+                return (
+                  <Toggle
+                    key={examType.id}
+                    variant="outline"
+                    pressed={isSelected}
+                    className={
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : ""
+                    }
+                    onPressedChange={() => toggleExamType(examType.id)}
+                  >
+                    <span className="px-2 py-1 rounded-full text-xs">
+                      {examType.name}
+                    </span>
+                  </Toggle>
+                );
+              })}
             </div>
           </ScrollArea>
         </Field>
