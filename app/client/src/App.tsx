@@ -1,24 +1,24 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
-import { LandingPage } from './routes/landingPage.tsx'
-import { Search } from './routes/Search.tsx'
-import { ExamDetail } from './routes/examDetail.tsx'
-import { SideBar } from './components/admin/sideBar.tsx'
-import { Login } from './routes/login.tsx'
-import { ProtectedRoute } from './components/protectedRoute.tsx'
-import { PermissionRoute } from './components/permissionRoute.tsx'
-import { GuestRoute } from './components/guestRoute.tsx'
-import { UserIndex } from './routes/admin/user/userIndex.tsx'
-import { ExamIndex } from './routes/admin/exam/examIndex.tsx'
-import { NotFound } from './routes/notFound.tsx'
-import { Unauthorized } from './routes/unauthorized.tsx'
-import { useAuth } from './contexts/AuthContext.tsx'
-import { Loading } from './components/loading.tsx'
-import { PERMISSIONS } from './config/permissions.ts'
-import OnboardingPage from './routes/onboarding/onboardingPage.tsx'
-import { MfaChallenge } from './routes/mfaChallenge.tsx'
-import { Upload } from './routes/upload.tsx'
-import { ValidExam } from './routes/admin/exam/validExam.tsx'
-import { ManageExam } from './routes/admin/exam/manageExam.tsx'
+import { Route, Routes, Navigate } from "react-router-dom";
+import { LandingPage } from "./routes/landingPage.tsx";
+import { Search } from "./routes/Search.tsx";
+import { ExamDetail } from "./routes/examDetail.tsx";
+import { SideBar } from "./components/admin/sideBar.tsx";
+import { Login } from "./routes/login.tsx";
+import { ProtectedRoute } from "./components/protectedRoute.tsx";
+import { PermissionRoute } from "./components/permissionRoute.tsx";
+import { GuestRoute } from "./components/guestRoute.tsx";
+import { UserIndex } from "./routes/admin/user/userIndex.tsx";
+import { ExamIndex } from "./routes/admin/exam/examIndex.tsx";
+import { NotFound } from "./routes/notFound.tsx";
+import { Unauthorized } from "./routes/unauthorized.tsx";
+import { useAuth } from "./contexts/AuthContext.tsx";
+import { Loading } from "./components/loading.tsx";
+import { PERMISSIONS } from "./config/permissions.ts";
+import OnboardingPage from "./routes/onboarding/onboardingPage.tsx";
+import { MfaChallenge } from "./routes/mfaChallenge.tsx";
+import { Upload } from "./routes/upload.tsx";
+import { ValidExam } from "./routes/admin/exam/validExam.tsx";
+import { ManageExam } from "./routes/admin/exam/manageExam.tsx";
 import { Pedago } from "./routes/admin/pedago/pedago.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 import { NavbarLayout } from "./components/navbar.tsx";
@@ -36,7 +36,6 @@ function App() {
   return (
     <Routes>
       {/* Routes publiques */}
-      <Route index element={<LandingPage />} />
       <Route path="exam/:examId" element={<ExamDetail />} />
 
       {/* Routes with Navbar Layout */}
@@ -61,19 +60,28 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="admin" element={<SideBar />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          
 
-
-          <Route path='dashboard' element={<Dashboard />} />
+          <Route path="dashboard" element={<Dashboard />} />
 
           {/* Routes protégées par permissions */}
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_EXAMS]} />}>
-            <Route path='exams' element={<ExamIndex />} />
-            <Route path='validExam' element={<ValidExam />} />
-            <Route path='manageExam' element={<ManageExam />} />
-            
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_EXAMS]}
+              />
+            }
+          >
+            <Route path="exams" element={<ExamIndex />} />
+            <Route path="validExam" element={<ValidExam />} />
+            <Route path="manageExam" element={<ManageExam />} />
           </Route>
-          <Route element={<PermissionRoute requiredPermissions={[PERMISSIONS.MANAGE_PEDAGO]} />}>
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_PEDAGO]}
+              />
+            }
+          >
             <Route path="pedago" element={<Pedago />} />
           </Route>
           <Route
