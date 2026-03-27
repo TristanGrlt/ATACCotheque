@@ -66,13 +66,14 @@ services:
       args:
         VITE_API_ENDPOINT: /api
         VITE_MEILI_HOST: http://localhost:8099/meili
-        VITE_MEILI_API_KEY: ${VITE_MEILI_API_KEY}
     ports:
       - "8099:80"
     depends_on:
       - backend
       - meilisearch
     restart: always
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
       - ../files:/app/files:ro
     networks:
