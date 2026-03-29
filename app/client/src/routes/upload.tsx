@@ -373,8 +373,8 @@ export function Upload() {
                   {...sectionMotion}
                 >
                   <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
-                    Partager un fichier avec{" "}
-                    <span className="text-primary">l'ATACCothèque</span>
+                    <span className="text-primary">Partager</span> un fichier
+                    avec l'ATACCothèque
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     Aidez les futurs étudiants en partageant vos annales,
