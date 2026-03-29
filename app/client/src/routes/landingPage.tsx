@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import {
-  Atom,
-  FlaskConical,
   Search,
-  Sigma,
-  Terminal,
   Eye,
   FileText,
   ExternalLink,
@@ -22,10 +18,7 @@ import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { useTheme } from "../components/theme-provider";
 import { apiRequest } from "../services/api";
-import {
-  getColorFromId as getColorFromIdConfig,
-  getIconByName,
-} from "../config/icons";
+import { getIconByName } from "../config/icons";
 
 const colorPalettes = [
   "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400",
@@ -75,17 +68,6 @@ export function LandingPage() {
       setTitleClicks(titleClicks + 1);
     }
   };
-
-  // Icon mapping for subject names
-  const iconMap = useMemo(
-    () => ({
-      Terminal,
-      Sigma,
-      Atom,
-      FlaskConical,
-    }),
-    [],
-  );
 
   useEffect(() => {
     let cancelled = false;

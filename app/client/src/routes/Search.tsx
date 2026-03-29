@@ -7,13 +7,12 @@ import {
 } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { MeiliSearch } from "meilisearch";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Search as SearchIcon,
   SearchX,
-  BookOpen,
   Calendar,
   Layers,
   GraduationCap,
@@ -333,7 +332,7 @@ export function Search() {
       {/* Filters */}
       <div className="w-full max-w-4xl mb-8">
         <div className="flex gap-3 overflow-x-auto pb-2 sm:gap-6 sm:overflow-visible">
-          <div className="space-y-3 flex-shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
+          <div className="space-y-3 shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
             <Label
               htmlFor="level-filter"
               className="flex items-center gap-2 font-semibold text-foreground text-sm"
@@ -352,7 +351,7 @@ export function Search() {
             >
               <SelectTrigger
                 id="level-filter"
-                className="w-full !bg-background/80 hover:!bg-background transition-colors"
+                className="w-full bg-background/80! hover:bg-background! transition-colors"
               >
                 <SelectValue placeholder="Tous les niveaux" />
               </SelectTrigger>
@@ -367,7 +366,7 @@ export function Search() {
             </Select>
           </div>
 
-          <div className="space-y-3 flex-shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
+          <div className="space-y-3 shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
             <Label
               htmlFor="major-filter"
               className="flex items-center gap-2 font-semibold text-foreground text-sm"
@@ -395,7 +394,7 @@ export function Search() {
             >
               <SelectTrigger
                 id="major-filter"
-                className="w-full !bg-background/80 hover:!bg-background transition-colors"
+                className="w-full bg-background/80! hover:bg-background! transition-colors"
               >
                 <SelectValue placeholder="Toutes les filières" />
               </SelectTrigger>
@@ -410,7 +409,7 @@ export function Search() {
             </Select>
           </div>
 
-          <div className="space-y-3 flex-shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
+          <div className="space-y-3 shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
             <Label
               htmlFor="type-filter"
               className="flex items-center gap-2 font-semibold text-foreground text-sm"
@@ -429,7 +428,7 @@ export function Search() {
             >
               <SelectTrigger
                 id="type-filter"
-                className="w-full !bg-background/80 hover:!bg-background transition-colors"
+                className="w-full bg-background/80! hover:bg-background! transition-colors"
               >
                 <SelectValue placeholder="Tous les types" />
               </SelectTrigger>
@@ -464,7 +463,7 @@ export function Search() {
               setPage(1);
             }}
           >
-            <SelectTrigger id="page-size" className="w-[80px] h-9">
+            <SelectTrigger id="page-size" className="w-20 h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

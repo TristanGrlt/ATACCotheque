@@ -277,7 +277,7 @@ export function ExamDetail() {
 
   return (
     <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 pb-12 font-sans text-foreground selection:bg-primary/20 flex flex-col items-center px-4">
-      <div className="w-full max-w-[1200px] space-y-6">
+      <div className="w-full max-w-300 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Button
             onClick={() => navigate("/search")}
