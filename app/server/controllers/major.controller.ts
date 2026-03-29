@@ -152,7 +152,7 @@ export const updateMajor = async (
 
 export const getMajorStat = async (req: Request, res: Response) => {
   const majors = await prisma.major.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, icon: true },
   });
 
   const pastExamCounts = await prisma.pastExam.groupBy({
@@ -205,6 +205,7 @@ export const getMajorStat = async (req: Request, res: Response) => {
   const stats = majors
     .map((m) => ({
       name: m.name,
+      icon: m.icon,
       pastExamCount: majorPastExamCount.get(m.id) || 0,
     }))
     .filter((major) => major.pastExamCount > 0);

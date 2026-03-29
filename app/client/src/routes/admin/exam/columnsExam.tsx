@@ -9,7 +9,6 @@ export type Exam = {
   level: string
   major: string
   year: number
-  path: string
 }
 
 type ColumnActions = {

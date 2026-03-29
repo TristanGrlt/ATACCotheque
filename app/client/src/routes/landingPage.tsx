@@ -22,6 +22,10 @@ import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { useTheme } from "../components/theme-provider";
 import { apiRequest } from "../services/api";
+import {
+  getColorFromId as getColorFromIdConfig,
+  getIconByName,
+} from "../config/icons";
 
 const colorPalettes = [
   "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400",
@@ -46,6 +50,7 @@ type Stats = {
 
 type Subject = {
   name: string;
+  icon: string | null;
   pastExamCount: number;
 };
 
@@ -71,13 +76,16 @@ export function LandingPage() {
     }
   };
 
-  const subjectIcons = useMemo(() => [Terminal, Sigma, Atom, FlaskConical], []);
-  const getIconFromSubjectName = (name: string) => {
-    const hash = name
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return subjectIcons[hash % subjectIcons.length];
-  };
+  // Icon mapping for subject names
+  const iconMap = useMemo(
+    () => ({
+      Terminal,
+      Sigma,
+      Atom,
+      FlaskConical,
+    }),
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -130,16 +138,13 @@ export function LandingPage() {
         {/* --- Hero Section --- */}
         <div className="text-center pt-8 sm:pt-12 pb-8 px-4">
           <h1 className="text-4xl sm:text-5xl font-bold mb-3 text-foreground">
-            Bienvenue à l'ATACCothèque
+            Bienvenue à{" "}
+            <span className="text-primary" onClick={handleTitleClick}>
+              l'ATACCothèque
+            </span>
           </h1>
           <h3 className="text-2xl sm:text-1xl font-extrabold mb-2 tracking-tight leading-tight">
-            Vos annales{" "}
-            <span
-              className="text-primary select-none"
-              onClick={handleTitleClick}
-            >
-              partout !
-            </span>
+            Vos annales partout !
           </h3>
           <p className="text-base text-muted-foreground mb-6 max-w-2xl mx-auto">
             Votre plateforme dédiée au stockage et à la consultation des annales
@@ -157,7 +162,11 @@ export function LandingPage() {
             onSubmit={(event) => {
               event.preventDefault();
               const trimmedQuery = landingQuery.trim();
-              navigate(trimmedQuery ? `/search?q=${encodeURIComponent(trimmedQuery)}` : "/search");
+              navigate(
+                trimmedQuery
+                  ? `/search?q=${encodeURIComponent(trimmedQuery)}`
+                  : "/search",
+              );
             }}
           >
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -196,8 +205,8 @@ export function LandingPage() {
                   </Card>
                 ))
               : subjects.map((subject) => {
-                  const IconComponent = getIconFromSubjectName(subject.name);
                   const colors = getColorFromId(subject.name);
+                  const IconComponent = getIconByName(subject.icon ?? "");
                   return (
                     <Card
                       key={subject.name}
@@ -205,12 +214,16 @@ export function LandingPage() {
                       role="button"
                       tabIndex={0}
                       onClick={() =>
-                        navigate(`/search?major=${encodeURIComponent(subject.name)}`)
+                        navigate(
+                          `/search?major=${encodeURIComponent(subject.name)}`,
+                        )
                       }
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          navigate(`/search?major=${encodeURIComponent(subject.name)}`);
+                          navigate(
+                            `/search?major=${encodeURIComponent(subject.name)}`,
+                          );
                         }
                       }}
                     >
@@ -247,7 +260,13 @@ export function LandingPage() {
                 <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-foreground">
-                    Plus de {totalPastExams < 10 ? totalPastExams : 10 * Math.floor(totalPastExams / 10)} annales
+                    Plus de{" "}
+                    <span className="text-primary">
+                      {totalPastExams < 10
+                        ? totalPastExams
+                        : 10 * Math.floor(totalPastExams / 10)}{" "}
+                    </span>
+                    annales
                   </p>
                 </div>
               </div>
@@ -293,7 +312,7 @@ export function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="p-6 border-border/50 text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
                   <Search className="w-6 h-6" />
                 </div>
               </div>
@@ -305,7 +324,7 @@ export function LandingPage() {
             </Card>
             <Card className="p-6 border-border/50 text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
                   <Eye className="w-6 h-6" />
                 </div>
               </div>
@@ -319,7 +338,7 @@ export function LandingPage() {
             </Card>
             <Card className="p-6 border-border/50 text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
                   <FileText className="w-6 h-6" />
                 </div>
               </div>

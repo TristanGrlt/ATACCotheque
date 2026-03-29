@@ -332,17 +332,17 @@ export function Upload() {
       ) : (
         <Card className="w-full max-w-2xl rounded-3xl border border-border/70 bg-card shadow-lg">
           {/* --- En-tête de Carte (Intégré comme demandé) --- */}
-          <CardHeader className="text-center pt-10 pb-6 px-6 sm:px-10">
-            <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mb-5 mx-auto border border-border/50">
-              <UploadCloud className="w-9 h-9 accent-muted" />
+          <CardHeader className="text-center">
+            <div className="text-center pt-8 sm:pt-12 pb-8 px-4">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
+                Partager un fichier avec{" "}
+                <span className="text-primary">l'ATACCothèque</span>
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Aidez les futurs étudiants en partageant vos annales,
+                corrigés...
+              </p>
             </div>
-            <CardTitle className="text-3xl font-bold tracking-tight text-foreground mb-1">
-              Partager un fichier avec
-              <span className="text-primary select-none"> l'ATACCothèque</span>
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              Aidez les futurs étudiants en partageant vos annales, corrigés...
-            </CardDescription>
           </CardHeader>
 
           <CardContent className="px-6 sm:px-10 pb-10">

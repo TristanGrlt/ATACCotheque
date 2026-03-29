@@ -366,6 +366,13 @@ export const getAnnexeById = async (req: Request, res: Response) => {
     where: {
       pastExamId: parsedId,
     },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      url: true,
+      isVerified: true,
+    },
   });
 
   return res.json(result);
@@ -772,14 +779,32 @@ export const getPublicExam = async (req: Request, res: Response) => {
         id: parsedId,
         isVerified: true // SECURITY: Only return if validated
       },
-      include: {
-        examtype: true,
-        annexe: true,
+      select: {
+        id: true,
+        year: true,
+        examtype: {
+          select: { id: true, name: true }
+        },
+        annexe: {
+          where: { isVerified: true },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            url: true,
+          }
+        },
         course: {
-          include: {
-            level: true,
+          select: {
+            id: true,
+            name: true,
+            level: { select: { id: true, name: true } },
             parcours: {
-              include: { majors: true }
+              select: {
+                id: true,
+                name: true,
+                majors: { select: { id: true, name: true, icon: true } }
+              }
             }
           }
         }
@@ -869,14 +894,24 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: pageSize,
-        include: {
+        select: {
+          id: true,
+          year: true,
+          examtype: {
+            select: { name: true }
+          },
           course: {
-            include: {
-              level: true,
-              parcours: { include: { majors: true } }
+            select: {
+              name: true,
+              level: { select: { name: true } },
+              parcours: { 
+                select: { 
+                  majors: { select: { name: true } } 
+                },
+                take: 1
+              }
             }
           },
-          examtype: true,
         },
         orderBy: { id: 'desc' }
       })
@@ -889,7 +924,6 @@ export const getAllPastExams = async (req: Request, res: Response) => {
       level: exam.course?.level?.name || 'Inconnu',
       major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
       year: exam.year,
-      path: exam.path
     }));
 
     const totalPages = Math.ceil(totalCount / pageSize);
