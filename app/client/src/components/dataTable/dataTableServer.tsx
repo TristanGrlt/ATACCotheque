@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table"
 import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -167,6 +168,19 @@ export function DataTableServer<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b bg-muted/50 hover:bg-muted/70 transition-colors">
+                {/* Checkbox Header */}
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      table.getIsAllPageRowsSelected() ||
+                      (table.getIsSomePageRowsSelected() && "indeterminate")
+                    }
+                    onCheckedChange={(value) =>
+                      table.toggleAllPageRowsSelected(!!value)
+                    }
+                    aria-label="Sélectionner tous"
+                  />
+                </TableHead>
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id} className="font-semibold text-foreground">
@@ -185,7 +199,7 @@ export function DataTableServer<TData, TValue>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center">
                   Chargement...
                 </TableCell>
               </TableRow>
@@ -196,6 +210,14 @@ export function DataTableServer<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                   className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-blue-50"
                 >
+                  {/* Checkbox Cell */}
+                  <TableCell className="w-12">
+                    <Checkbox
+                      checked={row.getIsSelected()}
+                      onCheckedChange={(value) => row.toggleSelected(!!value)}
+                      aria-label={`Sélectionner la ligne ${row.id}`}
+                    />
+                  </TableCell>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-3 transition-colors">
                       {flexRender(
@@ -208,7 +230,7 @@ export function DataTableServer<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center text-muted-foreground">
                   Aucun résultat.
                 </TableCell>
               </TableRow>
@@ -218,44 +240,43 @@ export function DataTableServer<TData, TValue>({
       </div>
       
       <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+        <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
           {table.getFilteredSelectedRowModel().rows.length > 0 ? (
             <>
-              {table.getFilteredSelectedRowModel().rows.length} sur{" "}
-              {pagination.totalCount} ligne{pagination.totalCount > 1 ? 's' : ''} sélectionnée{table.getFilteredSelectedRowModel().rows.length > 1 ? 's' : ''}
+              {table.getFilteredSelectedRowModel().rows.length}/{pagination.totalCount} sélectionné{table.getFilteredSelectedRowModel().rows.length > 1 ? 's' : ''}
             </>
           ) : (
             <>
-              {pagination.totalCount} résultat{pagination.totalCount > 1 ? 's' : ''} au total
+              {pagination.totalCount} résultat{pagination.totalCount > 1 ? 's' : ''}
             </>
           )}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <div className="flex items-center space-x-2">
-            <p className="text-xs sm:text-sm font-medium">Lignes par page</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 overflow-x-auto">
+          <div className="flex items-center space-x-2 whitespace-nowrap">
+            <p className="text-xs sm:text-sm font-medium">Par page:</p>
             <Select
-              value={`${pagination.pageSize}`}
+              value={String(pagination.pageSize || 20)}
               onValueChange={(value) => {
                 onPageSizeChange(Number(value))
                 onPageChange(1)
               }}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-8 w-[60px]">
-                <SelectValue placeholder={pagination.pageSize} />
+              <SelectTrigger className="h-8 w-[84px] px-2 text-left">
+                <SelectValue placeholder="20" />
               </SelectTrigger>
               <SelectContent side="top">
                 {[10, 20, 30, 40, 50, 100].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
+                  <SelectItem key={pageSize} value={String(pageSize)}>
                     {pageSize}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center justify-between sm:justify-center gap-2">
+          <div className="flex items-center justify-between sm:justify-center gap-2 whitespace-nowrap">
             <div className="text-xs sm:text-sm font-medium text-muted-foreground">
-              Page {pagination.page} / {pagination.totalPages}
+              {pagination.page}/{pagination.totalPages}
             </div>
             <div className="flex items-center space-x-1">
               <Button
