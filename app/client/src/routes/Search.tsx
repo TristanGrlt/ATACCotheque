@@ -8,6 +8,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import { MeiliSearch } from "meilisearch";
 import { Card } from "@/components/ui/card";
+import { motion, AnimatePresence } from "framer-motion";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -71,6 +72,13 @@ interface SearchHit extends SearchResult {
 
 const HIGHLIGHT_PRE_TAG = "[[hl]]";
 const HIGHLIGHT_POST_TAG = "[[/hl]]";
+
+const sectionMotion = {
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 0.35 },
+  viewport: { once: true, amount: 0.2 },
+};
 
 function renderHighlightedText(value?: string): ReactNode {
   if (!value) {
@@ -291,9 +299,17 @@ export function Search() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-animated-gradient flex flex-col items-center sm:pt-5 px-4 sm:px-6 md:px-10 pb-32 font-sans text-foreground selection:bg-primary/20">
+    <motion.div
+      className="min-h-screen bg-animated-gradient flex flex-col items-center sm:pt-5 px-4 sm:px-6 md:px-10 pb-32 font-sans text-foreground selection:bg-primary/20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35 }}
+    >
       {/* --- Hero Section --- */}
-      <div className="text-center pt-8 sm:pt-12 pb-8 px-4">
+      <motion.div
+        className="text-center pt-8 sm:pt-12 pb-8 px-4"
+        {...sectionMotion}
+      >
         <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
           <span className="text-primary">Rechercher</span> des Annales
         </h1>
@@ -301,7 +317,7 @@ export function Search() {
           Recherchez parmi des centaines d'annales de contrôles passés,
           filtrables par cours, matière, niveau et plus encore.
         </p>
-      </div>
+      </motion.div>
 
       {error && (
         <Alert variant="destructive" className="mb-6 w-full max-w-4xl">
@@ -311,7 +327,10 @@ export function Search() {
       )}
 
       {/* Search Input */}
-      <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative ">
+      <motion.div
+        className="w-full max-w-2xl mx-auto px-4 mb-8 relative"
+        {...sectionMotion}
+      >
         <form
           className="relative group background bg-background/80 rounded-full"
           onSubmit={(event) => {
@@ -332,10 +351,10 @@ export function Search() {
             placeholder="Chercher par un cours, une matière, un niveau..."
           />
         </form>
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <div className="w-full max-w-4xl mb-8">
+      <motion.div className="w-full max-w-4xl mb-8" {...sectionMotion}>
         <div className="flex gap-3 overflow-x-auto pb-2 sm:gap-6 sm:overflow-visible">
           <div className="space-y-3 shrink-0 min-w-[calc(50%-0.75rem)] sm:min-w-auto sm:flex-1">
             <Label
@@ -448,7 +467,7 @@ export function Search() {
             </Select>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="flex items-center justify-between gap-3 mb-6 w-full max-w-4xl">
         <div className="text-sm text-muted-foreground">
@@ -520,10 +539,13 @@ export function Search() {
           )}
 
         {results.length > 0 && (
-          <div
+          <motion.div
             className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity ${isSearching ? "opacity-70" : "opacity-100"}`}
+            initial="hidden"
+            animate="visible"
+            variants={{ hidden: {}, visible: {} }}
           >
-            {results.map((hit) => {
+            {results.map((hit, index) => {
               // Safely extract major name without using 'any'
               const majorName =
                 hit.majors && hit.majors.length > 0
@@ -535,87 +557,104 @@ export function Search() {
 
               const colors = getColorFromId(majorName);
               const IconComponent = getIconByName(majorIconName);
-
               return (
-                <Link
+                <motion.div
                   key={hit.id}
-                  to={`/exam/${hit.id}`}
-                  state={{ exam: hit }}
-                  className="no-underline focus:outline-none block h-full"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * (index % 6), duration: 0.3 }}
+                  whileHover={{ translateY: -3 }}
+                  whileTap={{ scale: 0.99 }}
                 >
-                  <Card className="group relative p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 h-full flex flex-col bg-card">
-                    {/* --- En-tête de la carte --- */}
-                    <div className="flex items-start gap-3 ">
-                      {/* Icône colorée dynamique */}
-                      <div
-                        className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors duration-200 ${colors}`}
-                      >
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <h3 className="font-bold text-base text-foreground leading-tight flex flex-wrap gap-x-1">
-                          <span>
-                            {renderHighlightedText(
-                              hit._formatted?.level ?? hit.level,
-                            )}
-                          </span>
-                          <span>
-                            {renderHighlightedText(
-                              hit._formatted?.parcours ?? hit.parcours,
-                            )}
-                          </span>
-                          <span>
-                            {renderHighlightedText(
-                              hit._formatted?.course ?? hit.course,
-                            )}
-                          </span>
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* --- Badges en bas de carte --- */}
-                    <div className="mt-auto pt-2 flex items-center gap-2">
-                      {/* Badge du Type (ex: CC2) */}
-                      {hit.type && (
-                        <Badge
-                          variant="secondary"
-                          className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent text-xs font-semibold px-2 py-0.5"
+                  <Link
+                    to={`/exam/${hit.id}`}
+                    state={{ exam: hit }}
+                    className="no-underline focus:outline-none block h-full"
+                  >
+                    <Card className="group relative p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 h-full flex flex-col bg-card">
+                      {/* --- En-tête de la carte --- */}
+                      <div className="flex items-start gap-3 ">
+                        {/* Icône colorée dynamique */}
+                        <div
+                          className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors duration-200 ${colors}`}
                         >
-                          {renderHighlightedText(
-                            hit._formatted?.type ?? hit.type,
-                          )}
-                        </Badge>
-                      )}
+                          <IconComponent className="w-5 h-5" />
+                        </div>
 
-                      <Badge
-                        variant="outline"
-                        className="text-xs font-medium text-muted-foreground border-border/50 bg-muted/30 px-2 py-0.5 flex items-center gap-1"
-                      >
-                        <Calendar className="w-3 h-3" />
-                        {hit.year}
-                      </Badge>
-                    </div>
-                  </Card>
-                </Link>
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <h3 className="font-bold text-base text-foreground leading-tight flex flex-wrap gap-x-1">
+                            <span>
+                              {renderHighlightedText(
+                                hit._formatted?.level ?? hit.level,
+                              )}
+                            </span>
+                            <span>
+                              {renderHighlightedText(
+                                hit._formatted?.parcours ?? hit.parcours,
+                              )}
+                            </span>
+                            <span>
+                              {renderHighlightedText(
+                                hit._formatted?.course ?? hit.course,
+                              )}
+                            </span>
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* --- Badges en bas de carte --- */}
+                      <div className="mt-auto pt-2 flex items-center gap-2">
+                        {/* Badge du Type (ex: CC2) */}
+                        {hit.type && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent text-xs font-semibold px-2 py-0.5"
+                          >
+                            {renderHighlightedText(
+                              hit._formatted?.type ?? hit.type,
+                            )}
+                          </Badge>
+                        )}
+
+                        <Badge
+                          variant="outline"
+                          className="text-xs font-medium text-muted-foreground border-border/50 bg-muted/30 px-2 py-0.5 flex items-center gap-1"
+                        >
+                          <Calendar className="w-3 h-3" />
+                          {hit.year}
+                        </Badge>
+                      </div>
+                    </Card>
+                  </Link>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
-
-        {isSearching && (
-          <div
-            className={`pointer-events-none absolute inset-0 flex ${results.length > 0 ? "items-start justify-end p-3" : "items-center justify-center"}`}
-          >
-            <div className="flex items-center gap-2 rounded-md border bg-background/90 px-3 py-2 shadow-sm">
-              <Spinner className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Mise à jour des résultats...
-              </span>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {isSearching && (
+            <motion.div
+              className={`pointer-events-none absolute inset-0 flex ${results.length > 0 ? "items-start justify-end p-3" : "items-center justify-center"}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="flex items-center gap-2 rounded-md border bg-background/90 px-3 py-2 shadow-sm"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Spinner className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Mise à jour des résultats...
+                </span>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }

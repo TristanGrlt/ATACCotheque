@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Search,
   Eye,
@@ -30,6 +31,13 @@ type Subject = {
   name: string;
   icon: string | null;
   pastExamCount: number;
+};
+
+const sectionMotion = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 0.4 },
+  viewport: { once: true, amount: 0.15 },
 };
 
 export function LandingPage() {
@@ -85,9 +93,24 @@ export function LandingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20">
+      <motion.div
+        className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans text-foreground selection:bg-primary/20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35 }}
+      >
         {/* --- Theme Toggle Button --- */}
-        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40">
+        <motion.div
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            delay: 0.15,
+            type: "spring",
+            stiffness: 220,
+            damping: 16,
+          }}
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -100,10 +123,13 @@ export function LandingPage() {
               <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
           </Button>
-        </div>
+        </motion.div>
 
         {/* --- Hero Section --- */}
-        <div className="text-center pt-8 sm:pt-12 pb-8 px-4">
+        <motion.div
+          className="text-center pt-8 sm:pt-12 pb-8 px-4"
+          {...sectionMotion}
+        >
           <h1 className="text-4xl sm:text-5xl font-bold mb-3 text-foreground">
             Bienvenue à{" "}
             <span className="text-primary" onClick={handleTitleClick}>
@@ -120,10 +146,13 @@ export function LandingPage() {
             La plateforme collaborative de l'ATACC. Annales et corrigés
             gratuits.
           </p>
-        </div>
+        </motion.div>
 
         {/* --- Barre de recherche --- */}
-        <div className="w-full max-w-2xl mx-auto px-4 mb-8 relative ">
+        <motion.div
+          className="w-full max-w-2xl mx-auto px-4 mb-8 relative"
+          {...sectionMotion}
+        >
           <form
             className="relative group background bg-background/80 rounded-full"
             onSubmit={(event) => {
@@ -147,10 +176,10 @@ export function LandingPage() {
               placeholder="Chercher par un cours, une matière, un niveau..."
             />
           </form>
-        </div>
+        </motion.div>
 
         {/* --- Grille des Matières --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12 ">
+        <motion.div className="max-w-4xl mx-auto px-4 mb-12" {...sectionMotion}>
           <h2 className="text-2xl font-bold mb-5 text-foreground">
             Parcourir par catégorie
           </h2>
@@ -159,168 +188,177 @@ export function LandingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {subjectsLoading
               ? Array.from({ length: 8 }).map((_, index) => (
-                  <Card
+                  <motion.div
                     // eslint-disable-next-line react/no-array-index-key
                     key={index}
-                    className="relative p-3 sm:p-4 rounded-xl border border-border/50 "
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.04 * index, duration: 0.3 }}
                   >
-                    <div className="flex flex-col items-center gap-2">
-                      <Skeleton className="w-10 h-10 rounded-lg" />
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-3 w-10" />
-                    </div>
-                  </Card>
+                    <Card className="relative p-3 sm:p-4 rounded-xl border border-border/50 ">
+                      <div className="flex flex-col items-center gap-2">
+                        <Skeleton className="w-10 h-10 rounded-lg" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-10" />
+                      </div>
+                    </Card>
+                  </motion.div>
                 ))
-              : subjects.map((subject) => {
+              : subjects.map((subject, index) => {
                   const colors = getColorFromId(subject.name);
                   const IconComponent = getIconByName(subject.icon ?? "");
                   return (
-                    <Card
+                    <motion.div
                       key={subject.name}
-                      className="group relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 "
-                      role="button"
-                      tabIndex={0}
-                      onClick={() =>
-                        navigate(
-                          `/search?major=${encodeURIComponent(subject.name)}`,
-                        )
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
+                      initial={{ opacity: 0, y: 16 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 * index, duration: 0.35 }}
+                      viewport={{ once: true, amount: 0.2 }}
+                      whileHover={{ translateY: -3, scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                    >
+                      <Card
+                        className="group relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-md border border-border/50 hover:border-primary/50 "
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
                           navigate(
                             `/search?major=${encodeURIComponent(subject.name)}`,
-                          );
+                          )
                         }
-                      }}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        {/* Icon container */}
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${colors}`}
-                        >
-                          <IconComponent className="w-5 h-5" />
-                        </div>
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            navigate(
+                              `/search?major=${encodeURIComponent(subject.name)}`,
+                            );
+                          }
+                        }}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          {/* Icon container */}
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${colors}`}
+                          >
+                            <IconComponent className="w-5 h-5" />
+                          </div>
 
-                        {/* Content */}
-                        <h3 className="font-bold text-sm text-foreground text-center">
-                          {subject.name}
-                        </h3>
-                        <p className="text-xs text-muted-foreground text-center">
-                          {subject.pastExamCount}
-                        </p>
-                      </div>
-                    </Card>
+                          {/* Content */}
+                          <h3 className="font-bold text-sm text-foreground text-center">
+                            {subject.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground text-center">
+                            {subject.pastExamCount}
+                          </p>
+                        </div>
+                      </Card>
+                    </motion.div>
                   );
                 })}
           </div>
-        </div>
+        </motion.div>
 
         {/* --- Notre Collection --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12">
+        <motion.div className="max-w-4xl mx-auto px-4 mb-12" {...sectionMotion}>
           <h2 className="text-2xl font-bold mb-5 text-foreground">
             Ce que nous proposons
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Card className="p-4 border-border/50">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground">
-                    Plus de{" "}
-                    <span className="text-primary">
-                      {totalPastExams < 10
-                        ? totalPastExams
-                        : 10 * Math.floor(totalPastExams / 10)}{" "}
-                    </span>
-                    annales
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4 border-border/50">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground">
-                    La possibilité de télécharger
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4 border-border/50">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground">
-                    Un outil de recherche avancé
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4 border-border/50">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground">
-                    Un espace d'ajout d'annale
-                  </p>
-                </div>
-              </div>
-            </Card>
+            {[
+              "Plus de annales",
+              "La possibilité de télécharger",
+              "Un outil de recherche avancé",
+              "Un espace d'ajout d'annale",
+            ].map((text, index) => (
+              <motion.div
+                key={text}
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * index, duration: 0.35 }}
+                viewport={{ once: true, amount: 0.2 }}
+                whileHover={{ translateY: -2 }}
+              >
+                <Card className="p-4 border-border/50">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {text === "Plus de annales" ? (
+                          <>
+                            Plus de{" "}
+                            <span className="text-primary">
+                              {totalPastExams < 10
+                                ? totalPastExams
+                                : 10 * Math.floor(totalPastExams / 10)}{" "}
+                            </span>
+                            annales
+                          </>
+                        ) : (
+                          text
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* --- Comment utiliser --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12">
+        <motion.div className="max-w-4xl mx-auto px-4 mb-12" {...sectionMotion}>
           <h2 className="text-2xl font-bold mb-6 text-foreground">
             Comment utiliser l'ATACCothèque ?
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="p-6 border-border/50 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-                  <Search className="w-6 h-6" />
-                </div>
-              </div>
-              <h3 className="font-bold text-foreground mb-2">1. Recherche</h3>
-              <p className="text-sm text-muted-foreground">
-                Utilisez notre moteur de recherche pour trouver les documents
-                par thème, auteur ou mot-clé
-              </p>
-            </Card>
-            <Card className="p-6 border-border/50 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-                  <Eye className="w-6 h-6" />
-                </div>
-              </div>
-              <h3 className="font-bold text-foreground mb-2">
-                2. Consultation
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Accédez aux résumés et aux informations détaillées sur chaque
-                document
-              </p>
-            </Card>
-            <Card className="p-6 border-border/50 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-                  <FileText className="w-6 h-6" />
-                </div>
-              </div>
-              <h3 className="font-bold text-foreground mb-2">3. Ressources</h3>
-              <p className="text-sm text-muted-foreground">
-                Découvrez les liens vers les versions numériques quand elles
-                sont disponibles
-              </p>
-            </Card>
+            {[
+              {
+                title: "1. Recherche",
+                icon: <Search className="w-6 h-6" />,
+                text: "Utilisez notre moteur de recherche pour trouver les documents par thème, auteur ou mot-clé",
+              },
+              {
+                title: "2. Consultation",
+                icon: <Eye className="w-6 h-6" />,
+                text: "Accédez aux résumés et aux informations détaillées sur chaque document",
+              },
+              {
+                title: "3. Ressources",
+                icon: <FileText className="w-6 h-6" />,
+                text: "Découvrez les liens vers les versions numériques quand elles sont disponibles",
+              },
+            ].map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 * index, duration: 0.35 }}
+                viewport={{ once: true, amount: 0.2 }}
+                whileHover={{ translateY: -3 }}
+              >
+                <Card className="p-6 border-border/50 text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                      {item.icon}
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-foreground mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{item.text}</p>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* --- Catalogue CTA --- */}
-        <div className="max-w-4xl mx-auto px-4 mb-12">
-          <div className="bg-linear-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 sm:p-8 text-center">
+        <motion.div className="max-w-4xl mx-auto px-4 mb-12" {...sectionMotion}>
+          <motion.div
+            className="bg-linear-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 sm:p-8 text-center"
+            whileHover={{ scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 220, damping: 18 }}
+          >
             <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
               Contribuer au Catalogue
             </h2>
@@ -333,38 +371,47 @@ export function LandingPage() {
                 Ajouter une annale
               </Button>
             </RouterLink>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* --- Suivez-nous --- */}
-        <div className="max-w-4xl mx-auto px-4 pb-33">
+        <motion.div className="max-w-4xl mx-auto px-4 pb-33" {...sectionMotion}>
           <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
             Suivez-nous
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="https://www.instagram.com/instatacc/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" className="gap-2">
-                <Instagram className="w-4 h-4" />
-                Instagram
-              </Button>
-            </a>
-            <a
-              href="https://universitice.univ-rouen.fr/course/view.php?id=10545"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" className="gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Universitice
-              </Button>
-            </a>
+            {[
+              {
+                label: "Instagram",
+                href: "https://www.instagram.com/instatacc/",
+                icon: <Instagram className="w-4 h-4" />,
+              },
+              {
+                label: "Universitice",
+                href: "https://universitice.univ-rouen.fr/course/view.php?id=10545",
+                icon: <ExternalLink className="w-4 h-4" />,
+              },
+            ].map((item, index) => (
+              <motion.a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ translateY: -2 }}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 * index, duration: 0.3 }}
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                <Button variant="outline" className="gap-2">
+                  {item.icon}
+                  {item.label}
+                </Button>
+              </motion.a>
+            ))}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
       {isRaining && (
         <>
           <div className="pointer-events-none fixed inset-0 z-100 overflow-hidden">

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -60,6 +61,13 @@ type Annexe = {
   type: "url" | "fichier";
   value: string | File | null;
   comment: string;
+};
+
+const sectionMotion = {
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 0.35 },
+  viewport: { once: true, amount: 0.15 },
 };
 
 export function Upload() {
@@ -248,7 +256,12 @@ export function Upload() {
 
   if (isSuccess) {
     return (
-      <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-4 font-sans text-foreground selection:bg-primary/20">
+      <motion.div
+        className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-4 font-sans text-foreground selection:bg-primary/20"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35 }}
+      >
         {/* Style CSS injecté pour l'animation des confettis */}
         <style>{`
           @keyframes confetti-fall {
@@ -281,375 +294,430 @@ export function Upload() {
         </div>
 
         {/* Carte de remerciement */}
-        <Card className="w-full max-w-lg rounded-3xl border border-border/70 bg-card shadow-2xl z-50 animate-in zoom-in-95 fade-in duration-500">
-          <CardContent className="pt-10 pb-10 px-6 sm:px-10 text-center flex flex-col items-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-              <CheckCircle className="w-10 h-10 text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground mb-4">
-              Merci pour votre contribution !
-            </h2>
-            <p className="text-muted-foreground text-base mb-8">
-              Votre document sera prochainement ajouté au catalogue.
-            </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="w-full h-12 rounded-xl font-semibold shadow-md"
-            >
-              Retour à l'accueil
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+        <motion.div
+          className="w-full flex justify-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <Card className="w-full max-w-lg rounded-3xl border border-border/70 bg-card shadow-2xl z-50">
+            <CardContent className="pt-10 pb-10 px-6 sm:px-10 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <CheckCircle className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground mb-4">
+                Merci pour votre contribution !
+              </h2>
+              <p className="text-muted-foreground text-base mb-8">
+                Votre document sera prochainement ajouté au catalogue.
+              </p>
+              <Button
+                onClick={() => navigate("/")}
+                className="w-full h-12 rounded-xl font-semibold shadow-md"
+              >
+                Retour à l'accueil
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-3 md:p-10 pb-48 font-sans text-foreground selection:bg-primary/20">
-      {loading ? (
-        <Card className="w-full max-w-2xl rounded-3xl border-border/70 shadow-lg">
-          <CardHeader className="text-center pt-10 pb-6 px-6">
-            <Skeleton className="w-16 h-16 rounded-2xl mx-auto mb-5" />
-            <Skeleton className="h-8 w-2/3 mx-auto mb-2" />
-            <Skeleton className="h-4 w-1/2 mx-auto" />
-          </CardHeader>
-          <CardContent className="px-6 sm:px-10 pb-10">
-            <Skeleton className="h-12 w-full rounded-xl mb-4" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-12 w-full rounded-xl" />
-              <Skeleton className="h-12 w-full rounded-xl" />
-            </div>
-            <Skeleton className="h-32 w-full rounded-2xl mt-6" />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="w-full max-w-2xl rounded-3xl border border-border/70 bg-card shadow-lg">
-          {/* --- En-tête de Carte (Intégré comme demandé) --- */}
-          <CardHeader className="text-center">
-            <div className="text-center pt-8 sm:pt-12 pb-8 px-4">
-              <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
-                Partager un fichier avec{" "}
-                <span className="text-primary">l'ATACCothèque</span>
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Aidez les futurs étudiants en partageant vos annales,
-                corrigés...
-              </p>
-            </div>
-          </CardHeader>
-
-          <CardContent className="px-6 sm:px-10 pb-10">
-            <form encType="multipart/form-data" onSubmit={handleSubmit}>
-              <FieldGroup className="">
-                {/* Message d'erreur */}
-                {errorMessage && (
-                  <div className="bg-destructive/10 text-destructive text-sm font-semibold p-3 rounded-xl flex items-center gap-2 border border-destructive/20">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    {errorMessage}
-                  </div>
-                )}
-
-                <Field>
-                  <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                    CHOISISSEZ UN COURS
-                  </FieldLabel>
-                  <Combobox
-                    value={selectedCourse ? selectedCourse.course : ""}
-                    onValueChange={(val: any) => {
-                      if (!val) {
-                        setSelectedCourse(null);
-                        return;
-                      }
-                      const found = all_course.find(
-                        (c: any) => c.course === val,
-                      );
-                      if (found) {
-                        setSelectedCourse(found);
-                        setInputValue(found.course);
-                      }
-                    }}
-                    inputValue={inputValue}
-                    onInputValueChange={setInputValue}
-                  >
-                    <ComboboxInput
-                      placeholder="Ex: Algèbre - Algorithmique"
-                      className=" rounded-xl bg-background border-border/70"
-                    />
-                    <ComboboxContent className="rounded-xl border-border/70 shadow-xl">
-                      {filteredCourses.length === 0 && (
-                        <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
-                      )}
-                      <ComboboxList>
-                        {filteredCourses.map((course: Course) => (
-                          <ComboboxItem
-                            key={course.id}
-                            value={course.course}
-                            className="rounded-lg"
-                          >
-                            <Item size="sm" className="p-0">
-                              <ItemContent>
-                                <ItemTitle className="whitespace-nowrap font-semibold">
-                                  {course.course}
-                                </ItemTitle>
-                                <ItemDescription className="text-xs text-muted-foreground">
-                                  {course.level} {course.parcours}
-                                </ItemDescription>
-                              </ItemContent>
-                            </Item>
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </Field>
-
+    <motion.div
+      className="bg-animated-gradient flex min-h-screen flex-col items-center justify-center p-3 md:p-10 pb-48 font-sans text-foreground selection:bg-primary/20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35 }}
+    >
+      <AnimatePresence initial={false} mode="wait">
+        {loading ? (
+          <motion.div
+            key="upload-skeleton"
+            className="w-full flex justify-center"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+          >
+            <Card className="w-full max-w-2xl rounded-3xl border-border/70 shadow-lg">
+              <CardHeader className="text-center pt-10 pb-6 px-6">
+                <Skeleton className="w-16 h-16 rounded-2xl mx-auto mb-5" />
+                <Skeleton className="h-8 w-2/3 mx-auto mb-2" />
+                <Skeleton className="h-4 w-1/2 mx-auto" />
+              </CardHeader>
+              <CardContent className="px-6 sm:px-10 pb-10">
+                <Skeleton className="h-12 w-full rounded-xl mb-4" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                      TYPE D'EXAMEN
-                    </FieldLabel>
-                    <Select
-                      value={selectedExamId}
-                      onValueChange={setSelectedExamId}
-                      disabled={!selectedCourse}
-                    >
-                      <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
-                        <SelectValue placeholder="Type..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-border/70">
-                        <SelectGroup>
-                          {examType.map((type: Exam) => (
-                            <SelectItem
-                              key={type.id}
-                              value={String(type.id)}
-                              className="rounded-lg m-0.5"
-                            >
-                              {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  <Field>
-                    <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
-                      ANNÉE
-                    </FieldLabel>
-                    <Select
-                      value={selectedYear}
-                      onValueChange={setSelectedYear}
-                    >
-                      <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
-                        <SelectValue placeholder="Année..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-border/70">
-                        <SelectGroup>
-                          {years.map((year) => (
-                            <SelectItem
-                              key={year}
-                              value={String(year)}
-                              className="rounded-lg m-0.5"
-                            >
-                              {year - 1 + " / " + year}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                  <Skeleton className="h-12 w-full rounded-xl" />
                 </div>
-
-                <Field className="pt-2">
-                  <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">
-                    TELEVERSER UNE ANNALE (PDF)
-                  </FieldLabel>
-                  <label
-                    htmlFor="file-main"
-                    className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex justify-center mb-4">
-                      <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </div>
-                    <p className="font-semibold text-foreground text-sm tracking-tight">
-                      Cliquer pour choisir un PDF
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Seul le format PDF est accepté.
-                    </p>
-                    {/* Affiche le nom du fichier s'il est sélectionné */}
-                    {selectedFile && (
-                      <span className="text-muted-foreground font-bold text-xs mt-3 block truncate">
-                        Fichier sélectionné : {selectedFile.name}
-                      </span>
-                    )}
-                  </label>
-                  <Input
-                    id="file-main"
-                    name="file-main"
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => handleFileChange(e, setSelectedFile)}
-                    className="hidden" // Cache l'input natif
-                  />
-                </Field>
-
-                <Collapsible
-                  open={isOpen}
-                  onOpenChange={setIsOpen}
-                  className="w-full border border-border/70 p-4 rounded-2xl bg-muted/20 transition-all shadow-inner mt-4"
+                <Skeleton className="h-32 w-full rounded-2xl mt-6" />
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="upload-form"
+            className="w-full flex justify-center"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
+            transition={{ duration: 0.35 }}
+          >
+            <Card className="w-full max-w-2xl rounded-3xl border border-border/70 bg-card shadow-lg">
+              {/* --- En-tête de Carte (Intégré comme demandé) --- */}
+              <CardHeader className="text-center">
+                <motion.div
+                  className="text-center pt-8 sm:pt-12 pb-8 px-4"
+                  {...sectionMotion}
                 >
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-bold text-foreground">
-                          Annexes optionnelles
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          Corrigés, codes sources, liens...
-                        </p>
-                      </div>
-                      <ChevronsUpDown className="h-4 w-4 text-foreground" />
-                    </div>
-                  </CollapsibleTrigger>
+                  <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
+                    Partager un fichier avec{" "}
+                    <span className="text-primary">l'ATACCothèque</span>
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Aidez les futurs étudiants en partageant vos annales,
+                    corrigés...
+                  </p>
+                </motion.div>
+              </CardHeader>
 
-                  <CollapsibleContent className="space-y-4 pt-4 border-t border-border/70 mt-4">
-                    {annexes.map((annexe, index) => (
-                      <Card
-                        key={index}
-                        className="p-4 border border-border/70 rounded-xl bg-card shadow relative group"
+              <CardContent className="px-6 sm:px-10 pb-10">
+                <form encType="multipart/form-data" onSubmit={handleSubmit}>
+                  <FieldGroup className="">
+                    {/* Message d'erreur */}
+                    {errorMessage && (
+                      <motion.div
+                        className="bg-destructive/10 text-destructive text-sm font-semibold p-3 rounded-xl flex items-center gap-2 border border-destructive/20"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        <div className="flex items-end gap-2">
-                          <Field className="flex-1">
-                            <FieldLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 ml-1">
-                              TYPE D'ANNEXE
-                            </FieldLabel>
-                            <Select
-                              value={annexe.type}
-                              onValueChange={(val: "url" | "fichier") =>
-                                updateAnnexe(index, "type", val)
-                              }
-                            >
-                              <SelectTrigger className="h-10 rounded-lg bg-background border-border/70 text-foreground">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-lg border-border/70">
-                                <SelectItem value="url">Lien URL</SelectItem>
-                                <SelectItem value="fichier">Fichier</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </Field>
-
-                          <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="size-9"
-                              onClick={addAnnexe}
-                              disabled={annexes.length >= 5}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                            {annexes.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="size-9"
-                                onClick={() => removeAnnexe(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 pt-2">
-                          <div className="space-y-1.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                              {annexe.type === "url"
-                                ? "Lien web"
-                                : "Fichier (PDF)"}
-                            </p>
-                            {annexe.type === "url" ? (
-                              <Input
-                                className="h-10 rounded-lg bg-background border-border/70 text-foreground"
-                                placeholder="https://..."
-                                value={
-                                  typeof annexe.value === "string"
-                                    ? annexe.value
-                                    : ""
-                                }
-                                onChange={(e) =>
-                                  updateAnnexe(index, "value", e.target.value)
-                                }
-                              />
-                            ) : (
-                              <label
-                                htmlFor={`file-annexe-${index}`}
-                                className="flex items-center gap-2 h-10 w-full rounded-lg bg-background border border-border/70 px-3 text-sm text-muted-foreground cursor-pointer hover:bg-muted/20"
-                              >
-                                <FileUp className="w-4 h-4 text-muted-foreground" />
-                                <span className="flex-1 truncate">
-                                  {annexe.value instanceof File
-                                    ? annexe.value.name
-                                    : "Cliquer pour choisir..."}
-                                </span>
-                              </label>
-                            )}
-                            <Input
-                              id={`file-annexe-${index}`}
-                              className="hidden"
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) =>
-                                e.target.files &&
-                                updateAnnexe(index, "value", e.target.files[0])
-                              }
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                              Commentaire
-                            </p>
-                            <Input
-                              className="h-10 rounded-lg bg-background border-border/70 text-foreground"
-                              placeholder="Ex: Correction détaillée..."
-                              value={annexe.comment}
-                              onChange={(e) =>
-                                updateAnnexe(index, "comment", e.target.value)
-                              }
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-
-                <div className="pt-4">
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full h-12 rounded-xl
-                     font-semibold tracking-wide text-sm transition-colors shadow-md"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      "Envoyer"
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        {errorMessage}
+                      </motion.div>
                     )}
-                  </Button>
-                </div>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+
+                    <Field>
+                      <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                        CHOISISSEZ UN COURS
+                      </FieldLabel>
+                      <Combobox
+                        value={selectedCourse ? selectedCourse.course : ""}
+                        onValueChange={(val: any) => {
+                          if (!val) {
+                            setSelectedCourse(null);
+                            return;
+                          }
+                          const found = all_course.find(
+                            (c: any) => c.course === val,
+                          );
+                          if (found) {
+                            setSelectedCourse(found);
+                            setInputValue(found.course);
+                          }
+                        }}
+                        inputValue={inputValue}
+                        onInputValueChange={setInputValue}
+                      >
+                        <ComboboxInput
+                          placeholder="Ex: Algèbre - Algorithmique"
+                          className=" rounded-xl bg-background border-border/70"
+                        />
+                        <ComboboxContent className="rounded-xl border-border/70 shadow-xl">
+                          {filteredCourses.length === 0 && (
+                            <ComboboxEmpty>Aucun cours trouvé</ComboboxEmpty>
+                          )}
+                          <ComboboxList>
+                            {filteredCourses.map((course: Course) => (
+                              <ComboboxItem
+                                key={course.id}
+                                value={course.course}
+                                className="rounded-lg"
+                              >
+                                <Item size="sm" className="p-0">
+                                  <ItemContent>
+                                    <ItemTitle className="whitespace-nowrap font-semibold">
+                                      {course.course}
+                                    </ItemTitle>
+                                    <ItemDescription className="text-xs text-muted-foreground">
+                                      {course.level} {course.parcours}
+                                    </ItemDescription>
+                                  </ItemContent>
+                                </Item>
+                              </ComboboxItem>
+                            ))}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </Field>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field>
+                        <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                          TYPE D'EXAMEN
+                        </FieldLabel>
+                        <Select
+                          value={selectedExamId}
+                          onValueChange={setSelectedExamId}
+                          disabled={!selectedCourse}
+                        >
+                          <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
+                            <SelectValue placeholder="Type..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border/70">
+                            <SelectGroup>
+                              {examType.map((type: Exam) => (
+                                <SelectItem
+                                  key={type.id}
+                                  value={String(type.id)}
+                                  className="rounded-lg m-0.5"
+                                >
+                                  {type.name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1.5">
+                          ANNÉE
+                        </FieldLabel>
+                        <Select
+                          value={selectedYear}
+                          onValueChange={setSelectedYear}
+                        >
+                          <SelectTrigger className="h-12 rounded-xl bg-background border-border/70">
+                            <SelectValue placeholder="Année..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-border/70">
+                            <SelectGroup>
+                              {years.map((year) => (
+                                <SelectItem
+                                  key={year}
+                                  value={String(year)}
+                                  className="rounded-lg m-0.5"
+                                >
+                                  {year - 1 + " / " + year}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+
+                    <Field className="pt-2">
+                      <FieldLabel className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">
+                        TELEVERSER UNE ANNALE (PDF)
+                      </FieldLabel>
+                      <label
+                        htmlFor="file-main"
+                        className="bg-linear-to-r from-primary/10 to-primary/5  block w-full border-2 border-dashed border-border/80 rounded-2xl p-8 sm:p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex justify-center mb-4">
+                          <FileUp className="w-8 h-8 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        </div>
+                        <p className="font-semibold text-foreground text-sm tracking-tight">
+                          Cliquer pour choisir un PDF
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Seul le format PDF est accepté.
+                        </p>
+                        {/* Affiche le nom du fichier s'il est sélectionné */}
+                        {selectedFile && (
+                          <span className="text-muted-foreground font-bold text-xs mt-3 block truncate">
+                            Fichier sélectionné : {selectedFile.name}
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        id="file-main"
+                        name="file-main"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => handleFileChange(e, setSelectedFile)}
+                        className="hidden" // Cache l'input natif
+                      />
+                    </Field>
+
+                    <Collapsible
+                      open={isOpen}
+                      onOpenChange={setIsOpen}
+                      className="w-full border border-border/70 p-4 rounded-2xl bg-muted/20 transition-all shadow-inner mt-4"
+                    >
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-foreground">
+                              Annexes optionnelles
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              Corrigés, codes sources, liens...
+                            </p>
+                          </div>
+                          <ChevronsUpDown className="h-4 w-4 text-foreground" />
+                        </div>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent className="space-y-4 pt-4 border-t border-border/70 mt-4">
+                        {annexes.map((annexe, index) => (
+                          <Card
+                            key={index}
+                            className="p-4 border border-border/70 rounded-xl bg-card shadow relative group"
+                          >
+                            <div className="flex items-end gap-2">
+                              <Field className="flex-1">
+                                <FieldLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 ml-1">
+                                  TYPE D'ANNEXE
+                                </FieldLabel>
+                                <Select
+                                  value={annexe.type}
+                                  onValueChange={(val: "url" | "fichier") =>
+                                    updateAnnexe(index, "type", val)
+                                  }
+                                >
+                                  <SelectTrigger className="h-10 rounded-lg bg-background border-border/70 text-foreground">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-lg border-border/70">
+                                    <SelectItem value="url">
+                                      Lien URL
+                                    </SelectItem>
+                                    <SelectItem value="fichier">
+                                      Fichier
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </Field>
+
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="size-9"
+                                  onClick={addAnnexe}
+                                  disabled={annexes.length >= 5}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                                {annexes.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="size-9"
+                                    onClick={() => removeAnnexe(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 pt-2">
+                              <div className="space-y-1.5">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                  {annexe.type === "url"
+                                    ? "Lien web"
+                                    : "Fichier (PDF)"}
+                                </p>
+                                {annexe.type === "url" ? (
+                                  <Input
+                                    className="h-10 rounded-lg bg-background border-border/70 text-foreground"
+                                    placeholder="https://..."
+                                    value={
+                                      typeof annexe.value === "string"
+                                        ? annexe.value
+                                        : ""
+                                    }
+                                    onChange={(e) =>
+                                      updateAnnexe(
+                                        index,
+                                        "value",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                ) : (
+                                  <label
+                                    htmlFor={`file-annexe-${index}`}
+                                    className="flex items-center gap-2 h-10 w-full rounded-lg bg-background border border-border/70 px-3 text-sm text-muted-foreground cursor-pointer hover:bg-muted/20"
+                                  >
+                                    <FileUp className="w-4 h-4 text-muted-foreground" />
+                                    <span className="flex-1 truncate">
+                                      {annexe.value instanceof File
+                                        ? annexe.value.name
+                                        : "Cliquer pour choisir..."}
+                                    </span>
+                                  </label>
+                                )}
+                                <Input
+                                  id={`file-annexe-${index}`}
+                                  className="hidden"
+                                  type="file"
+                                  accept=".pdf"
+                                  onChange={(e) =>
+                                    e.target.files &&
+                                    updateAnnexe(
+                                      index,
+                                      "value",
+                                      e.target.files[0],
+                                    )
+                                  }
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                  Commentaire
+                                </p>
+                                <Input
+                                  className="h-10 rounded-lg bg-background border-border/70 text-foreground"
+                                  placeholder="Ex: Correction détaillée..."
+                                  value={annexe.comment}
+                                  onChange={(e) =>
+                                    updateAnnexe(
+                                      index,
+                                      "comment",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    <div className="pt-4">
+                      <Button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full h-12 rounded-xl
+                     font-semibold tracking-wide text-sm transition-colors shadow-md"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Envoi en cours...
+                          </>
+                        ) : (
+                          "Envoyer"
+                        )}
+                      </Button>
+                    </div>
+                  </FieldGroup>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
