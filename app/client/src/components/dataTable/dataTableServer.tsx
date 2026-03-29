@@ -121,8 +121,8 @@ export function DataTableServer<TData, TValue>({
   }, [rowSelection, onRowSelectionChange, table])
 
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
+    <div className="w-full space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {searchKey && (
           <Input
             placeholder={searchPlaceholder}
@@ -134,8 +134,8 @@ export function DataTableServer<TData, TValue>({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Colonnes <ChevronDown />
+            <Button variant="outline" size="sm" className="ml-auto">
+              Colonnes <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -162,14 +162,14 @@ export function DataTableServer<TData, TValue>({
         </DropdownMenu>
       </div>
       
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-hidden rounded-lg border border-border/50">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="border-b bg-muted/50 hover:bg-muted/70 transition-colors">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="font-semibold text-foreground">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -194,9 +194,10 @@ export function DataTableServer<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-blue-50"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3 transition-colors">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -207,7 +208,7 @@ export function DataTableServer<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   Aucun résultat.
                 </TableCell>
               </TableRow>
@@ -216,8 +217,8 @@ export function DataTableServer<TData, TValue>({
         </Table>
       </div>
       
-      <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-muted-foreground text-sm">
+      <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs sm:text-sm text-muted-foreground font-medium">
           {table.getFilteredSelectedRowModel().rows.length > 0 ? (
             <>
               {table.getFilteredSelectedRowModel().rows.length} sur{" "}
@@ -229,18 +230,18 @@ export function DataTableServer<TData, TValue>({
             </>
           )}
         </div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Lignes par page</p>
+            <p className="text-xs sm:text-sm font-medium">Lignes par page</p>
             <Select
               value={`${pagination.pageSize}`}
               onValueChange={(value) => {
                 onPageSizeChange(Number(value))
-                onPageChange(1) // Retour à la page 1
+                onPageChange(1)
               }}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-8 w-17.5">
+              <SelectTrigger className="h-8 w-[60px]">
                 <SelectValue placeholder={pagination.pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
@@ -252,26 +253,30 @@ export function DataTableServer<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center justify-center text-sm font-medium">
-            Page {pagination.page} sur {pagination.totalPages}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(pagination.page - 1)}
-              disabled={!pagination.hasPreviousPage || isLoading}
-            >
-              Précédent
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage || isLoading}
-            >
-              Suivant
-            </Button>
+          <div className="flex items-center justify-between sm:justify-center gap-2">
+            <div className="text-xs sm:text-sm font-medium text-muted-foreground">
+              Page {pagination.page} / {pagination.totalPages}
+            </div>
+            <div className="flex items-center space-x-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page - 1)}
+                disabled={!pagination.hasPreviousPage || isLoading}
+                className="text-xs"
+              >
+                Précédent
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page + 1)}
+                disabled={!pagination.hasNextPage || isLoading}
+                className="text-xs"
+              >
+                Suivant
+              </Button>
+            </div>
           </div>
         </div>
       </div>

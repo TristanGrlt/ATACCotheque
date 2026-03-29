@@ -897,6 +897,8 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         select: {
           id: true,
           year: true,
+          path: true,
+          isVerified: true,
           examtype: {
             select: { name: true }
           },
@@ -912,6 +914,7 @@ export const getAllPastExams = async (req: Request, res: Response) => {
               }
             }
           },
+          annexe: true,
         },
         orderBy: { id: 'desc' }
       })
@@ -924,6 +927,9 @@ export const getAllPastExams = async (req: Request, res: Response) => {
       level: exam.course?.level?.name || 'Inconnu',
       major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
       year: exam.year,
+      path: exam.path,
+      isVerified: exam.isVerified,
+      annexeCount: exam.annexe?.length || 0
     }));
 
     const totalPages = Math.ceil(totalCount / pageSize);
