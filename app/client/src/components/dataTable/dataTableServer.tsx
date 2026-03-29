@@ -7,7 +7,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -182,14 +182,34 @@ export function DataTableServer<TData, TValue>({
                   />
                 </TableHead>
                 {headerGroup.headers.map((header) => {
+                  const isSorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort()
+                  
                   return (
-                    <TableHead key={header.id} className="font-semibold text-foreground">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                    <TableHead 
+                      key={header.id} 
+                      className={`font-semibold text-foreground ${canSort ? 'cursor-pointer hover:bg-muted/50 transition-colors select-none' : ''}`}
+                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    >
+                      <div className="flex items-center gap-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                        {canSort && (
+                          <span className="inline-flex">
+                            {isSorted === 'asc' ? (
+                              <ArrowDown className="h-4 w-4 text-primary" />
+                            ) : isSorted === 'desc' ? (
+                              <ArrowUp className="h-4 w-4 text-primary" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-muted-foreground opacity-50" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </TableHead>
                   )
                 })}

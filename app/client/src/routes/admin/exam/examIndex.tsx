@@ -35,6 +35,7 @@ export function ExamIndex() {
     handlePageChange, 
     handlePageSizeChange, 
     handleSearchChange, 
+    handleSortChange,
     setData, 
     refetch 
   } = usePaginatedData<Exam>({
@@ -290,6 +291,7 @@ export function ExamIndex() {
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             onSearchChange={handleSearchChange}
+            onSortChange={handleSortChange}
             onRowSelectionChange={setSelectedRows}
             searchKey="course"
             searchPlaceholder="Rechercher par cours ou type d'examen..."

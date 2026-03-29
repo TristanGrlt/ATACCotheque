@@ -24,16 +24,19 @@ export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): C
   {
     accessorKey: 'year',
     header: 'Année',
+    enableSorting: true,
     cell: ({ row }) => <span className="font-semibold text-sm">{row.original.year}</span>,
   },
   {
     accessorKey: 'major',
     header: 'Spécialité',
+    enableSorting: true,
     cell: ({ row }) => <span className="text-sm">{row.original.major}</span>,
   },
   {
     accessorKey: 'level',
     header: 'Niveau',
+    enableSorting: true,
     cell: ({ row }) => (
       <Badge variant="outline" className="text-xs">
         {row.original.level}
@@ -43,6 +46,7 @@ export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): C
   {
     accessorKey: 'type',
     header: 'Type',
+    enableSorting: true,
     cell: ({ row }) => (
       <Badge variant="secondary" className="text-xs">
         {row.original.type}
@@ -52,6 +56,7 @@ export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): C
   {
     accessorKey: 'course',
     header: 'Cours',
+    enableSorting: true,
     cell: ({ row }) => <span className="text-sm font-medium">{row.original.course}</span>,
   },
   {
@@ -80,6 +85,7 @@ export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): C
   {
     id: 'annexes',
     header: 'Annexes',
+    enableSorting: true,
     cell: ({ row }) => (
       <div className="flex items-center gap-2 text-sm">
         <FileStack className="h-4 w-4 opacity-60" />
