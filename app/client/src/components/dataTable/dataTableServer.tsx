@@ -208,7 +208,7 @@ export function DataTableServer<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-blue-50"
+                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-accent/70 data-[state=selected]:text-accent-foreground"
                 >
                   {/* Checkbox Cell */}
                   <TableCell className="w-12">
