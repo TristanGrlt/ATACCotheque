@@ -1,10 +1,12 @@
 import { Outlet, useLocation, Link } from "react-router-dom";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { NAVBAR_ITEMS } from "@/config/navbarConfig";
 
 export function NavbarLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const lastTouchRef = useRef<Record<string, number>>({});
 
   const isActive = (url: string) => {
     if (url === "/") {
@@ -12,6 +14,21 @@ export function NavbarLayout() {
     }
     return currentPath.startsWith(url);
   };
+
+  const handleTouchDouble =
+    (itemUrl: string, onDoubleClick?: () => void) =>
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType !== "touch") return;
+      const now = Date.now();
+      const lastTap = lastTouchRef.current[itemUrl] ?? 0;
+
+      if (now - lastTap < 350) {
+        onDoubleClick?.();
+        lastTouchRef.current[itemUrl] = 0;
+      } else {
+        lastTouchRef.current[itemUrl] = now;
+      }
+    };
 
   return (
     <div className="relative min-h-screen">
@@ -35,6 +52,7 @@ export function NavbarLayout() {
                 variant={active ? "default" : "ghost"}
                 title={item.title}
                 onDoubleClick={item.onDoubleClick}
+                onPointerDown={handleTouchDouble(item.url, item.onDoubleClick)}
               >
                 <IconComponent className="w-6 h-6" />
               </Button>
