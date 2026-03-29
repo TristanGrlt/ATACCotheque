@@ -924,8 +924,7 @@ export const getAllPastExams = async (req: Request, res: Response) => {
               parcours: { 
                 select: { 
                   majors: { select: { name: true } } 
-                },
-                take: 1
+                }
               }
             }
           },
@@ -935,17 +934,22 @@ export const getAllPastExams = async (req: Request, res: Response) => {
       })
     ]);
 
-    const formattedExams = exams.map((exam) => ({
-      id: exam.id,
-      course: exam.course?.name || 'Inconnu',
-      type: exam.examtype?.name || 'Inconnu',
-      level: exam.course?.level?.name || 'Inconnu',
-      major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
-      year: exam.year,
-      path: exam.path,
-      isVerified: exam.isVerified,
-      annexeCount: exam.annexe?.length || 0
-    }));
+    const formattedExams = exams.map((exam) => {
+      const allMajors = exam.course?.parcours?.flatMap((parcours) => parcours.majors) || [];
+      const uniqueMajorNames = [...new Set(allMajors.map((major) => major.name))];
+
+      return {
+        id: exam.id,
+        course: exam.course?.name || 'Inconnu',
+        type: exam.examtype?.name || 'Inconnu',
+        level: exam.course?.level?.name || 'Inconnu',
+        major: uniqueMajorNames.join(', ') || 'Non défini',
+        year: exam.year,
+        path: exam.path,
+        isVerified: exam.isVerified,
+        annexeCount: exam.annexe?.length || 0
+      };
+    });
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

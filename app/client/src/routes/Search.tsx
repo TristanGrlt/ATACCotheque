@@ -546,14 +546,16 @@ export function Search() {
             variants={{ hidden: {}, visible: {} }}
           >
             {results.map((hit, index) => {
-              // Safely extract major name without using 'any'
+              // Use all majors to avoid implying a single-major ownership for multi-major courses.
+              const majorNames = hit.majors?.map((major) => major.name) ?? [];
               const majorName =
-                hit.majors && hit.majors.length > 0
-                  ? hit.majors[0].name
+                majorNames.length > 0
+                  ? majorNames.join(", ")
                   : hit.major || "default";
 
-              // Safely extract icon name without using 'any'
-              const majorIconName = hit.majorIcon;
+              // For multi-major documents, render a neutral icon instead of a possibly misleading single-major icon.
+              const majorIconName =
+                majorNames.length > 1 ? undefined : hit.majorIcon;
 
               const colors = getColorFromId(majorName);
               const IconComponent = getIconByName(majorIconName);
