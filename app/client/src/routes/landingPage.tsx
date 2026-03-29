@@ -18,23 +18,8 @@ import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { useTheme } from "../components/theme-provider";
 import { apiRequest } from "../services/api";
-import { getIconByName } from "../config/icons";
-
-const colorPalettes = [
-  "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400",
-  "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400",
-  "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400",
-  "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400",
-  "bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400",
-  "bg-cyan-50 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400",
-  "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400",
-  "bg-pink-50 dark:bg-pink-950 text-pink-600 dark:text-pink-400",
-];
-
-const getColorFromId = (key: string) => {
-  const hash = key.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colorPalettes[hash % colorPalettes.length];
-};
+// Importer les fonctions depuis le fichier de configuration
+import { getIconByName, getColorFromId } from "../config/icons";
 
 type Stats = {
   subjects: Subject[];

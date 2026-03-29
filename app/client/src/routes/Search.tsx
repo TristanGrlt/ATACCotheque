@@ -37,16 +37,23 @@ const client = new MeiliSearch({
   apiKey: MEILI_API_KEY,
 });
 
+// Added strictly typed nested major to avoid using 'any'
+interface MajorData {
+  name: string;
+  icon: string | null;
+}
+
 interface SearchResult {
   id: string;
   course: string;
   type?: string;
   level: string;
-  major: string;
+  major?: string;
   parcours: string;
   majorIcon?: string;
   year: number;
   title?: string;
+  majors?: MajorData[]; // The array Meilisearch likely returns based on your facets
 }
 
 interface SearchResultFormatted {
@@ -157,7 +164,6 @@ export function Search() {
           (prevParams) => {
             const nextParams = new URLSearchParams(prevParams);
             if (query) {
-              // <-- Retrait du .trim() ici
               nextParams.set("q", query);
             } else {
               nextParams.delete("q");
@@ -319,7 +325,6 @@ export function Search() {
             type="text"
             value={query}
             onChange={(e) => {
-              // On met juste à jour le state local immédiatement pour la fluidité
               setQuery(e.target.value);
               setPage(1);
             }}
@@ -519,10 +524,17 @@ export function Search() {
             className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity ${isSearching ? "opacity-70" : "opacity-100"}`}
           >
             {results.map((hit) => {
-              // Generate color based on major
-              const colors = getColorFromId(hit.major || "default");
-              // Get icon based on majorIcon field
-              const IconComponent = getIconByName(hit.majorIcon);
+              // Safely extract major name without using 'any'
+              const majorName =
+                hit.majors && hit.majors.length > 0
+                  ? hit.majors[0].name
+                  : hit.major || "default";
+
+              // Safely extract icon name without using 'any'
+              const majorIconName = hit.majorIcon;
+
+              const colors = getColorFromId(majorName);
+              const IconComponent = getIconByName(majorIconName);
 
               return (
                 <Link
