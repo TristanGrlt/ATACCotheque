@@ -150,7 +150,7 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
           if (annexeFile.mimetype === "application/pdf") {
             const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
             const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
-            const optionalFilePath = path.join(uploadDir, optFilename);
+            const optionalFilePath = path.join(courseDir, optFilename);
             fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
 
             await prisma.annexe.create({
@@ -488,20 +488,17 @@ export const updateAnnale = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Annale introuvable." });
     }
 
+    const safeCourseId = parseInt(courseId).toString();
+    if (isNaN(parseInt(courseId))) {
+      return res.status(400).json({ message: "Erreur id cours" });
+    }
+    const courseDir = path.join(uploadDir, safeCourseId);
+    if (!fs.existsSync(courseDir)) fs.mkdirSync(courseDir, { recursive: true });
+
     let mainFilePath = existingExam.path;
 
     if (files && files["file"] && files["file"].length > 0) {
       const mainFile = files["file"][0];
-
-      if (!fs.existsSync(uploadDir))
-        fs.mkdirSync(uploadDir, { recursive: true });
-      const safeCourseId = parseInt(courseId).toString();
-      if (isNaN(parseInt(courseId))) {
-        return res.status(400).json({ message: "Erreur id cours" });
-      }
-      const courseDir = path.join(uploadDir, safeCourseId);
-      if (!fs.existsSync(courseDir))
-        fs.mkdirSync(courseDir, { recursive: true });
 
       if (
         mainFile.mimetype !== "application/pdf" ||
@@ -612,7 +609,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
             const annexeFile = files[annexe.fileKey][0];
             const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
             const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
-            const optionalFilePath = path.join(uploadDir, optFilename);
+            const optionalFilePath = path.join(courseDir, optFilename);
             fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
 
             await prisma.annexe.update({
@@ -666,7 +663,7 @@ export const updateAnnale = async (req: Request, res: Response) => {
           const annexeFile = files[annexe.fileKey][0];
           const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
           const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
-          const optionalFilePath = path.join(uploadDir, optFilename);
+          const optionalFilePath = path.join(courseDir, optFilename);
           fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
 
           await prisma.annexe.create({
