@@ -363,8 +363,6 @@ const releaseImportLock = () => {
 
 const resetSequences = async (tx: typeof prisma) => {
   const tables = [
-    "Role",
-    "UserRole",
     "Major",
     "Level",
     "Parcours",
@@ -440,19 +438,7 @@ export const restoreExportArchive = async (exportId: number) => {
   try {
     await extract();
 
-    const [
-      users,
-      roles,
-      userRoles,
-      majors,
-      levels,
-      parcours,
-      courses,
-      examTypes,
-    ] = await Promise.all([
-      readCsvFile(path.join(dataDir, "users.csv")),
-      readCsvFile(path.join(dataDir, "roles.csv")),
-      readCsvFile(path.join(dataDir, "user_roles.csv")),
+    const [majors, levels, parcours, courses, examTypes] = await Promise.all([
       readCsvFile(path.join(dataDir, "majors.csv")),
       readCsvFile(path.join(dataDir, "levels.csv")),
       readCsvFile(path.join(dataDir, "parcours.csv")),
@@ -460,14 +446,10 @@ export const restoreExportArchive = async (exportId: number) => {
       readCsvFile(path.join(dataDir, "exam_types.csv")),
     ]);
 
-    const [pastExams, annexes, webCreds, webChallenges, passkeyChallenges] =
-      await Promise.all([
-        readCsvFile(path.join(dataDir, "past_exams.csv")),
-        readCsvFile(path.join(dataDir, "annexes.csv")),
-        readCsvFile(path.join(dataDir, "webauthn_credentials.csv")),
-        readCsvFile(path.join(dataDir, "webauthn_challenges.csv")),
-        readCsvFile(path.join(dataDir, "passkey_login_challenges.csv")),
-      ]);
+    const [pastExams, annexes] = await Promise.all([
+      readCsvFile(path.join(dataDir, "past_exams.csv")),
+      readCsvFile(path.join(dataDir, "annexes.csv")),
+    ]);
 
     const rawJoinTables = await Promise.all(
       RAW_TABLES.map(async (table) => ({
@@ -478,49 +460,8 @@ export const restoreExportArchive = async (exportId: number) => {
 
     await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
-        'TRUNCATE TABLE "User", "Role", "Major", "Level", "Parcours", "Course", "ExamType", "PastExam", "Annexe", "WebAuthnCredential", "WebAuthnChallenge", "PasskeyLoginChallenge" RESTART IDENTITY CASCADE',
+        'TRUNCATE TABLE "Major", "Level", "Parcours", "Course", "ExamType", "PastExam", "Annexe" RESTART IDENTITY CASCADE',
       );
-
-      if (roles.length) {
-        await tx.role.createMany({
-          data: roles.map((r) => ({
-            id: asInt(r.id),
-            name: asString(r.name),
-            color: asString(r.color),
-            permissions: asJsonArray(r.permissions) as any,
-          })),
-        });
-      }
-
-      if (users.length) {
-        await tx.user.createMany({
-          data: users.map((u) => ({
-            id: asString(u.id),
-            username: asString(u.username),
-            password: asString(u.password),
-            passwordChangeRequired: asBool(u.passwordChangeRequired),
-            mfaSetupRequired: asBool(u.mfaSetupRequired),
-            mfaMethod: asNullableString(u.mfaMethod),
-            mfaEnabled: asBool(u.mfaEnabled),
-            totpSecret: asNullableString(u.totpSecret),
-            totpBackupCodes: asJsonArray(u.totpBackupCodes) as string[],
-            lastPasswordChange: asDateOrNull(u.lastPasswordChange),
-            mfaSetupDate: asDateOrNull(u.mfaSetupDate),
-            createdAt: asDateOrNull(u.createdAt) ?? new Date(),
-            updatedAt: asDateOrNull(u.updatedAt) ?? new Date(),
-          })),
-        });
-      }
-
-      if (userRoles.length) {
-        await tx.userRole.createMany({
-          data: userRoles.map((ur) => ({
-            id: asInt(ur.id),
-            userId: asString(ur.userId),
-            roleId: asInt(ur.roleId),
-          })),
-        });
-      }
 
       if (majors.length) {
         await tx.major.createMany({
@@ -614,43 +555,6 @@ export const restoreExportArchive = async (exportId: number) => {
             url: asNullableString(a.url),
             pastExamId: asInt(a.pastExamId),
             isVerified: asBool(a.isVerified),
-          })),
-        });
-      }
-
-      if (webCreds.length) {
-        await tx.webAuthnCredential.createMany({
-          data: webCreds.map((cred) => ({
-            id: asString(cred.id),
-            userId: asString(cred.userId),
-            publicKey: asBuffer(cred.publicKey),
-            counter: asBigInt(cred.counter),
-            deviceType: asString(cred.deviceType),
-            backedUp: asBool(cred.backedUp),
-            transports: asJsonArray(cred.transports) as string[],
-            name: asString(cred.name),
-            createdAt: asDateOrNull(cred.createdAt) ?? new Date(),
-            lastUsedAt: asDateOrNull(cred.lastUsedAt),
-          })),
-        });
-      }
-
-      if (webChallenges.length) {
-        await tx.webAuthnChallenge.createMany({
-          data: webChallenges.map((ch) => ({
-            userId: asString(ch.userId),
-            challenge: asString(ch.challenge),
-            expiresAt: asDateOrNull(ch.expiresAt) ?? new Date(),
-          })),
-        });
-      }
-
-      if (passkeyChallenges.length) {
-        await tx.passkeyLoginChallenge.createMany({
-          data: passkeyChallenges.map((ch) => ({
-            id: asString(ch.id),
-            challenge: asString(ch.challenge),
-            expiresAt: asDateOrNull(ch.expiresAt) ?? new Date(),
           })),
         });
       }
