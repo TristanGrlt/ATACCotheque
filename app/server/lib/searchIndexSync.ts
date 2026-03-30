@@ -97,11 +97,16 @@ function parseAliases(rawAliases?: string | null): string[] {
 function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
   const firstParcours = exam.course?.parcours?.[0];
   const parcoursName = firstParcours?.name || "Non defini";
-  const majors = firstParcours?.majors || [];
-  const firstMajor = majors[0];
+  const firstMajor = firstParcours?.majors?.[0];
   const majorName = firstMajor?.name || "Non defini";
   const majorIcon = firstMajor?.icon || "Book";
   const aliases = parseAliases(exam.course?.aliases);
+
+  // Collect ALL majors from ALL parcours (fixes multi-parcours issue)
+  const allMajors = exam.course?.parcours?.flatMap((p) => p.majors) || [];
+  const uniqueMajors = Array.from(
+    new Map(allMajors.map((m) => [m.name, m])).values(),
+  );
 
   return {
     id: exam.id,
@@ -110,7 +115,7 @@ function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
     type: exam.examtype?.name || "Inconnu",
     level: exam.course?.level?.name || "Inconnu",
     majorName: majorName,
-    majors: majors.map((m) => ({ name: m.name })),
+    majors: uniqueMajors.map((m) => ({ name: m.name })),  // ← All majors now!
     parcours: parcoursName,
     majorIcon: majorIcon,
     isVerified: exam.isVerified,

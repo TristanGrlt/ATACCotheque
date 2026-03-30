@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MEILI_HOST, MEILI_API_KEY } from "@/config/env";
-import { getColorFromId, getIconByName } from "@/config/icons";
+import { getIconByName } from "@/config/icons";
 
 const client = new MeiliSearch({
   host: MEILI_HOST,
@@ -79,6 +79,26 @@ const sectionMotion = {
   transition: { duration: 0.35 },
   viewport: { once: true, amount: 0.2 },
 };
+
+const STACK_ICON_COLORS = [
+  "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700",
+  "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-100 dark:border-emerald-700",
+  "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900 dark:text-amber-100 dark:border-amber-700",
+  "bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900 dark:text-violet-100 dark:border-violet-700",
+  "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900 dark:text-rose-100 dark:border-rose-700",
+  "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900 dark:text-cyan-100 dark:border-cyan-700",
+];
+
+function getStackIconColor(key: string): string {
+  if (!key) return STACK_ICON_COLORS[0];
+
+  const hash = key.split("").reduce((acc, char) => {
+    const hashVal = (acc << 5) - acc + char.charCodeAt(0);
+    return hashVal | 0;
+  }, 0);
+
+  return STACK_ICON_COLORS[Math.abs(hash) % STACK_ICON_COLORS.length];
+}
 
 function renderHighlightedText(value?: string): ReactNode {
   if (!value) {
@@ -546,17 +566,15 @@ export function Search() {
             variants={{ hidden: {}, visible: {} }}
           >
             {results.map((hit, index) => {
-              // Safely extract major name without using 'any'
-              const majorName =
-                hit.majors && hit.majors.length > 0
-                  ? hit.majors[0].name
-                  : hit.major || "default";
+              // Use all majors to avoid implying a single-major ownership for multi-major courses.
+              const majorNames = hit.majors?.map((major) => major.name) ?? [];
 
-              // Safely extract icon name without using 'any'
-              const majorIconName = hit.majorIcon;
-
-              const colors = getColorFromId(majorName);
-              const IconComponent = getIconByName(majorIconName);
+              // Build a compact icon stack and expand it on hover for multi-major courses.
+              const iconNames = (majorNames.length > 0
+                ? majorNames
+                : [hit.major || "default"]
+              ).slice(0, 3);
+              const remainingIcons = Math.max(0, majorNames.length - iconNames.length);
               return (
                 <motion.div
                   key={hit.id}
@@ -575,10 +593,35 @@ export function Search() {
                       {/* --- En-tête de la carte --- */}
                       <div className="flex items-start gap-3 ">
                         {/* Icône colorée dynamique */}
-                        <div
-                          className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors duration-200 ${colors}`}
-                        >
-                          <IconComponent className="w-5 h-5" />
+                        <div className="relative w-12 h-11 shrink-0">
+                          {iconNames.map((name, iconIndex) => {
+                            const IconComponent = getIconByName(name);
+                            const iconColors = getStackIconColor(name);
+
+                            return (
+                              <div
+                                key={`${hit.id}-${name}-${iconIndex}`}
+                                className={`absolute w-9 h-9 rounded-lg flex items-center justify-center border shadow-md ring-1 ring-background transition-all duration-150 ease-out ${iconColors} ${
+                                  iconIndex === 0
+                                    ? "z-30"
+                                    : iconIndex === 1
+                                      ? "z-20 group-hover:translate-x-3 group-hover:-translate-y-1"
+                                      : "z-10 group-hover:translate-x-6 group-hover:-translate-y-2"
+                                }`}
+                                style={{
+                                  left: `${iconIndex * 6}px`,
+                                  top: `${iconIndex * 2}px`,
+                                }}
+                              >
+                                <IconComponent className="w-4 h-4" />
+                              </div>
+                            );
+                          })}
+                          {remainingIcons > 0 && (
+                            <div className="absolute -right-1 -bottom-1 z-40 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center border border-background">
+                              +{remainingIcons}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0 pt-0.5">

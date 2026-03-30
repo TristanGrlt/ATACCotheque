@@ -7,8 +7,9 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -121,8 +122,8 @@ export function DataTableServer<TData, TValue>({
   }, [rowSelection, onRowSelectionChange, table])
 
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4">
+    <div className="w-full space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {searchKey && (
           <Input
             placeholder={searchPlaceholder}
@@ -134,8 +135,8 @@ export function DataTableServer<TData, TValue>({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Colonnes <ChevronDown />
+            <Button variant="outline" size="sm" className="ml-auto">
+              Colonnes <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -162,20 +163,53 @@ export function DataTableServer<TData, TValue>({
         </DropdownMenu>
       </div>
       
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-hidden rounded-lg border border-border/50">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="border-b bg-muted/50 hover:bg-muted/70 transition-colors">
+                {/* Checkbox Header */}
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      table.getIsAllPageRowsSelected() ||
+                      (table.getIsSomePageRowsSelected() && "indeterminate")
+                    }
+                    onCheckedChange={(value) =>
+                      table.toggleAllPageRowsSelected(!!value)
+                    }
+                    aria-label="Sélectionner tous"
+                  />
+                </TableHead>
                 {headerGroup.headers.map((header) => {
+                  const isSorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort()
+                  
                   return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                    <TableHead 
+                      key={header.id} 
+                      className={`font-semibold text-foreground ${canSort ? 'cursor-pointer hover:bg-muted/50 transition-colors select-none' : ''}`}
+                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    >
+                      <div className="flex items-center gap-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                        {canSort && (
+                          <span className="inline-flex">
+                            {isSorted === 'asc' ? (
+                              <ArrowDown className="h-4 w-4 text-primary" />
+                            ) : isSorted === 'desc' ? (
+                              <ArrowUp className="h-4 w-4 text-primary" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-muted-foreground opacity-50" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </TableHead>
                   )
                 })}
@@ -185,7 +219,7 @@ export function DataTableServer<TData, TValue>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center">
                   Chargement...
                 </TableCell>
               </TableRow>
@@ -194,9 +228,18 @@ export function DataTableServer<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-accent/70 data-[state=selected]:text-accent-foreground"
                 >
+                  {/* Checkbox Cell */}
+                  <TableCell className="w-12">
+                    <Checkbox
+                      checked={row.getIsSelected()}
+                      onCheckedChange={(value) => row.toggleSelected(!!value)}
+                      aria-label={`Sélectionner la ligne ${row.id}`}
+                    />
+                  </TableCell>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3 transition-colors">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -207,7 +250,7 @@ export function DataTableServer<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length + 1} className="h-24 text-center text-muted-foreground">
                   Aucun résultat.
                 </TableCell>
               </TableRow>
@@ -216,62 +259,65 @@ export function DataTableServer<TData, TValue>({
         </Table>
       </div>
       
-      <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-muted-foreground text-sm">
+      <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
           {table.getFilteredSelectedRowModel().rows.length > 0 ? (
             <>
-              {table.getFilteredSelectedRowModel().rows.length} sur{" "}
-              {pagination.totalCount} ligne{pagination.totalCount > 1 ? 's' : ''} sélectionnée{table.getFilteredSelectedRowModel().rows.length > 1 ? 's' : ''}
+              {table.getFilteredSelectedRowModel().rows.length}/{pagination.totalCount} sélectionné{table.getFilteredSelectedRowModel().rows.length > 1 ? 's' : ''}
             </>
           ) : (
             <>
-              {pagination.totalCount} résultat{pagination.totalCount > 1 ? 's' : ''} au total
+              {pagination.totalCount} résultat{pagination.totalCount > 1 ? 's' : ''}
             </>
           )}
         </div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 lg:gap-8">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Lignes par page</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 overflow-x-auto">
+          <div className="flex items-center space-x-2 whitespace-nowrap">
+            <p className="text-xs sm:text-sm font-medium">Par page:</p>
             <Select
-              value={`${pagination.pageSize}`}
+              value={String(pagination.pageSize || 20)}
               onValueChange={(value) => {
                 onPageSizeChange(Number(value))
-                onPageChange(1) // Retour à la page 1
+                onPageChange(1)
               }}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-8 w-17.5">
-                <SelectValue placeholder={pagination.pageSize} />
+              <SelectTrigger className="h-8 w-[84px] px-2 text-left">
+                <SelectValue placeholder="20" />
               </SelectTrigger>
               <SelectContent side="top">
                 {[10, 20, 30, 40, 50, 100].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
+                  <SelectItem key={pageSize} value={String(pageSize)}>
                     {pageSize}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center justify-center text-sm font-medium">
-            Page {pagination.page} sur {pagination.totalPages}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(pagination.page - 1)}
-              disabled={!pagination.hasPreviousPage || isLoading}
-            >
-              Précédent
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage || isLoading}
-            >
-              Suivant
-            </Button>
+          <div className="flex items-center justify-between sm:justify-center gap-2 whitespace-nowrap">
+            <div className="text-xs sm:text-sm font-medium text-muted-foreground">
+              {pagination.page}/{pagination.totalPages}
+            </div>
+            <div className="flex items-center space-x-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page - 1)}
+                disabled={!pagination.hasPreviousPage || isLoading}
+                className="text-xs"
+              >
+                Précédent
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page + 1)}
+                disabled={!pagination.hasNextPage || isLoading}
+                className="text-xs"
+              >
+                Suivant
+              </Button>
+            </div>
           </div>
         </div>
       </div>

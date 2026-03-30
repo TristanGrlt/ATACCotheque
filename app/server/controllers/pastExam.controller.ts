@@ -879,6 +879,8 @@ export const getAllPastExams = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || "";
+    const sortBy = (req.query.sortBy as string) || "id";
+    const sortOrder = (req.query.sortOrder as string) === 'asc' ? 'asc' : 'desc';
     const skip = (page - 1) * pageSize;
 
     const whereClause = search ? {
@@ -887,6 +889,19 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         { examtype: { name: { contains: search, mode: 'insensitive' as const } } }
       ]
     } : {};
+
+    // Map frontend field names to Prisma fields
+    const sortFieldMap: Record<string, any> = {
+      year: { year: sortOrder },
+      major: { course: { parcours: { majors: { name: sortOrder } } } },
+      level: { course: { level: { name: sortOrder } } },
+      type: { examtype: { name: sortOrder } },
+      course: { course: { name: sortOrder } },
+      annexes: { annexe: { _count: sortOrder } },
+      id: { id: sortOrder },
+    };
+
+    const orderBy = sortFieldMap[sortBy] || { id: sortOrder };
 
     const [totalCount, exams] = await Promise.all([
       prisma.pastExam.count({ where: whereClause }),
@@ -897,6 +912,8 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         select: {
           id: true,
           year: true,
+          path: true,
+          isVerified: true,
           examtype: {
             select: { name: true }
           },
@@ -907,24 +924,32 @@ export const getAllPastExams = async (req: Request, res: Response) => {
               parcours: { 
                 select: { 
                   majors: { select: { name: true } } 
-                },
-                take: 1
+                }
               }
             }
           },
+          annexe: true,
         },
-        orderBy: { id: 'desc' }
+        orderBy
       })
     ]);
 
-    const formattedExams = exams.map((exam) => ({
-      id: exam.id,
-      course: exam.course?.name || 'Inconnu',
-      type: exam.examtype?.name || 'Inconnu',
-      level: exam.course?.level?.name || 'Inconnu',
-      major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
-      year: exam.year,
-    }));
+    const formattedExams = exams.map((exam) => {
+      const allMajors = exam.course?.parcours?.flatMap((parcours) => parcours.majors) || [];
+      const uniqueMajorNames = [...new Set(allMajors.map((major) => major.name))];
+
+      return {
+        id: exam.id,
+        course: exam.course?.name || 'Inconnu',
+        type: exam.examtype?.name || 'Inconnu',
+        level: exam.course?.level?.name || 'Inconnu',
+        major: uniqueMajorNames.join(', ') || 'Non défini',
+        year: exam.year,
+        path: exam.path,
+        isVerified: exam.isVerified,
+        annexeCount: exam.annexe?.length || 0
+      };
+    });
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
