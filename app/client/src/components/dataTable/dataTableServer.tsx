@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import {
   type ColumnDef,
   type SortingState,
@@ -6,25 +6,25 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table"
-import { ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+} from "@tanstack/react-table";
+import { ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,29 +32,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 export interface PaginationState {
-  page: number
-  pageSize: number
-  totalCount: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 interface DataTableServerProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  pagination: PaginationState
-  searchKey?: string
-  searchPlaceholder?: string
-  onPageChange: (page: number) => void
-  onPageSizeChange: (pageSize: number) => void
-  onSearchChange: (search: string) => void
-  onSortChange?: (sortBy: string, sortOrder: 'asc' | 'desc') => void
-  onRowSelectionChange?: (selectedRows: TData[]) => void
-  isLoading?: boolean
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  pagination: PaginationState;
+  searchKey?: string;
+  searchPlaceholder?: string;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onSearchChange: (search: string) => void;
+  onSortChange?: (sortBy: string, sortOrder: "asc" | "desc") => void;
+  onRowSelectionChange?: (selectedRows: TData[]) => void;
+  isLoading?: boolean;
 }
 
 export function DataTableServer<TData, TValue>({
@@ -70,34 +70,35 @@ export function DataTableServer<TData, TValue>({
   onRowSelectionChange,
   isLoading = false,
 }: DataTableServerProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [searchInput, setSearchInput] = React.useState("")
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [searchInput, setSearchInput] = React.useState("");
 
   // Debounce pour la recherche (évite trop de requêtes)
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      onSearchChange(searchInput)
-    }, 500) // 500ms de délai
+      onSearchChange(searchInput);
+    }, 500); // 500ms de délai
 
-    return () => clearTimeout(timer)
-  }, [searchInput, onSearchChange])
+    return () => clearTimeout(timer);
+  }, [searchInput, onSearchChange]);
 
   // Gestion du tri
   React.useEffect(() => {
     if (sorting.length > 0 && onSortChange) {
-      const { id, desc } = sorting[0]
-      onSortChange(id, desc ? 'desc' : 'asc')
+      const { id, desc } = sorting[0];
+      onSortChange(id, desc ? "desc" : "asc");
     }
-  }, [sorting, onSortChange])
+  }, [sorting, onSortChange]);
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true, // Important : pagination manuelle
-    manualSorting: true,    // Important : tri manuel
+    manualSorting: true, // Important : tri manuel
     pageCount: pagination.totalPages,
     state: {
       sorting,
@@ -112,14 +113,16 @@ export function DataTableServer<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
-  })
+  });
 
   React.useEffect(() => {
     if (onRowSelectionChange) {
-      const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)
-      onRowSelectionChange(selectedRows)
+      const selectedRows = table
+        .getFilteredSelectedRowModel()
+        .rows.map((row) => row.original);
+      onRowSelectionChange(selectedRows);
     }
-  }, [rowSelection, onRowSelectionChange, table])
+  }, [rowSelection, onRowSelectionChange, table]);
 
   return (
     <div className="w-full space-y-4">
@@ -156,18 +159,21 @@ export function DataTableServer<TData, TValue>({
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
-                  )
+                  );
                 })}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
+
       <div className="overflow-hidden rounded-lg border border-border/50">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-b bg-muted/50 hover:bg-muted/70 transition-colors">
+              <TableRow
+                key={headerGroup.id}
+                className="border-b bg-muted/50 hover:bg-muted/70 transition-colors"
+              >
                 {/* Checkbox Header */}
                 <TableHead className="w-12">
                   <Checkbox
@@ -182,27 +188,31 @@ export function DataTableServer<TData, TValue>({
                   />
                 </TableHead>
                 {headerGroup.headers.map((header) => {
-                  const isSorted = header.column.getIsSorted()
-                  const canSort = header.column.getCanSort()
-                  
+                  const isSorted = header.column.getIsSorted();
+                  const canSort = header.column.getCanSort();
+
                   return (
-                    <TableHead 
-                      key={header.id} 
-                      className={`font-semibold text-foreground ${canSort ? 'cursor-pointer hover:bg-muted/50 transition-colors select-none' : ''}`}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    <TableHead
+                      key={header.id}
+                      className={`font-semibold text-foreground ${canSort ? "cursor-pointer hover:bg-muted/50 transition-colors select-none" : ""}`}
+                      onClick={
+                        canSort
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                     >
                       <div className="flex items-center gap-2">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                         {canSort && (
                           <span className="inline-flex">
-                            {isSorted === 'asc' ? (
+                            {isSorted === "asc" ? (
                               <ArrowDown className="h-4 w-4 text-primary" />
-                            ) : isSorted === 'desc' ? (
+                            ) : isSorted === "desc" ? (
                               <ArrowUp className="h-4 w-4 text-primary" />
                             ) : (
                               <ArrowUpDown className="h-4 w-4 text-muted-foreground opacity-50" />
@@ -211,7 +221,7 @@ export function DataTableServer<TData, TValue>({
                         )}
                       </div>
                     </TableHead>
-                  )
+                  );
                 })}
               </TableRow>
             ))}
@@ -219,7 +229,10 @@ export function DataTableServer<TData, TValue>({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center"
+                >
                   Chargement...
                 </TableCell>
               </TableRow>
@@ -242,7 +255,7 @@ export function DataTableServer<TData, TValue>({
                     <TableCell key={cell.id} className="py-3 transition-colors">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -250,7 +263,10 @@ export function DataTableServer<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length + 1}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Aucun résultat.
                 </TableCell>
               </TableRow>
@@ -258,16 +274,19 @@ export function DataTableServer<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
           {table.getFilteredSelectedRowModel().rows.length > 0 ? (
             <>
-              {table.getFilteredSelectedRowModel().rows.length}/{pagination.totalCount} sélectionné{table.getFilteredSelectedRowModel().rows.length > 1 ? 's' : ''}
+              {table.getFilteredSelectedRowModel().rows.length}/
+              {pagination.totalCount} sélectionné
+              {table.getFilteredSelectedRowModel().rows.length > 1 ? "s" : ""}
             </>
           ) : (
             <>
-              {pagination.totalCount} résultat{pagination.totalCount > 1 ? 's' : ''}
+              {pagination.totalCount} résultat
+              {pagination.totalCount > 1 ? "s" : ""}
             </>
           )}
         </div>
@@ -277,12 +296,12 @@ export function DataTableServer<TData, TValue>({
             <Select
               value={String(pagination.pageSize || 20)}
               onValueChange={(value) => {
-                onPageSizeChange(Number(value))
-                onPageChange(1)
+                onPageSizeChange(Number(value));
+                onPageChange(1);
               }}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-8 w-[84px] px-2 text-left">
+              <SelectTrigger className="h-8 w-21 px-2 text-left">
                 <SelectValue placeholder="20" />
               </SelectTrigger>
               <SelectContent side="top">
@@ -322,5 +341,5 @@ export function DataTableServer<TData, TValue>({
         </div>
       </div>
     </div>
-  )
+  );
 }
