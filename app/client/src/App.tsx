@@ -23,6 +23,7 @@ import { Pedago } from "./routes/admin/pedago/pedago.tsx";
 import Dashboard from "./routes/admin/dashboard/dashboard.tsx";
 import { NavbarLayout } from "./components/navbar.tsx";
 import { Contact } from "./routes/contact.tsx";
+import { ImportExport } from "./routes/admin/importExport/importExport.tsx";
 
 function App() {
   const { isLoading } = useAuth();
@@ -92,6 +93,15 @@ function App() {
             }
           >
             <Route path="users" element={<UserIndex />} />
+          </Route>
+          <Route
+            element={
+              <PermissionRoute
+                requiredPermissions={[PERMISSIONS.MANAGE_IMPORT_EXPORT]}
+              />
+            }
+          >
+            <Route path="import-export" element={<ImportExport />} />
           </Route>
         </Route>
       </Route>

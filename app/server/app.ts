@@ -12,6 +12,7 @@ import levelRouter from "./routes/level.route.js";
 import parcoursRouter from "./routes/parcours.route.js";
 import examTypeRouter from "./routes/examType.route.js";
 import courseRouter from "./routes/course.route.js";
+import exportRouter from "./routes/export.route.js";
 
 import cookieParser from "cookie-parser";
 import pastExam from "./routes/pastExam.route.js";
@@ -48,6 +49,7 @@ app.use("/parcours", parcoursRouter);
 app.use("/course", courseRouter);
 app.use("/examType", examTypeRouter);
 app.use("/pastExam", pastExam);
+app.use("/export", exportRouter);
 
 // JWT_SECRET
 if (!process.env.JWT_SECRET) {

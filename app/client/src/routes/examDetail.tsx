@@ -290,11 +290,11 @@ export function ExamDetail() {
       <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 font-sans flex flex-col items-center px-4">
         <div className="w-full max-w-2xl space-y-6">
           <Button
-            onClick={() => navigate("/search")}
+            onClick={() => navigate(-1)}
             variant="ghost"
             className="gap-2 -ml-2 mb-4 hover:bg-background/50"
           >
-            <ArrowLeft className="h-4 w-4" /> Retour à la recherche
+            <ArrowLeft className="h-4 w-4" /> Retour
           </Button>
           <Alert
             variant="destructive"
@@ -327,11 +327,11 @@ export function ExamDetail() {
       <div className="w-full max-w-300 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Button
-            onClick={() => navigate("/search")}
+            onClick={() => navigate(-1)}
             variant="ghost"
             className="gap-2 -ml-2 w-fit hover:bg-background/50 rounded-full"
           >
-            <ArrowLeft className="h-4 w-4" /> Retour à la recherche
+            <ArrowLeft className="h-4 w-4" /> Retour
           </Button>
           {canManageAnnales && (
             <Button
