@@ -18,20 +18,17 @@ const uploadDir = process.env.UPLOAD_DIR || "/app/files";
 
 async function recreatepdf(pdfBuffer: Buffer): Promise<Uint8Array> {
   const oldPdf = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  if (oldPdf.getPageCount() > 500) {
+    throw new Error("PDF trop volumineux");
+  }
   const newPdf = await PDFDocument.create();
   const pageIndices = oldPdf.getPageIndices();
+
   const copiedPages = await newPdf.copyPages(oldPdf, pageIndices);
   copiedPages.forEach((page) => newPdf.addPage(page));
 
-  let oldTitle = oldPdf.getTitle();
-  if (oldTitle == undefined) {
-    oldTitle = "";
-  }
-
-  let oldAuthor = oldPdf.getAuthor();
-  if (oldAuthor == undefined) {
-    oldAuthor = "";
-  }
+  const oldTitle = oldPdf.getTitle() || "";
+  const oldAuthor = oldPdf.getAuthor() || "";
   newPdf.setTitle("Ataccothèque " + oldTitle);
   newPdf.setAuthor(oldAuthor);
   newPdf.setProducer("Générateur Sécurisé ataccothèque");
@@ -45,7 +42,9 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const files = (req as MulterRequest).files;
 
     if (!courseId || !examTypeId || !year) {
-      return res.status(400).json({ message: "Les champs courseId, examTypeId et year sont obligatoires." });
+      return res.status(400).json({
+        message: "Les champs courseId, examTypeId et year sont obligatoires.",
+      });
     }
 
     const parsedCourseId = parseInt(courseId, 10);
@@ -53,19 +52,25 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const parsedYear = parseInt(year, 10);
 
     if (isNaN(parsedCourseId) || isNaN(parsedExamTypeId) || isNaN(parsedYear)) {
-      return res.status(400).json({ message: "courseId, examTypeId et year doivent etre valides." });
+      return res.status(400).json({
+        message: "courseId, examTypeId et year doivent etre valides.",
+      });
     }
 
     if (!files || !files["file"] || files["file"].length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Le fichier principal est manquant (multipart/form-data attendu)." });
+      return res.status(400).json({
+        message:
+          "Le fichier principal est manquant (multipart/form-data attendu).",
+      });
     }
 
     const mainFile = files["file"][0];
 
-
-    const courseDir = path.join(uploadDir, String(parsedCourseId));
+    const safeCourseId = parseInt(courseId).toString();
+    if (isNaN(parseInt(courseId))) {
+      return res.status(400).json({ message: "Erreur id cours" });
+    }
+    const courseDir = path.join(uploadDir, safeCourseId);
     if (!fs.existsSync(courseDir)) {
       fs.mkdirSync(courseDir, { recursive: true });
     }
@@ -85,8 +90,22 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const safeMainPdfBytes = await recreatepdf(mainFile.buffer);
     const mainFilename = `file-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
     const mainFilePath = path.join(courseDir, mainFilename);
-    fs.writeFileSync(mainFilePath, safeMainPdfBytes);
-
+    let newPastExam;
+    try {
+      newPastExam = await prisma.pastExam.create({
+        data: {
+          path: mainFilePath,
+          year: parseInt(year),
+          courseId: parseInt(courseId),
+          examTypeId: parseInt(examTypeId),
+          isVerified: false,
+        },
+      });
+      fs.writeFileSync(mainFilePath, safeMainPdfBytes);
+    } catch (e) {
+      if (fs.existsSync(mainFilePath)) fs.unlinkSync(mainFilePath);
+      throw e;
+    }
     let annexesList: any[] = [];
     if (annexes_metadata) {
       try {
@@ -97,23 +116,21 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
           .json({ message: "Format des annexes invalide." });
       }
     }
-    const newPastExam = await prisma.pastExam.create({
-      data: {
-        path: mainFilePath,
-        year: parsedYear,
-        courseId: parsedCourseId,
-        examTypeId: parsedExamTypeId,
-        isVerified: false,
-      },
-    });
 
-    // 5. Boucle sur la liste dynamique des annexes
     for (const annexe of annexesList) {
       if (annexe.type === "url" && annexe.url) {
-        // Enregistrement d'une annexe de type URL
+        try {
+          const allowedUrl = new URL(annexe.url);
+
+          if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+            return res.status(400).json({ message: "URL non autorisée." });
+          }
+        } catch (e) {
+          return res.status(400).json({ message: "Format de l'URL invalide." });
+        }
         await prisma.annexe.create({
           data: {
-            name: annexe.comment || "Lien externe",
+            name: annexe.comment?.slice(0, 200) || "Lien externe",
             type: "URL",
             url: annexe.url,
             pastExamId: newPastExam.id,
@@ -138,7 +155,7 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
 
             await prisma.annexe.create({
               data: {
-                name: annexe.comment || "Document annexe",
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
                 type: "FILE",
                 path: optionalFilePath,
                 pastExamId: newPastExam.id,
@@ -178,8 +195,18 @@ export const getPastExamToReview = async (req: Request, res: Response) => {
         },
       },
       where: {
-        isVerified: false,
+        OR: [
+          { isVerified: false },
+          {
+            annexe: {
+              some: {
+                isVerified: false,
+              },
+            },
+          },
+        ],
       },
+      distinct: ["id"],
     });
 
     const simplified = result.map(({ course, ...exam }) => ({
@@ -257,21 +284,31 @@ export const getFileInvalid = async (req: Request, res: Response) => {
 
     const courseName = result.course?.name ?? "inconnu";
     const examType = result.examtype?.name ?? "inconnu";
+    // ... (le début de ta fonction reste identique jusqu'à la définition du downloadName)
     const downloadName = `Ataccothèque_${courseName}_${examType}_${result.year}.pdf`;
 
+    // 1. Nettoyer le chemin issu de la BDD (ex: "files/3/file-123.pdf")
+    let dbPath = result.path;
+    if (dbPath.startsWith("../files")) {
+      dbPath = dbPath.replace("../files", "files");
+    }
+
+    // 2. Créer le chemin absolu réel pour le conteneur (ex: "/app/files/3/file-123.pdf")
+    const realPath = path.resolve(process.cwd(), dbPath);
+    const EXAMS_ROOT = path.resolve(process.cwd(), "files"); // "/app/files"
+
     // Protection path traversal
-    const normalizedDbPath = normalizeDbFilePath(result.path);
-    const realPath = path.resolve(normalizedDbPath);
-    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+    if (!realPath.startsWith(EXAMS_ROOT)) {
       return res.status(403).json({ error: "Accès non autorisé" });
     }
 
     res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
 
     if (process.env.NODE_ENV === "production") {
-      // Nginx attend un chemin absolu configuré via un alias interne
-      // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
-      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      // 3. Extraire le chemin relatif pour Nginx (ex: "/files/3/file-123.pdf")
+      // process.cwd() vaut "/app", on l'enlève de la chaîne
+      const nginxPath = realPath.replace(process.cwd(), "");
+
       res.setHeader("X-Accel-Redirect", nginxPath);
       res.end();
     } else {
@@ -312,7 +349,7 @@ export const getExamById = async (req: Request, res: Response) => {
     where: { id: parsedId },
   });
   if (!result) {
-    return res.status(404).json({ erreur: "id invalide" })
+    return res.status(404).json({ erreur: "id invalide" });
   }
 
   return res.json(result);
@@ -333,10 +370,66 @@ export const getAnnexeById = async (req: Request, res: Response) => {
     where: {
       pastExamId: parsedId,
     },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      url: true,
+      isVerified: true,
+    },
   });
 
   return res.json(result);
 };
+
+async function serveAnnexeFile(
+  res: Response,
+  annexeId: number,
+  requireVerified: boolean = false,
+) {
+  const result = await prisma.annexe.findUnique({
+    select: {
+      id: true,
+      path: true,
+      name: true,
+      ...(requireVerified && { isVerified: true }),
+    },
+    where: { id: annexeId },
+  });
+
+  if (!result || (requireVerified && !result.isVerified)) {
+    return res.status(404).json({ error: "Fichier introuvable" });
+  }
+
+  if (!result.path) {
+    return res.status(404).json({ error: "Fichier introuvable" });
+  }
+
+  const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
+
+  // Protection path traversal
+  const normalizedDbPath = normalizeDbFilePath(result.path);
+  const realPath = path.resolve(normalizedDbPath);
+  if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
+    return res.status(403).json({ error: "Accès non autorisé" });
+  }
+
+  res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
+
+  if (process.env.NODE_ENV === "production") {
+    // Nginx is configured with internal location /files mapped to /app/files.
+    const nginxPath = realPath.replace(EXAMS_ROOT, "/files");
+    res.setHeader("X-Accel-Redirect", nginxPath);
+    res.end();
+  } else {
+    res.sendFile(realPath, (err) => {
+      if (err) {
+        console.error("Erreur de téléchargement en dev:", err);
+        if (!res.headersSent) res.status(500).send("Erreur de fichier");
+      }
+    });
+  }
+}
 
 export const getAnnexeFile = async (req: Request, res: Response) => {
   try {
@@ -350,48 +443,30 @@ export const getAnnexeFile = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Id manquant ou invalide" });
     }
 
-    const result = await prisma.annexe.findUnique({
-      select: {
-        id: true,
-        path: true,
-        name: true,
-      },
-      where: { id: parsedId },
-    });
-
-    if (!result) {
-      return res.status(404).json({ error: "Fichier introuvable" });
-    }
-
-    const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
-    if (!result.path) {
-      return res.status(404).json({ error: "Fichier introuvable" });
-    }
-    // Protection path traversal
-    const normalizedDbPath = normalizeDbFilePath(result.path);
-    const realPath = path.resolve(normalizedDbPath);
-    if (!realPath.startsWith(path.resolve(EXAMS_ROOT))) {
-      return res.status(403).json({ error: "Accès non autorisé" });
-    }
-
-    res.setHeader("Content-Disposition", `inline; filename="${downloadName}"`);
-
-    if (process.env.NODE_ENV === "production") {
-      // Nginx attend un chemin absolu configuré via un alias interne
-      // Exemple de config Nginx : location /protected-files/ { internal; alias /app/files/; }
-      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
-      res.setHeader("X-Accel-Redirect", nginxPath);
-      res.end();
-    } else {
-      res.sendFile(realPath, (err) => {
-        if (err) {
-          console.error("Erreur de téléchargement en dev:", err);
-          if (!res.headersSent) res.status(500).send("Erreur de fichier");
-        }
-      });
-    }
+    await serveAnnexeFile(res, parsedId, false);
   } catch (error) {
     console.error("Erreur lors de la récupération du fichier:", error);
+    return res
+      .status(500)
+      .json({ error: "Erreur lors de la récupération du fichier" });
+  }
+};
+
+export const getPublicAnnexeFile = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || Array.isArray(id)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+    const parsedId = parseInt(id, 10);
+    if (isNaN(parsedId)) {
+      return res.status(400).json({ error: "Id manquant ou invalide" });
+    }
+
+    await serveAnnexeFile(res, parsedId, true);
+  } catch (error) {
+    console.error("Erreur lors de la récupération du fichier public:", error);
     return res
       .status(500)
       .json({ error: "Erreur lors de la récupération du fichier" });
@@ -418,12 +493,23 @@ export const updateAnnale = async (req: Request, res: Response) => {
     if (files && files["file"] && files["file"].length > 0) {
       const mainFile = files["file"][0];
 
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-      const courseDir = path.join(uploadDir, courseId);
-      if (!fs.existsSync(courseDir)) fs.mkdirSync(courseDir, { recursive: true });
+      if (!fs.existsSync(uploadDir))
+        fs.mkdirSync(uploadDir, { recursive: true });
+      const safeCourseId = parseInt(courseId).toString();
+      if (isNaN(parseInt(courseId))) {
+        return res.status(400).json({ message: "Erreur id cours" });
+      }
+      const courseDir = path.join(uploadDir, safeCourseId);
+      if (!fs.existsSync(courseDir))
+        fs.mkdirSync(courseDir, { recursive: true });
 
-      if (mainFile.mimetype !== "application/pdf" || !mainFile.buffer.slice(0, 4).toString("utf8").startsWith("%PDF")) {
-        return res.status(400).json({ message: "Le fichier principal n'est pas un PDF valide." });
+      if (
+        mainFile.mimetype !== "application/pdf" ||
+        !mainFile.buffer.slice(0, 4).toString("utf8").startsWith("%PDF")
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Le fichier principal n'est pas un PDF valide." });
       }
 
       if (mainFilePath && fs.existsSync(mainFilePath)) {
@@ -452,15 +538,24 @@ export const updateAnnale = async (req: Request, res: Response) => {
       try {
         annexesList = JSON.parse(annexes_metadata);
       } catch (e) {
-        return res.status(400).json({ message: "Format des annexes invalide." });
+        return res
+          .status(400)
+          .json({ message: "Format des annexes invalide." });
       }
     }
 
-    const incomingIds = annexesList.map((a: any) => a.id).filter(Boolean).map(Number);
+    const incomingIds = annexesList
+      .map((a: any) => a.id)
+      .filter(Boolean)
+      .map(Number);
 
     for (const oldAnnexe of existingExam.annexe) {
       if (!incomingIds.includes(oldAnnexe.id)) {
-        if (oldAnnexe.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+        if (
+          oldAnnexe.type === "FILE" &&
+          oldAnnexe.path &&
+          fs.existsSync(oldAnnexe.path)
+        ) {
           fs.unlinkSync(oldAnnexe.path);
         }
         await prisma.annexe.delete({ where: { id: oldAnnexe.id } });
@@ -470,19 +565,48 @@ export const updateAnnale = async (req: Request, res: Response) => {
     for (const annexe of annexesList) {
       if (annexe.id) {
         const annexeId = parseInt(annexe.id);
-        const oldAnnexe = existingExam.annexe.find(a => a.id === annexeId);
+        const oldAnnexe = existingExam.annexe.find((a) => a.id === annexeId);
 
         if (annexe.type === "URL") {
-          if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+          if (
+            oldAnnexe?.type === "FILE" &&
+            oldAnnexe.path &&
+            fs.existsSync(oldAnnexe.path)
+          ) {
             fs.unlinkSync(oldAnnexe.path);
+          }
+          try {
+            const allowedUrl = new URL(annexe.url);
+
+            if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+              return res.status(400).json({ message: "URL non autorisée." });
+            }
+          } catch (e) {
+            return res
+              .status(400)
+              .json({ message: "Format de l'URL invalide." });
           }
           await prisma.annexe.update({
             where: { id: annexeId },
-            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, path: null, isVerified: true },
+            data: {
+              name: annexe.comment?.slice(0, 200) || "Lien externe",
+              type: "URL",
+              url: annexe.url,
+              path: null,
+              isVerified: true,
+            },
           });
         } else if (annexe.type === "FILE") {
-          if (annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
-            if (oldAnnexe?.type === "FILE" && oldAnnexe.path && fs.existsSync(oldAnnexe.path)) {
+          if (
+            annexe.fileKey &&
+            files[annexe.fileKey] &&
+            files[annexe.fileKey].length > 0
+          ) {
+            if (
+              oldAnnexe?.type === "FILE" &&
+              oldAnnexe.path &&
+              fs.existsSync(oldAnnexe.path)
+            ) {
               fs.unlinkSync(oldAnnexe.path);
             }
             const annexeFile = files[annexe.fileKey][0];
@@ -493,21 +617,52 @@ export const updateAnnale = async (req: Request, res: Response) => {
 
             await prisma.annexe.update({
               where: { id: annexeId },
-              data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, url: null, isVerified: true },
+              data: {
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
+                type: "FILE",
+                path: optionalFilePath,
+                url: null,
+                isVerified: true,
+              },
             });
           } else {
             await prisma.annexe.update({
               where: { id: annexeId },
-              data: { name: annexe.comment || "Document annexe", isVerified: true },
+              data: {
+                name: annexe.comment?.slice(0, 200) || "Document annexe",
+                isVerified: true,
+              },
             });
           }
         }
       } else {
         if (annexe.type === "URL" && annexe.url) {
+          try {
+            const allowedUrl = new URL(annexe.url);
+
+            if (!["http:", "https:"].includes(allowedUrl.protocol)) {
+              return res.status(400).json({ message: "URL non autorisée." });
+            }
+          } catch (e) {
+            return res
+              .status(400)
+              .json({ message: "Format de l'URL invalide." });
+          }
           await prisma.annexe.create({
-            data: { name: annexe.comment || "Lien externe", type: "URL", url: annexe.url, pastExamId: parsedExamId, isVerified: true },
+            data: {
+              name: annexe.comment?.slice(0, 200) || "Lien externe",
+              type: "URL",
+              url: annexe.url,
+              pastExamId: parsedExamId,
+              isVerified: true,
+            },
           });
-        } else if (annexe.type === "FILE" && annexe.fileKey && files[annexe.fileKey] && files[annexe.fileKey].length > 0) {
+        } else if (
+          annexe.type === "FILE" &&
+          annexe.fileKey &&
+          files[annexe.fileKey] &&
+          files[annexe.fileKey].length > 0
+        ) {
           const annexeFile = files[annexe.fileKey][0];
           const safeOptPdfBytes = await recreatepdf(annexeFile.buffer);
           const optFilename = `annexe-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`;
@@ -515,15 +670,22 @@ export const updateAnnale = async (req: Request, res: Response) => {
           fs.writeFileSync(optionalFilePath, safeOptPdfBytes);
 
           await prisma.annexe.create({
-            data: { name: annexe.comment || "Document annexe", type: "FILE", path: optionalFilePath, pastExamId: parsedExamId, isVerified: true },
+            data: {
+              name: annexe.comment?.slice(0, 200) || "Document annexe",
+              type: "FILE",
+              path: optionalFilePath,
+              pastExamId: parsedExamId,
+              isVerified: true,
+            },
           });
         }
       }
     }
     await upsertVerifiedExamDocument(prisma, parsedExamId);
 
-    return res.status(200).json({ message: "Annale validée et indexée avec succès" });
-
+    return res
+      .status(200)
+      .json({ message: "Annale validée et indexée avec succès" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur serveur" });
@@ -550,7 +712,7 @@ export const deletePastExam = async (req: Request, res: Response) => {
     }
 
     await prisma.annexe.deleteMany({
-      where: { pastExamId: examId }
+      where: { pastExamId: examId },
     });
 
     await prisma.pastExam.delete({
@@ -559,13 +721,15 @@ export const deletePastExam = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: "Annale supprimée avec succès" });
 
-
     const safeDeleteFile = (filePath: string | null) => {
       if (filePath && fs.existsSync(filePath)) {
         try {
           fs.unlinkSync(filePath);
         } catch (fsError) {
-          console.warn(`Impossible de supprimer le fichier ${filePath} :`, fsError);
+          console.warn(
+            `Impossible de supprimer le fichier ${filePath} :`,
+            fsError,
+          );
         }
       }
     };
@@ -580,9 +744,10 @@ export const deletePastExam = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("====== ERREUR LORS DE LA SUPPRESSION ======");
     console.error(error);
-    // Si les headers sont déjà envoyés (si l'erreur a lieu après res.json), on ne renvoie pas d'erreur
     if (!res.headersSent) {
-      return res.status(500).json({ error: "Erreur serveur lors de la suppression" });
+      return res
+        .status(500)
+        .json({ error: "Erreur serveur lors de la suppression" });
     }
   }
 };
@@ -590,10 +755,14 @@ export const deletePastExam = async (req: Request, res: Response) => {
 export const rebuildSearchIndex = async (_req: Request, res: Response) => {
   try {
     await rebuildExamsIndex(prisma);
-    return res.status(200).json({ message: "Index Meilisearch resynchronisé avec succes" });
+    return res
+      .status(200)
+      .json({ message: "Index Meilisearch resynchronisé avec succes" });
   } catch (error) {
     console.error("Erreur lors de la reconstruction de l'index:", error);
-    return res.status(500).json({ error: "Erreur serveur lors de la reconstruction de l'index" });
+    return res
+      .status(500)
+      .json({ error: "Erreur serveur lors de la reconstruction de l'index" });
   }
 };
 
@@ -617,23 +786,44 @@ export const getPublicExam = async (req: Request, res: Response) => {
     const exam = await prisma.pastExam.findUnique({
       where: {
         id: parsedId,
-        isVerified: true // SECURITY: Only return if validated
+        isVerified: true, // SECURITY: Only return if validated
       },
-      include: {
-        examtype: true,
-        annexe: true,
+      select: {
+        id: true,
+        year: true,
+        examtype: {
+          select: { id: true, name: true },
+        },
+        annexe: {
+          where: { isVerified: true },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            url: true,
+          },
+        },
         course: {
-          include: {
-            level: true,
+          select: {
+            id: true,
+            name: true,
+            level: { select: { id: true, name: true } },
             parcours: {
-              include: { majors: true }
-            }
-          }
-        }
-      }
+              select: {
+                id: true,
+                name: true,
+                majors: { select: { id: true, name: true, icon: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!exam) return res.status(404).json({ error: "Annale introuvable ou non vérifiée" });
+    if (!exam)
+      return res
+        .status(404)
+        .json({ error: "Annale introuvable ou non vérifiée" });
 
     return res.json(exam);
   } catch (err) {
@@ -663,9 +853,9 @@ export const getPublicFile = async (req: Request, res: Response) => {
     const exam = await prisma.pastExam.findUnique({
       where: {
         id: parsedId,
-        isVerified: true // SECURITY: Only serve validated files
+        isVerified: true, // SECURITY: Only serve validated files
       },
-      select: { path: true, year: true, course: { select: { name: true } } }
+      select: { path: true, year: true, course: { select: { name: true } } },
     });
 
     if (!exam) return res.status(404).json({ error: "Fichier introuvable" });
@@ -683,7 +873,7 @@ export const getPublicFile = async (req: Request, res: Response) => {
 
     // Use the optimized Nginx/Express send method like in getFileInvalid
     if (process.env.NODE_ENV === "production") {
-      const nginxPath = realPath.replace(EXAMS_ROOT, "/protected-files");
+      const nginxPath = realPath.replace(EXAMS_ROOT, "/files");
       res.setHeader("X-Accel-Redirect", nginxPath);
       res.end();
     } else {
@@ -701,14 +891,40 @@ export const getAllPastExams = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || "";
+    const sortBy = (req.query.sortBy as string) || "id";
+    const sortOrder =
+      (req.query.sortOrder as string) === "asc" ? "asc" : "desc";
     const skip = (page - 1) * pageSize;
 
-    const whereClause = search ? {
-      OR: [
-        { course: { name: { contains: search, mode: 'insensitive' as const } } },
-        { examtype: { name: { contains: search, mode: 'insensitive' as const } } }
-      ]
-    } : {};
+    const whereClause = search
+      ? {
+          OR: [
+            {
+              course: {
+                name: { contains: search, mode: "insensitive" as const },
+              },
+            },
+            {
+              examtype: {
+                name: { contains: search, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {};
+
+    // Map frontend field names to Prisma fields
+    const sortFieldMap: Record<string, any> = {
+      year: { year: sortOrder },
+      major: { course: { name: sortOrder } },
+      level: { course: { level: { name: sortOrder } } },
+      type: { examtype: { name: sortOrder } },
+      course: { course: { name: sortOrder } },
+      annexes: { annexe: { _count: sortOrder } },
+      id: { id: sortOrder },
+    };
+
+    const orderBy = sortFieldMap[sortBy] || { id: sortOrder };
 
     const [totalCount, exams] = await Promise.all([
       prisma.pastExam.count({ where: whereClause }),
@@ -716,28 +932,50 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: pageSize,
-        include: {
-          course: {
-            include: {
-              level: true,
-              parcours: { include: { majors: true } }
-            }
+        select: {
+          id: true,
+          year: true,
+          path: true,
+          isVerified: true,
+          examtype: {
+            select: { name: true },
           },
-          examtype: true,
+          course: {
+            select: {
+              name: true,
+              level: { select: { name: true } },
+              parcours: {
+                select: {
+                  majors: { select: { name: true } },
+                },
+              },
+            },
+          },
+          annexe: true,
         },
-        orderBy: { id: 'desc' }
-      })
+        orderBy,
+      }),
     ]);
 
-    const formattedExams = exams.map((exam) => ({
-      id: exam.id,
-      course: exam.course?.name || 'Inconnu',
-      type: exam.examtype?.name || 'Inconnu',
-      level: exam.course?.level?.name || 'Inconnu',
-      major: exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non défini',
-      year: exam.year,
-      path: exam.path
-    }));
+    const formattedExams = exams.map((exam) => {
+      const allMajors =
+        exam.course?.parcours?.flatMap((parcours) => parcours.majors) || [];
+      const uniqueMajorNames = [
+        ...new Set(allMajors.map((major) => major.name)),
+      ];
+
+      return {
+        id: exam.id,
+        course: exam.course?.name || "Inconnu",
+        type: exam.examtype?.name || "Inconnu",
+        level: exam.course?.level?.name || "Inconnu",
+        major: uniqueMajorNames.join(", ") || "Non défini",
+        year: exam.year,
+        path: exam.path,
+        isVerified: exam.isVerified,
+        annexeCount: exam.annexe?.length || 0,
+      };
+    });
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -749,12 +987,11 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         totalCount,
         totalPages,
         hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1
-      }
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (error) {
     console.error("Erreur getAllPastExams:", error);
     return res.status(500).json({ error: "Erreur serveur" });
   }
 };
-

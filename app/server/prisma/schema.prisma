@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  // output        = "../generated/prisma"
+  binaryTargets = ["native", "linux-musl"]
 }
 
 datasource db {
@@ -93,10 +94,8 @@ model Role {
 
 enum AppPermission {
   MANAGE_USERS
-  MANAGE_ROLES
-  REVIEW_ANNALES
-  MANAGE_ANNALES
   MANAGE_PEDAGO
+  MANAGE_EXAMS
 }
 
 model UserRole {

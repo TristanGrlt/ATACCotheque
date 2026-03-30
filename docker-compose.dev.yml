@@ -71,8 +71,9 @@ services:
     container_name: ataccotheque-frontend-dev
     environment:
       VITE_API_ENDPOINT: http://localhost:3000
-      VITE_MEILI_HOST: ${VITE_MEILI_HOST:-http://localhost:7700}
-      VITE_MEILI_API_KEY: ${VITE_MEILI_API_KEY}
+      VITE_MEILI_HOST: http://localhost:7700
+      # VITE_MEILI_API_KEY: ${VITE_MEILI_API_KEY}
+      MEILI_MASTER_KEY: devMasterKey
     ports:
       - "5173:5173"
     volumes:
@@ -80,8 +81,10 @@ services:
       - /app/node_modules
     depends_on:
       - backend
+      - meilisearch
     networks:
       - ataccotheque-dev-network
+    entrypoint: ["/bin/sh", "/app/entrypoint-dev.sh"]
     command: bun run dev
 
 volumes:

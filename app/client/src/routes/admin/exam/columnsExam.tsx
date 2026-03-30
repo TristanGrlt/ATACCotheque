@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Pencil, Trash2, ExternalLink } from "lucide-react"
+import { Pencil, Trash2, Check, AlertCircle, FileStack } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 export type Exam = {
   id: number
@@ -10,38 +11,88 @@ export type Exam = {
   major: string
   year: number
   path: string
+  isVerified: boolean
+  annexeCount: number
 }
 
 type ColumnActions = {
-  onEdit: (exam: Exam) => void
   onDelete: (exam: Exam) => void
   onOpenDetails: (exam: Exam) => void
 }
 
-export const createColumnsExam = ({ onEdit, onDelete, onOpenDetails }: ColumnActions): ColumnDef<Exam>[] => [
+export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): ColumnDef<Exam>[] => [
   {
-    accessorKey: 'id',
-    header: 'ID',
-  },
-  {
-    accessorKey: 'course',
-    header: 'Cours',
-  },
-  {
-    accessorKey: 'type',
-    header: 'Type',
-  },
-  {
-    accessorKey: 'level',
-    header: 'Niveau',
+    accessorKey: 'year',
+    header: 'Année',
+    enableSorting: true,
+    cell: ({ row }) => <span className="font-semibold text-sm">{row.original.year}</span>,
   },
   {
     accessorKey: 'major',
     header: 'Spécialité',
+    enableSorting: true,
+    cell: ({ row }) => <span className="text-sm">{row.original.major}</span>,
   },
   {
-    accessorKey: 'year',
-    header: 'Année',
+    accessorKey: 'level',
+    header: 'Niveau',
+    enableSorting: true,
+    cell: ({ row }) => (
+      <Badge variant="outline" className="text-xs">
+        {row.original.level}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'type',
+    header: 'Type',
+    enableSorting: true,
+    cell: ({ row }) => (
+      <Badge variant="secondary" className="text-xs">
+        {row.original.type}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'course',
+    header: 'Cours',
+    enableSorting: true,
+    cell: ({ row }) => <span className="text-sm font-medium">{row.original.course}</span>,
+  },
+  {
+    id: 'status',
+    header: 'État',
+    cell: ({ row }) => {
+      const isVerified = row.original.isVerified
+      return (
+        <div className="flex items-center gap-2">
+          {isVerified ? (
+            <Badge className="bg-green-500/20 text-green-700 border-green-200 flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Vérifié
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-200 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              En attente
+            </Badge>
+          )}
+        </div>
+      )
+    },
+    enableSorting: false,
+  },
+  {
+    id: 'annexes',
+    header: 'Annexes',
+    enableSorting: true,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2 text-sm">
+        <FileStack className="h-4 w-4 opacity-60" />
+        <span className="font-medium">{row.original.annexeCount}</span>
+      </div>
+    ),
+    accessorFn: (row) => row.annexeCount,
   },
   {
     id: 'actions',
@@ -53,26 +104,22 @@ export const createColumnsExam = ({ onEdit, onDelete, onOpenDetails }: ColumnAct
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onEdit(exam)}
-            title="Modifier"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
             onClick={() => onOpenDetails(exam)}
             title="Gérer les fichiers et annexes"
+            className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
           >
-            <ExternalLink className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2 text-xs">Gérer</span>
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onDelete(exam)}
             title="Supprimer"
+            className="hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2 text-xs">Supprimer</span>
           </Button>
         </div>
       )

@@ -1,5 +1,5 @@
-import { MeiliSearch } from 'meilisearch';
-import type { Prisma } from '../generated/prisma/client.js';
+import { MeiliSearch } from "meilisearch";
+import type { Prisma } from "@prisma/client";
 
 type SearchSyncPrisma = {
   pastExam: {
@@ -15,9 +15,11 @@ type ExamSource = {
   examtype: { name: string } | null;
   course: {
     name: string;
+    aliases: string | null;
     level: { name: string } | null;
     parcours: Array<{
-      majors: Array<{ name: string }>;
+      name: string;
+      majors: Array<{ name: string; icon: string | null }>;
     }>;
   } | null;
   annexe: Array<{
@@ -35,58 +37,104 @@ interface ExamSearchDocument {
   course: string;
   type: string;
   level: string;
-  major: string;
-  path: string;
+  majorName: string;
+  majors: Array<{ name: string; icon: string | null }>;
+  parcours: string;
   isVerified: boolean;
+  aliases: string[];
   annexes: Array<{
-    id: number;
     name: string;
-    type: string;
-    url: string | null;
   }>;
 }
 
-const host = process.env.MEILI_HOST || 'http://meilisearch:7700';
-const apiKey = process.env.MEILI_MASTER_KEY || 'devMasterKey';
+const host = process.env.MEILI_HOST || "http://meilisearch:7700";
+const apiKey = process.env.MEILI_MASTER_KEY || "devMasterKey";
 
 const meiliClient = new MeiliSearch({
   host,
   apiKey,
 });
 
-const examsIndex = meiliClient.index('exams');
+const examsIndex = meiliClient.index("exams");
+
+let settingsEnsured = false;
+
+async function ensureExamsIndexSettings(): Promise<void> {
+  if (settingsEnsured) {
+    return;
+  }
+
+  await examsIndex.updateSettings({
+    filterableAttributes: ["level", "majors.name", "parcours", "year", "type"],
+    sortableAttributes: ["year"],
+    searchableAttributes: [
+      "course",
+      "type",
+      "level",
+      "majors.name",
+      "parcours",
+      "aliases",
+    ],
+  });
+
+  settingsEnsured = true;
+}
+
+function parseAliases(rawAliases?: string | null): string[] {
+  if (!rawAliases) return [];
+
+  const uniqueAliases = new Set(
+    rawAliases
+      .split(",")
+      .map((alias) => alias.trim())
+      .filter((alias) => alias.length > 0),
+  );
+
+  return Array.from(uniqueAliases);
+}
 
 function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
-  const majorName = exam.course?.parcours?.[0]?.majors?.[0]?.name || 'Non defini';
+  const firstParcours = exam.course?.parcours?.[0];
+  const parcoursName = firstParcours?.name || "Non defini";
+  const firstMajor = firstParcours?.majors?.[0];
+  const majorName = firstMajor?.name || "Non defini";
+  const aliases = parseAliases(exam.course?.aliases);
+
+  // Collect ALL majors from ALL parcours (fixes multi-parcours issue)
+  const allMajors = exam.course?.parcours?.flatMap((p) => p.majors) || [];
+  const uniqueMajors = Array.from(
+    new Map(allMajors.map((m) => [m.name, m])).values(),
+  );
 
   return {
     id: exam.id,
     year: exam.year,
-    course: exam.course?.name || 'Inconnu',
-    type: exam.examtype?.name || 'Inconnu',
-    level: exam.course?.level?.name || 'Inconnu',
-    major: majorName,
-    path: exam.path,
+    course: exam.course?.name || "Inconnu",
+    type: exam.examtype?.name || "Inconnu",
+    level: exam.course?.level?.name || "Inconnu",
+    majorName: majorName,
+    majors: uniqueMajors.map((m) => ({ name: m.name, icon: m.icon || null })),
+    parcours: parcoursName,
     isVerified: exam.isVerified,
+    aliases,
     annexes: exam.annexe.map((annexe) => ({
-      id: annexe.id,
       name: annexe.name,
-      type: annexe.type,
-      url: annexe.url || annexe.path,
     })),
   };
 }
 
 async function upsertDocumentsFromExams(
   prisma: SearchSyncPrisma,
-  whereClause: Prisma.PastExamWhereInput
+  whereClause: Prisma.PastExamWhereInput,
 ): Promise<void> {
-  if (typeof prisma.pastExam.findMany !== 'function') {
-    throw new Error('Invalid prisma client: pastExam.findMany is missing.');
+  await ensureExamsIndexSettings();
+
+  if (typeof prisma.pastExam.findMany !== "function") {
+    throw new Error("Invalid prisma client: pastExam.findMany is missing.");
   }
 
   const findMany = prisma.pastExam.findMany as (
-    args: Prisma.PastExamFindManyArgs
+    args: Prisma.PastExamFindManyArgs,
   ) => Promise<unknown>;
 
   const examsResult = await findMany({
@@ -95,11 +143,14 @@ async function upsertDocumentsFromExams(
       examtype: true,
       annexe: true,
       course: {
-        include: {
-          level: true,
+        select: {
+          name: true,
+          aliases: true,
+          level: { select: { name: true } },
           parcours: {
-            include: {
-              majors: true,
+            select: {
+              name: true,
+              majors: { select: { name: true, icon: true } },
             },
           },
         },
@@ -111,11 +162,16 @@ async function upsertDocumentsFromExams(
     return;
   }
 
-  const documents = (examsResult as ExamSource[]).map((exam) => toExamSearchDocument(exam));
+  const documents = (examsResult as ExamSource[]).map((exam) =>
+    toExamSearchDocument(exam),
+  );
   await examsIndex.addDocuments(documents);
 }
 
-export async function upsertVerifiedExamDocument(prisma: SearchSyncPrisma, examId: number): Promise<void> {
+export async function upsertVerifiedExamDocument(
+  prisma: SearchSyncPrisma,
+  examId: number,
+): Promise<void> {
   await upsertDocumentsFromExams(prisma, {
     id: examId,
     isVerified: true,
@@ -132,13 +188,23 @@ export async function syncExamsForUpdatedEntities(
     courseIds?: number[];
     majorIds?: number[];
     examTypeIds?: number[];
-  }
+  },
 ): Promise<void> {
-  const courseIds = (input.courseIds || []).filter((value) => Number.isInteger(value));
-  const majorIds = (input.majorIds || []).filter((value) => Number.isInteger(value));
-  const examTypeIds = (input.examTypeIds || []).filter((value) => Number.isInteger(value));
+  const courseIds = (input.courseIds || []).filter((value) =>
+    Number.isInteger(value),
+  );
+  const majorIds = (input.majorIds || []).filter((value) =>
+    Number.isInteger(value),
+  );
+  const examTypeIds = (input.examTypeIds || []).filter((value) =>
+    Number.isInteger(value),
+  );
 
-  if (courseIds.length === 0 && majorIds.length === 0 && examTypeIds.length === 0) {
+  if (
+    courseIds.length === 0 &&
+    majorIds.length === 0 &&
+    examTypeIds.length === 0
+  ) {
     return;
   }
 
@@ -148,13 +214,24 @@ export async function syncExamsForUpdatedEntities(
       ...(courseIds.length > 0 ? [{ courseId: { in: courseIds } }] : []),
       ...(examTypeIds.length > 0 ? [{ examTypeId: { in: examTypeIds } }] : []),
       ...(majorIds.length > 0
-        ? [{ course: { parcours: { some: { majors: { some: { id: { in: majorIds } } } } } } }]
+        ? [
+            {
+              course: {
+                parcours: {
+                  some: { majors: { some: { id: { in: majorIds } } } },
+                },
+              },
+            },
+          ]
         : []),
     ],
   });
 }
 
-export async function rebuildExamsIndex(prisma: SearchSyncPrisma): Promise<void> {
+export async function rebuildExamsIndex(
+  prisma: SearchSyncPrisma,
+): Promise<void> {
+  await ensureExamsIndexSettings();
   await examsIndex.deleteAllDocuments();
   await upsertDocumentsFromExams(prisma, {
     isVerified: true,

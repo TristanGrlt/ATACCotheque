@@ -66,18 +66,26 @@ export function ParcoursForm({
           <FieldLabel>Filières associées (depuis le référentiel)</FieldLabel>
           <ScrollArea>
             <div className="flex flex-wrap gap-2 max-h-32">
-              {majors.map((major) => (
-                <Toggle
-                  key={major.id}
-                  variant="outline"
-                  pressed={selectedMajorIds.includes(major.id)}
-                  onPressedChange={() => toggleMajor(major.id)}
-                >
-                  <span className={`px-2 py-1 rounded-full text-xs`}>
-                    {major.name}
-                  </span>
-                </Toggle>
-              ))}
+              {majors.map((major) => {
+                const isSelected = selectedMajorIds.includes(major.id);
+                return (
+                  <Toggle
+                    key={major.id}
+                    variant="outline"
+                    pressed={isSelected}
+                    onPressedChange={() => toggleMajor(major.id)}
+                    className={
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : ""
+                    }
+                  >
+                    <span className={`px-2 py-1 rounded-full text-xs`}>
+                      {major.name}
+                    </span>
+                  </Toggle>
+                );
+              })}
             </div>
           </ScrollArea>
         </Field>

@@ -1,5 +1,5 @@
 import prisma from "../lib/prisma.js";
-import { AppPermission } from "../generated/prisma/client.js";
+import { AppPermission } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import "dotenv/config";
 
@@ -17,9 +17,13 @@ async function isFirstStartup() {
 
 async function seedDefaultRoles() {
   const defaultRoles = [
-    { 
-      name: 'Admin', 
-      permissions: ['MANAGE_USERS', 'MANAGE_ROLES', 'REVIEW_ANNALES', 'MANAGE_ANNALES', 'MANAGE_PEDAGO'] as AppPermission[]
+    {
+      name: "Admin",
+      permissions: [
+        "MANAGE_USERS",
+        "MANAGE_EXAMS",
+        "MANAGE_PEDAGO",
+      ] as AppPermission[],
     },
     {
       name: "User",
@@ -91,11 +95,11 @@ async function main() {
 
     await seedDefaultRoles();
     await seedAdminUser();
-    await seedMajor();
-    await seedLevel();
-    await seedParcours();
-    await seedExamType();
-    await seedCourse();
+    // await seedMajor();
+    // await seedLevel();
+    // await seedParcours();
+    // await seedExamType();
+    // await seedCourse();
 
     console.log("\n✨ Seed completed successfully!");
   } else {

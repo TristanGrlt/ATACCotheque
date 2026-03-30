@@ -1,80 +1,50 @@
-"use client"
+"use client";
 
-import { type ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { type ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { UserBadge } from "@/components/userBadge"
+} from "@/components/ui/dropdown-menu";
+import { UserBadge } from "@/components/userBadge";
 
-import type { PermValue } from '@/contexts/AuthContext'
+import type { PermValue } from "@/contexts/AuthContext";
 
 export type Role = {
-  id: number
-  name: string
-  color: string
-  permissions?: PermValue[]
-}
+  id: number;
+  name: string;
+  color: string;
+  permissions?: PermValue[];
+};
 
 type ColumnActions = {
-  onEdit: (user: Role) => void
-  onDelete: (user: Role) => void
-}
+  onEdit: (user: Role) => void;
+  onDelete: (user: Role) => void;
+};
 
-export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Role>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Tout sélectionner"        
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Sélectionner la ligne"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+export const createColumns = ({
+  onEdit,
+  onDelete,
+}: ColumnActions): ColumnDef<Role>[] => [
   {
     accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Rôle
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: "Rôle",
+    enableSorting: true,
     cell: ({ row }) => {
-      const role = row.original
-      return (
-        <UserBadge key={role.id} text={role.name} color={role.color} />
-      )
+      const role = row.original;
+      return <UserBadge key={role.id} text={role.name} color={role.color} />;
     },
   },
   {
     id: "actions",
     enableHiding: false,
+    enableSorting: false,
     cell: ({ row }) => {
-      const role = row.original
+      const role = row.original;
 
       return (
         <DropdownMenu>
@@ -90,7 +60,7 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Ro
               <Pencil />
               Modifier
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => onDelete(role)}
               variant="destructive"
             >
@@ -99,7 +69,7 @@ export const createColumns = ({ onEdit, onDelete }: ColumnActions): ColumnDef<Ro
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      )
+      );
     },
   },
-]
+];

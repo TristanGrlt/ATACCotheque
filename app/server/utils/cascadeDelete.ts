@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { removeExamDocument } from "../lib/searchIndexSync.js";
 import fs from "fs/promises";
 
 /*
@@ -29,6 +30,16 @@ export const deletePastExamWithFiles = async (
   await Promise.all(exam?.annexe.map((a) => deleteFileSafely(a.path)));
   await deleteFileSafely(exam.path);
   await prisma.pastExam.delete({ where: { id: pastExamId } });
+
+  // Sync MeiliSearch
+  try {
+    await removeExamDocument(pastExamId);
+  } catch (error) {
+    console.error(
+      "Meilisearch sync warning after cascade delete pastExam:",
+      error,
+    );
+  }
 };
 
 /*
