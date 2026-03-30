@@ -371,9 +371,7 @@ const releaseImportLock = () => {
   importLock = false;
 };
 
-const resetSequences = async (
-  tx: Pick<typeof prisma, "$executeRawUnsafe">,
-) => {
+const resetSequences = async (tx: Pick<typeof prisma, "$executeRawUnsafe">) => {
   const tables = [
     "Major",
     "Level",
