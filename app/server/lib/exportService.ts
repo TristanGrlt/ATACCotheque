@@ -181,20 +181,11 @@ export const syncExportsFromDisk = async () => {
   }
 };
 
-export const generateFullExport = async () => {
-  await ensureNoRunningExport();
-  await fs.mkdir(EXPORT_ROOT, { recursive: true });
-
-  const filename = formatFilename();
-  const workingDir = path.join(EXPORT_ROOT, `job_${Date.now()}`);
-
-  const job = await prisma.exportJob.create({
-    data: {
-      filename,
-      status: ExportStatus.RUNNING,
-    },
-  });
-
+const runExportJob = async (
+  jobId: number,
+  filename: string,
+  workingDir: string,
+) => {
   try {
     await fs.mkdir(workingDir, { recursive: true });
     const dataDir = path.join(workingDir, "data");
@@ -216,29 +207,48 @@ export const generateFullExport = async () => {
     const { size } = await fs.stat(archivePath);
 
     await prisma.exportJob.update({
-      where: { id: job.id },
+      where: { id: jobId },
       data: {
         status: ExportStatus.SUCCESS,
         sizeBytes: BigInt(size),
         completedAt: new Date(),
       },
     });
-
-    return prisma.exportJob.findUnique({ where: { id: job.id } });
   } catch (error) {
     await prisma.exportJob.update({
-      where: { id: job.id },
+      where: { id: jobId },
       data: {
         status: ExportStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : String(error),
         completedAt: new Date(),
       },
     });
-
     throw error;
   } finally {
     await fs.rm(workingDir, { recursive: true, force: true });
   }
+};
+
+export const generateFullExport = async () => {
+  await ensureNoRunningExport();
+  await fs.mkdir(EXPORT_ROOT, { recursive: true });
+
+  const filename = formatFilename();
+  const workingDir = path.join(EXPORT_ROOT, `job_${Date.now()}`);
+
+  const job = await prisma.exportJob.create({
+    data: {
+      filename,
+      status: ExportStatus.RUNNING,
+    },
+  });
+
+  // Run in background to avoid client/proxy timeouts on long exports.
+  runExportJob(job.id, filename, workingDir).catch((error) => {
+    console.error("Export job failed:", error);
+  });
+
+  return job;
 };
 
 export const getExportFilePath = (filename: string) =>
@@ -361,7 +371,9 @@ const releaseImportLock = () => {
   importLock = false;
 };
 
-const resetSequences = async (tx: typeof prisma) => {
+const resetSequences = async (
+  tx: Pick<typeof prisma, "$executeRawUnsafe">,
+) => {
   const tables = [
     "Major",
     "Level",
