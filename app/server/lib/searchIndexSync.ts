@@ -19,7 +19,7 @@ type ExamSource = {
     level: { name: string } | null;
     parcours: Array<{
       name: string;
-      majors: Array<{ name: string; icon: string }>;
+      majors: Array<{ name: string; icon: string | null }>;
     }>;
   } | null;
   annexe: Array<{
@@ -38,9 +38,8 @@ interface ExamSearchDocument {
   type: string;
   level: string;
   majorName: string;
-  majors: Array<{ name: string }>;
+  majors: Array<{ name: string; icon: string | null }>;
   parcours: string;
-  majorIcon: string;
   isVerified: boolean;
   aliases: string[];
   annexes: Array<{
@@ -99,7 +98,6 @@ function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
   const parcoursName = firstParcours?.name || "Non defini";
   const firstMajor = firstParcours?.majors?.[0];
   const majorName = firstMajor?.name || "Non defini";
-  const majorIcon = firstMajor?.icon || "Book";
   const aliases = parseAliases(exam.course?.aliases);
 
   // Collect ALL majors from ALL parcours (fixes multi-parcours issue)
@@ -115,9 +113,8 @@ function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
     type: exam.examtype?.name || "Inconnu",
     level: exam.course?.level?.name || "Inconnu",
     majorName: majorName,
-    majors: uniqueMajors.map((m) => ({ name: m.name })),  // ← All majors now!
+    majors: uniqueMajors.map((m) => ({ name: m.name, icon: m.icon || null })),
     parcours: parcoursName,
-    majorIcon: majorIcon,
     isVerified: exam.isVerified,
     aliases,
     annexes: exam.annexe.map((annexe) => ({

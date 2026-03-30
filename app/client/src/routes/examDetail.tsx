@@ -1,5 +1,6 @@
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -20,6 +21,26 @@ import { API_ENDPOINT } from "@/config/env";
 import { useAuth } from "@/contexts/AuthContext";
 import { PERMISSIONS } from "@/config/permissions";
 import { getIconByName } from "@/config/icons";
+
+const STACK_ICON_COLORS = [
+  "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700",
+  "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-100 dark:border-emerald-700",
+  "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900 dark:text-amber-100 dark:border-amber-700",
+  "bg-violet-100 text-violet-700 border-violet-300 dark:bg-violet-900 dark:text-violet-100 dark:border-violet-700",
+  "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900 dark:text-rose-100 dark:border-rose-700",
+  "bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900 dark:text-cyan-100 dark:border-cyan-700",
+];
+
+function getStackIconColor(key: string): string {
+  if (!key) return STACK_ICON_COLORS[0];
+
+  const hash = key.split("").reduce((acc, char) => {
+    const hashVal = (acc << 5) - acc + char.charCodeAt(0);
+    return hashVal | 0;
+  }, 0);
+
+  return STACK_ICON_COLORS[Math.abs(hash) % STACK_ICON_COLORS.length];
+}
 
 // --- PDF.js Interfaces ---
 interface PDFViewport {
@@ -64,13 +85,17 @@ interface Annexe {
   type: string;
   url: string | null;
 }
+interface MajorEntry {
+  name: string;
+  icon?: string | null;
+}
 interface ExamDetail {
   id: string;
   course: string;
   type?: string;
   level: string;
-  majors: string[]; // NOUVEAU : Tableau pour stocker toutes les majors
-  majorIcon: string;
+  majors?: MajorEntry[];
+  majorIcon?: string;
   year: number;
   title?: string;
   annexes: Annexe[];
@@ -185,9 +210,19 @@ export function ExamDetail() {
 
       const dbExam = await response.json();
 
-      // Extraction de toutes les majors
-      const majorsList = dbExam.course?.parcours?.[0]?.majors || [];
-      const majorNames = majorsList.map((m: any) => m.name);
+      // Extraction de toutes les majors (tous parcours), déduplication par nom
+      const allMajorsRaw: MajorEntry[] = (dbExam.course?.parcours || [])
+        .flatMap((p: any) => p.majors || [])
+        .map((m: any) => ({ name: m.name, icon: m.icon ?? null }));
+
+      const majorsMap = new Map<string, MajorEntry>();
+      allMajorsRaw.forEach((m) => {
+        if (!majorsMap.has(m.name)) {
+          majorsMap.set(m.name, m);
+        }
+      });
+      const majorsList = Array.from(majorsMap.values());
+
       const firstMajorIcon = majorsList[0]?.icon || "";
 
       setExam({
@@ -195,8 +230,11 @@ export function ExamDetail() {
         course: dbExam.course?.name || "Inconnu",
         type: dbExam.examtype?.name || "Inconnu",
         level: dbExam.course?.level?.name || "Inconnu",
-        majors: majorNames.length > 0 ? majorNames : ["Non défini"], // NOUVEAU
-        majorIcon: firstMajorIcon,
+        majors:
+          majorsList.length > 0
+            ? majorsList
+            : [{ name: "Non défini", icon: "FileText" }],
+        majorIcon: firstMajorIcon || undefined,
         year: dbExam.year,
         annexes: dbExam.annexe || [],
       });
@@ -272,8 +310,18 @@ export function ExamDetail() {
     );
   }
 
-  const CourseIcon =
-    (exam.majorIcon && getIconByName(exam.majorIcon)) || BookOpen;
+  const majorEntries = (exam.majors || []).map((m) =>
+    typeof m === "string" ? { name: m, icon: m } : m,
+  );
+  const iconsToRender = (
+    majorEntries.length > 0
+      ? majorEntries
+      : [{ name: "default", icon: "FileText" }]
+  ).slice(0, 3);
+  const remainingIcons = Math.max(
+    0,
+    majorEntries.length - iconsToRender.length,
+  );
 
   return (
     <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 pb-12 font-sans text-foreground selection:bg-primary/20 flex flex-col items-center px-4">
@@ -300,9 +348,48 @@ export function ExamDetail() {
           <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
             <Card className="p-5 sm:p-6 rounded-xl border border-border/50 bg-background/80 backdrop-blur-sm shadow-sm">
               <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <CourseIcon className="w-6 h-6" />
-                </div>
+                <motion.div
+                  className="relative w-14 h-12 shrink-0 group/icon"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  {iconsToRender.map((major, iconIndex) => {
+                    const iconKey = major.icon || major.name || "default";
+                    const IconComponent = getIconByName(iconKey);
+                    const iconColors = getStackIconColor(iconKey);
+
+                    return (
+                      <motion.div
+                        key={`${exam.id}-${iconKey}-${iconIndex}`}
+                        className={`absolute w-10 h-10 rounded-lg flex items-center justify-center border shadow-md ring-1 ring-background transition-all duration-150 ease-out ${iconColors} ${
+                          iconIndex === 0
+                            ? "z-30"
+                            : iconIndex === 1
+                              ? "z-20 group-hover/icon:translate-x-3 group-hover/icon:-translate-y-1"
+                              : "z-10 group-hover/icon:translate-x-6 group-hover/icon:-translate-y-2"
+                        }`}
+                        style={{
+                          left: `${iconIndex * 8}px`,
+                          top: `${iconIndex * 2}px`,
+                        }}
+                        whileHover={{ y: -2 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 260,
+                          damping: 18,
+                        }}
+                      >
+                        <IconComponent className="w-5 h-5" />
+                      </motion.div>
+                    );
+                  })}
+                  {remainingIcons > 0 && (
+                    <div className="absolute -right-1 -bottom-1 z-40 min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center border border-background">
+                      +{remainingIcons}
+                    </div>
+                  )}
+                </motion.div>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
                     {exam.course}

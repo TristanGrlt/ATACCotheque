@@ -57,9 +57,10 @@ async function seedMeilisearch() {
     const parcoursName = firstParcours?.name || "N/A";
 
     const majors = firstParcours?.majors || [];
-    const firstMajor = majors[0];
-    const majorName = firstMajor?.name || "N/A";
-    const majorIcon = firstMajor?.icon || "Book";
+    const majorsPayload = majors.map((m) => ({
+      name: m.name,
+      icon: m.icon || null,
+    }));
 
     const annexes = exam.annexe.map((annexe) => ({
       name: annexe.name,
@@ -72,10 +73,9 @@ async function seedMeilisearch() {
       course: exam.course?.name || "N/A",
       type: exam.examtype?.name || "N/A",
       level: exam.course?.level?.name || "N/A",
-      majorName: majorName,
-      majors: majors.map((m) => ({ name: m.name })),
+      majorName: majors[0]?.name || "N/A",
+      majors: majorsPayload,
       parcours: parcoursName,
-      majorIcon: majorIcon,
       year: exam.year,
       aliases,
       annexes: annexes,

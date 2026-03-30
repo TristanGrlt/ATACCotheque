@@ -41,7 +41,7 @@ const client = new MeiliSearch({
 // Added strictly typed nested major to avoid using 'any'
 interface MajorData {
   name: string;
-  icon: string | null;
+  icon?: string | null;
 }
 
 interface SearchResult {
@@ -49,9 +49,7 @@ interface SearchResult {
   course: string;
   type?: string;
   level: string;
-  major?: string;
   parcours: string;
-  majorIcon?: string;
   year: number;
   title?: string;
   majors?: MajorData[]; // The array Meilisearch likely returns based on your facets
@@ -566,15 +564,18 @@ export function Search() {
             variants={{ hidden: {}, visible: {} }}
           >
             {results.map((hit, index) => {
-              // Use all majors to avoid implying a single-major ownership for multi-major courses.
-              const majorNames = hit.majors?.map((major) => major.name) ?? [];
+              const majorEntries = hit.majors ?? [];
 
               // Build a compact icon stack and expand it on hover for multi-major courses.
-              const iconNames = (majorNames.length > 0
-                ? majorNames
-                : [hit.major || "default"]
+              const iconsToRender = (
+                majorEntries.length > 0
+                  ? majorEntries
+                  : [{ name: "default", icon: "FileText" }]
               ).slice(0, 3);
-              const remainingIcons = Math.max(0, majorNames.length - iconNames.length);
+              const remainingIcons = Math.max(
+                0,
+                majorEntries.length - iconsToRender.length,
+              );
               return (
                 <motion.div
                   key={hit.id}
@@ -594,13 +595,15 @@ export function Search() {
                       <div className="flex items-start gap-3 ">
                         {/* Icône colorée dynamique */}
                         <div className="relative w-12 h-11 shrink-0">
-                          {iconNames.map((name, iconIndex) => {
-                            const IconComponent = getIconByName(name);
-                            const iconColors = getStackIconColor(name);
+                          {iconsToRender.map((major, iconIndex) => {
+                            const iconKey =
+                              major.icon || major.name || "default";
+                            const IconComponent = getIconByName(iconKey);
+                            const iconColors = getStackIconColor(iconKey);
 
                             return (
                               <div
-                                key={`${hit.id}-${name}-${iconIndex}`}
+                                key={`${hit.id}-${iconKey}-${iconIndex}`}
                                 className={`absolute w-9 h-9 rounded-lg flex items-center justify-center border shadow-md ring-1 ring-background transition-all duration-150 ease-out ${iconColors} ${
                                   iconIndex === 0
                                     ? "z-30"
