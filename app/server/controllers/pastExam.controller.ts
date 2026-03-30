@@ -42,7 +42,9 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const files = (req as MulterRequest).files;
 
     if (!courseId || !examTypeId || !year) {
-      return res.status(400).json({ message: "Les champs courseId, examTypeId et year sont obligatoires." });
+      return res.status(400).json({
+        message: "Les champs courseId, examTypeId et year sont obligatoires.",
+      });
     }
 
     const parsedCourseId = parseInt(courseId, 10);
@@ -50,17 +52,19 @@ export const uploadAllPastExam = async (req: Request, res: Response) => {
     const parsedYear = parseInt(year, 10);
 
     if (isNaN(parsedCourseId) || isNaN(parsedExamTypeId) || isNaN(parsedYear)) {
-      return res.status(400).json({ message: "courseId, examTypeId et year doivent etre valides." });
+      return res.status(400).json({
+        message: "courseId, examTypeId et year doivent etre valides.",
+      });
     }
 
     if (!files || !files["file"] || files["file"].length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Le fichier principal est manquant (multipart/form-data attendu)." });
+      return res.status(400).json({
+        message:
+          "Le fichier principal est manquant (multipart/form-data attendu).",
+      });
     }
 
     const mainFile = files["file"][0];
-
 
     const safeCourseId = parseInt(courseId).toString();
     if (isNaN(parseInt(courseId))) {
@@ -381,7 +385,7 @@ export const getAnnexeById = async (req: Request, res: Response) => {
 async function serveAnnexeFile(
   res: Response,
   annexeId: number,
-  requireVerified: boolean = false
+  requireVerified: boolean = false,
 ) {
   const result = await prisma.annexe.findUnique({
     select: {
@@ -402,7 +406,7 @@ async function serveAnnexeFile(
   }
 
   const downloadName = `Ataccothèque_annexe${result.id}.pdf`;
-  
+
   // Protection path traversal
   const normalizedDbPath = normalizeDbFilePath(result.path);
   const realPath = path.resolve(normalizedDbPath);
@@ -679,8 +683,9 @@ export const updateAnnale = async (req: Request, res: Response) => {
     }
     await upsertVerifiedExamDocument(prisma, parsedExamId);
 
-    return res.status(200).json({ message: "Annale validée et indexée avec succès" });
-
+    return res
+      .status(200)
+      .json({ message: "Annale validée et indexée avec succès" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur serveur" });
@@ -750,10 +755,14 @@ export const deletePastExam = async (req: Request, res: Response) => {
 export const rebuildSearchIndex = async (_req: Request, res: Response) => {
   try {
     await rebuildExamsIndex(prisma);
-    return res.status(200).json({ message: "Index Meilisearch resynchronisé avec succes" });
+    return res
+      .status(200)
+      .json({ message: "Index Meilisearch resynchronisé avec succes" });
   } catch (error) {
     console.error("Erreur lors de la reconstruction de l'index:", error);
-    return res.status(500).json({ error: "Erreur serveur lors de la reconstruction de l'index" });
+    return res
+      .status(500)
+      .json({ error: "Erreur serveur lors de la reconstruction de l'index" });
   }
 };
 
@@ -777,13 +786,13 @@ export const getPublicExam = async (req: Request, res: Response) => {
     const exam = await prisma.pastExam.findUnique({
       where: {
         id: parsedId,
-        isVerified: true // SECURITY: Only return if validated
+        isVerified: true, // SECURITY: Only return if validated
       },
       select: {
         id: true,
         year: true,
         examtype: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         annexe: {
           where: { isVerified: true },
@@ -792,7 +801,7 @@ export const getPublicExam = async (req: Request, res: Response) => {
             name: true,
             type: true,
             url: true,
-          }
+          },
         },
         course: {
           select: {
@@ -803,15 +812,18 @@ export const getPublicExam = async (req: Request, res: Response) => {
               select: {
                 id: true,
                 name: true,
-                majors: { select: { id: true, name: true, icon: true } }
-              }
-            }
-          }
-        }
-      }
+                majors: { select: { id: true, name: true, icon: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!exam) return res.status(404).json({ error: "Annale introuvable ou non vérifiée" });
+    if (!exam)
+      return res
+        .status(404)
+        .json({ error: "Annale introuvable ou non vérifiée" });
 
     return res.json(exam);
   } catch (err) {
@@ -841,9 +853,9 @@ export const getPublicFile = async (req: Request, res: Response) => {
     const exam = await prisma.pastExam.findUnique({
       where: {
         id: parsedId,
-        isVerified: true // SECURITY: Only serve validated files
+        isVerified: true, // SECURITY: Only serve validated files
       },
-      select: { path: true, year: true, course: { select: { name: true } } }
+      select: { path: true, year: true, course: { select: { name: true } } },
     });
 
     if (!exam) return res.status(404).json({ error: "Fichier introuvable" });
@@ -880,20 +892,31 @@ export const getAllPastExams = async (req: Request, res: Response) => {
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || "";
     const sortBy = (req.query.sortBy as string) || "id";
-    const sortOrder = (req.query.sortOrder as string) === 'asc' ? 'asc' : 'desc';
+    const sortOrder =
+      (req.query.sortOrder as string) === "asc" ? "asc" : "desc";
     const skip = (page - 1) * pageSize;
 
-    const whereClause = search ? {
-      OR: [
-        { course: { name: { contains: search, mode: 'insensitive' as const } } },
-        { examtype: { name: { contains: search, mode: 'insensitive' as const } } }
-      ]
-    } : {};
+    const whereClause = search
+      ? {
+          OR: [
+            {
+              course: {
+                name: { contains: search, mode: "insensitive" as const },
+              },
+            },
+            {
+              examtype: {
+                name: { contains: search, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {};
 
     // Map frontend field names to Prisma fields
     const sortFieldMap: Record<string, any> = {
       year: { year: sortOrder },
-      major: { course: { parcours: { majors: { name: sortOrder } } } },
+      major: { course: { name: sortOrder } },
       level: { course: { level: { name: sortOrder } } },
       type: { examtype: { name: sortOrder } },
       course: { course: { name: sortOrder } },
@@ -915,39 +938,42 @@ export const getAllPastExams = async (req: Request, res: Response) => {
           path: true,
           isVerified: true,
           examtype: {
-            select: { name: true }
+            select: { name: true },
           },
           course: {
             select: {
               name: true,
               level: { select: { name: true } },
-              parcours: { 
-                select: { 
-                  majors: { select: { name: true } } 
-                }
-              }
-            }
+              parcours: {
+                select: {
+                  majors: { select: { name: true } },
+                },
+              },
+            },
           },
           annexe: true,
         },
-        orderBy
-      })
+        orderBy,
+      }),
     ]);
 
     const formattedExams = exams.map((exam) => {
-      const allMajors = exam.course?.parcours?.flatMap((parcours) => parcours.majors) || [];
-      const uniqueMajorNames = [...new Set(allMajors.map((major) => major.name))];
+      const allMajors =
+        exam.course?.parcours?.flatMap((parcours) => parcours.majors) || [];
+      const uniqueMajorNames = [
+        ...new Set(allMajors.map((major) => major.name)),
+      ];
 
       return {
         id: exam.id,
-        course: exam.course?.name || 'Inconnu',
-        type: exam.examtype?.name || 'Inconnu',
-        level: exam.course?.level?.name || 'Inconnu',
-        major: uniqueMajorNames.join(', ') || 'Non défini',
+        course: exam.course?.name || "Inconnu",
+        type: exam.examtype?.name || "Inconnu",
+        level: exam.course?.level?.name || "Inconnu",
+        major: uniqueMajorNames.join(", ") || "Non défini",
         year: exam.year,
         path: exam.path,
         isVerified: exam.isVerified,
-        annexeCount: exam.annexe?.length || 0
+        annexeCount: exam.annexe?.length || 0,
       };
     });
 
@@ -961,12 +987,11 @@ export const getAllPastExams = async (req: Request, res: Response) => {
         totalCount,
         totalPages,
         hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1
-      }
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (error) {
     console.error("Erreur getAllPastExams:", error);
     return res.status(500).json({ error: "Erreur serveur" });
   }
 };
-
