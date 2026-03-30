@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -146,11 +145,13 @@ export function Search() {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hitCount, setHitCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [page, setPage] = useState(0);
+  const pageSize = 12;
+  const [hasMore, setHasMore] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
   const lastPushedQ = useRef(initialQuery);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const [levelFilter, setLevelFilter] = useState("");
   const [majorFilter, setMajorFilter] = useState(initialMajorFilter);
@@ -160,8 +161,6 @@ export function Search() {
   const [majors, setMajors] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
 
-  const totalPages = Math.max(1, Math.ceil(hitCount / pageSize));
-
   useEffect(() => {
     const nextQuery = searchParams.get("q") ?? "";
     const nextMajor = searchParams.get("major") ?? "";
@@ -170,12 +169,12 @@ export function Search() {
       setQuery(nextQuery);
       setDebouncedQuery(nextQuery);
       lastPushedQ.current = nextQuery;
-      setPage(1);
+      setPage(0);
     }
 
     if (nextMajor !== majorFilter) {
       setMajorFilter(nextMajor);
-      setPage(1);
+      setPage(0);
     }
   }, [searchParams, majorFilter]);
 
@@ -257,7 +256,7 @@ export function Search() {
         {
           filter: filterString,
           limit: pageSize,
-          offset: (page - 1) * pageSize,
+          offset: page * pageSize,
           attributesToHighlight: [
             "course",
             "title",
@@ -277,14 +276,13 @@ export function Search() {
         return;
       }
 
-      setResults(search.hits as SearchHit[]);
+      const hits = search.hits as SearchHit[];
+      setResults((prev) => (page === 0 ? hits : [...prev, ...hits]));
       const totalHits = search.estimatedTotalHits || 0;
       setHitCount(totalHits);
 
-      const computedTotalPages = Math.max(1, Math.ceil(totalHits / pageSize));
-      if (page > computedTotalPages) {
-        setPage(computedTotalPages);
-      }
+      const fetchedCount = (page + 1) * pageSize;
+      setHasMore(fetchedCount < totalHits && hits.length > 0);
     } catch (err) {
       if (
         controller.signal.aborted ||
@@ -304,11 +302,38 @@ export function Search() {
         setIsSearching(false);
       }
     }
-  }, [debouncedQuery, levelFilter, majorFilter, typeFilter, page, pageSize]);
+  }, [debouncedQuery, levelFilter, majorFilter, typeFilter, page]);
+
+  // Reset list when search input or filters change
+  useEffect(() => {
+    setResults([]);
+    setHitCount(0);
+    setHasMore(true);
+    setPage(0);
+  }, [debouncedQuery, levelFilter, majorFilter, typeFilter]);
 
   useEffect(() => {
     performSearch();
   }, [performSearch]);
+
+  // Infinite scroll sentinel observer
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMore && !isSearching) {
+          setPage((current) => current + 1);
+        }
+      },
+      { rootMargin: "250px 0px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isSearching]);
 
   useEffect(() => {
     return () => {
@@ -363,7 +388,7 @@ export function Search() {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
-              setPage(1);
+              setPage(0);
             }}
             className="pl-10 py-6 text-sm w-full rounded-full"
             placeholder="Chercher par un cours, une matière, un niveau..."
@@ -388,7 +413,7 @@ export function Search() {
               value={levelFilter === "" ? "all" : levelFilter}
               onValueChange={(value) => {
                 setLevelFilter(value === "all" ? "" : value);
-                setPage(1);
+                setPage(0);
               }}
             >
               <SelectTrigger
@@ -423,7 +448,7 @@ export function Search() {
               onValueChange={(value) => {
                 const nextMajor = value === "all" ? "" : value;
                 setMajorFilter(nextMajor);
-                setPage(1);
+                setPage(0);
 
                 const nextSearchParams = new URLSearchParams(searchParams);
                 if (nextMajor) {
@@ -465,7 +490,7 @@ export function Search() {
               value={typeFilter === "" ? "all" : typeFilter}
               onValueChange={(value) => {
                 setTypeFilter(value === "all" ? "" : value);
-                setPage(1);
+                setPage(0);
               }}
             >
               <SelectTrigger
@@ -489,52 +514,9 @@ export function Search() {
 
       <div className="flex items-center justify-between gap-3 mb-6 w-full max-w-4xl">
         <div className="text-sm text-muted-foreground">
-          Page {page} sur {totalPages}
-        </div>
-        <div className="flex items-center gap-2">
-          <Label
-            htmlFor="page-size"
-            className="text-sm text-muted-foreground mr-2"
-          >
-            Par page
-          </Label>
-          <Select
-            value={pageSize.toString()}
-            onValueChange={(value) => {
-              setPageSize(Number(value));
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="page-size" className="w-20 h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[12, 24, 48].map((size) => (
-                <SelectItem key={size} value={size.toString()}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={page <= 1 || isSearching}
-          >
-            Précédent
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setPage((current) => Math.min(totalPages, current + 1))
-            }
-            disabled={page >= totalPages || isSearching}
-          >
-            Suivant
-          </Button>
+          {hitCount > 0
+            ? `${hitCount} résultats`
+            : "Aucun résultat pour le moment"}
         </div>
       </div>
 
@@ -677,6 +659,7 @@ export function Search() {
             })}
           </motion.div>
         )}
+        <div ref={loadMoreRef} className="h-10 w-full" />
         <AnimatePresence>
           {isSearching && (
             <motion.div
@@ -694,7 +677,9 @@ export function Search() {
               >
                 <Spinner className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Mise à jour des résultats...
+                  {results.length > 0
+                    ? "Chargement des résultats..."
+                    : "Mise à jour des résultats..."}
                 </span>
               </motion.div>
             </motion.div>
