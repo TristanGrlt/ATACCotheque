@@ -1,7 +1,8 @@
 export const PERMISSIONS = {
-  MANAGE_USERS: 'MANAGE_USERS',
+  MANAGE_USERS: "MANAGE_USERS",
   MANAGE_PEDAGO: "MANAGE_PEDAGO",
   MANAGE_EXAMS: "MANAGE_EXAMS",
+  MANAGE_IMPORT_EXPORT: "MANAGE_IMPORT_EXPORT",
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -20,6 +21,11 @@ export const PERMISSION_DETAILS: Record<
   },
   MANAGE_USERS: {
     label: "Gestion des utilisateurs",
-    description: "Permet de voir, modifier ou supprimer des utilisateurs."
+    description: "Permet de voir, modifier ou supprimer des utilisateurs.",
+  },
+  MANAGE_IMPORT_EXPORT: {
+    label: "Import / Export",
+    description:
+      "Permet de gérer les exports complets des données et fichiers.",
   },
 };

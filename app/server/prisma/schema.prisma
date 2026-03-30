@@ -96,6 +96,24 @@ enum AppPermission {
   MANAGE_USERS
   MANAGE_PEDAGO
   MANAGE_EXAMS
+  MANAGE_IMPORT_EXPORT
+}
+
+enum ExportStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model ExportJob {
+  id           Int          @id @default(autoincrement())
+  filename     String       @unique
+  status       ExportStatus @default(PENDING)
+  sizeBytes    BigInt?
+  createdAt    DateTime     @default(now())
+  completedAt  DateTime?
+  errorMessage String?
 }
 
 model UserRole {

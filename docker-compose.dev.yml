@@ -57,6 +57,7 @@ services:
       - ./app/server:/app
       - /app/node_modules
       - ../files:/app/files
+      - ../export:/app/export
     depends_on:
       - postgresql
       - meilisearch

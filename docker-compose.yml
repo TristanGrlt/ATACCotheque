@@ -52,6 +52,7 @@ services:
         condition: service_healthy
     volumes:
       - ../files:/app/files
+      - ../export:/app/export
     command: >
       sh -c "bunx prisma migrate deploy &&
              bunx prisma db seed &&

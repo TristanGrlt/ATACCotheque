@@ -7,6 +7,7 @@ import {
   LogOut,
   Monitor,
   Moon,
+  Archive,
   Sun,
   User,
 } from "lucide-react";
@@ -83,6 +84,12 @@ const items = [
     url: "pedago",
     icon: GraduationCap,
     permission: PERMISSIONS.MANAGE_PEDAGO,
+  },
+  {
+    title: "Import / Export",
+    url: "import-export",
+    icon: Archive,
+    permission: PERMISSIONS.MANAGE_IMPORT_EXPORT,
   },
 ];
 

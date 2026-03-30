@@ -23,6 +23,7 @@ async function seedDefaultRoles() {
         "MANAGE_USERS",
         "MANAGE_EXAMS",
         "MANAGE_PEDAGO",
+        "MANAGE_IMPORT_EXPORT",
       ] as AppPermission[],
     },
     {
