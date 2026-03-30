@@ -8,7 +8,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Edit,
-  BookOpen,
   Calendar,
   ArrowLeft,
   Download,
