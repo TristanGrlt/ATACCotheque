@@ -41,6 +41,16 @@ type ExportJob = {
   errorMessage: string | null;
 };
 
+type ImportStateStatus = "IDLE" | "RUNNING" | "SUCCESS" | "FAILED";
+
+type ImportState = {
+  status: ImportStateStatus;
+  exportId: number | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+};
+
 const formatBytes = (bytes?: number | null) => {
   if (!bytes || Number.isNaN(bytes)) return "—";
   const units = ["o", "Ko", "Mo", "Go", "To"];
@@ -82,12 +92,21 @@ const StatusBadge = ({ status }: { status: ExportStatus }) => {
 
 export function ImportExport() {
   const [exports, setExports] = useState<ExportJob[]>([]);
+  const [importState, setImportState] = useState<ImportState>({
+    status: "IDLE",
+    exportId: null,
+    startedAt: null,
+    completedAt: null,
+    errorMessage: null,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [importingId, setImportingId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const importPollingRef = useRef<number | null>(null);
+  const previousImportStatusRef = useRef<ImportStateStatus>("IDLE");
 
   const hasRunningExport = useMemo(
     () => exports.some((item) => item.status === "RUNNING"),
@@ -108,9 +127,68 @@ export function ImportExport() {
     }
   }, []);
 
+  const fetchImportStatus = useCallback(async () => {
+    try {
+      const { data } = await apiRequest.get<ImportState>(
+        "/export/import-status",
+      );
+      setImportState(data);
+    } catch (err) {
+      toast.error(
+        `Impossible de récupérer le statut d'import (${getRequestMessage(err) || "erreur inconnue"})`,
+      );
+    }
+  }, []);
+
   useEffect(() => {
     fetchExports();
-  }, [fetchExports]);
+    fetchImportStatus();
+  }, [fetchExports, fetchImportStatus]);
+
+  useEffect(() => {
+    const previousStatus = previousImportStatusRef.current;
+    const currentStatus = importState.status;
+
+    if (previousStatus === "RUNNING" && currentStatus === "SUCCESS") {
+      toast.success(
+        "Import terminé. Pensez à recharger l'application si besoin.",
+      );
+      fetchExports();
+    }
+
+    if (previousStatus === "RUNNING" && currentStatus === "FAILED") {
+      toast.error(
+        `Import impossible (${importState.errorMessage || "erreur inconnue"})`,
+      );
+      fetchExports();
+    }
+
+    previousImportStatusRef.current = currentStatus;
+  }, [importState, fetchExports]);
+
+  useEffect(() => {
+    if (importState.status === "RUNNING") {
+      if (importPollingRef.current === null) {
+        importPollingRef.current = window.setInterval(() => {
+          fetchImportStatus();
+        }, 5000);
+      }
+      return;
+    }
+
+    if (importPollingRef.current !== null) {
+      window.clearInterval(importPollingRef.current);
+      importPollingRef.current = null;
+    }
+  }, [importState.status, fetchImportStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (importPollingRef.current !== null) {
+        window.clearInterval(importPollingRef.current);
+      }
+    };
+  }, []);
 
   const triggerExport = async () => {
     setIsTriggering(true);
@@ -164,8 +242,9 @@ export function ImportExport() {
     try {
       await apiRequest.post(`/export/${job.id}/import`);
       toast.success(
-        "Import terminé. Pensez à recharger l'application si besoin.",
+        "Import lancé. Cette opération peut prendre plusieurs minutes.",
       );
+      await fetchImportStatus();
     } catch (err) {
       toast.error(
         `Import impossible (${getRequestMessage(err) || "erreur inconnue"})`,
@@ -270,6 +349,18 @@ export function ImportExport() {
             Les exports peuvent prendre du temps; évitez d'en lancer plusieurs à
             la fois.
           </div>
+          {importState.status === "RUNNING" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Import en cours...
+            </div>
+          )}
+          {importState.status === "FAILED" && importState.errorMessage && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              Dernier import en échec : {importState.errorMessage}
+            </div>
+          )}
           <Separator />
           {isLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -330,7 +421,10 @@ export function ImportExport() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            disabled={importingId === item.id}
+                            disabled={
+                              importingId === item.id ||
+                              importState.status === "RUNNING"
+                            }
                             onClick={() => importExport(item)}
                           >
                             {importingId === item.id ? (

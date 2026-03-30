@@ -16,6 +16,16 @@ const RAW_TABLES = [
 export const EXPORT_ROOT = process.env.EXPORT_DIR || path.resolve("export");
 const FILES_ROOT = process.env.FILES_DIR || path.resolve("files");
 
+export type ImportStatus = "IDLE" | "RUNNING" | "SUCCESS" | "FAILED";
+
+export type ImportState = {
+  status: ImportStatus;
+  exportId: number | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  errorMessage: string | null;
+};
+
 type TableDumpConfig = {
   name: string;
   fetch: () => Promise<Record<string, unknown>[]>;
@@ -352,6 +362,58 @@ const asBuffer = (value?: string) =>
 const asBigInt = (value?: string) => (value ? BigInt(value) : BigInt(0));
 
 let importLock = false;
+let importState: ImportState = {
+  status: "IDLE",
+  exportId: null,
+  startedAt: null,
+  completedAt: null,
+  errorMessage: null,
+};
+
+const setImportState = (next: ImportState) => {
+  importState = next;
+};
+
+export const getImportState = (): ImportState => ({ ...importState });
+
+export const queueImportRestore = async (exportId: number) => {
+  if (importState.status === "RUNNING") {
+    const error = new Error("Une importation est déjà en cours");
+    // @ts-expect-error attach status
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const startedAt = new Date();
+
+  setImportState({
+    status: "RUNNING",
+    exportId,
+    startedAt,
+    completedAt: null,
+    errorMessage: null,
+  });
+
+  void restoreExportArchive(exportId)
+    .then(() => {
+      setImportState({
+        status: "SUCCESS",
+        exportId,
+        startedAt,
+        completedAt: new Date(),
+        errorMessage: null,
+      });
+    })
+    .catch((error) => {
+      setImportState({
+        status: "FAILED",
+        exportId,
+        startedAt,
+        completedAt: new Date(),
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    });
+};
 
 const ensureNoImportRunning = () => {
   if (importLock) {
