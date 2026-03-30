@@ -7,6 +7,7 @@ import { verifyOnboardingCompleted } from "../middlewares/verifyOnboarding.js";
 import { verifyPerms } from "../middlewares/verifyPerms.js";
 import {
   importExport,
+  importStatus,
   downloadExport,
   listExports,
   triggerExport,
@@ -56,6 +57,14 @@ router.post(
   verifyPerms(AppPermission.MANAGE_IMPORT_EXPORT),
   upload.single("archive"),
   uploadExport,
+);
+
+router.get(
+  "/import-status",
+  verifyToken,
+  verifyOnboardingCompleted,
+  verifyPerms(AppPermission.MANAGE_IMPORT_EXPORT),
+  importStatus,
 );
 
 router.post(

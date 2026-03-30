@@ -4,10 +4,11 @@ import { ExportStatus, type ExportJob } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import {
   generateFullExport,
+  getImportState,
   getExportFilePath,
   listExportJobs,
+  queueImportRestore,
   registerUploadedArchive,
-  restoreExportArchive,
 } from "../lib/exportService.js";
 
 const serializeJob = (job: ExportJob) => ({
@@ -73,14 +74,18 @@ export const importExport = async (req: Request, res: Response) => {
   }
 
   try {
-    await restoreExportArchive(id);
-    return res.status(200).json({ message: "Import terminé" });
+    await queueImportRestore(id);
+    return res.status(202).json({ message: "Import lancé" });
   } catch (error: any) {
     const statusCode = error?.statusCode ?? 500;
     return res
       .status(statusCode)
       .json({ error: error?.message || "Erreur lors de l'import" });
   }
+};
+
+export const importStatus = async (_req: Request, res: Response) => {
+  return res.status(200).json(getImportState());
 };
 
 export const uploadExport = async (req: Request, res: Response) => {
