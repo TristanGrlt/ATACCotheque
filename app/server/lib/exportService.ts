@@ -440,17 +440,25 @@ export const restoreExportArchive = async (exportId: number) => {
   try {
     await extract();
 
-    const [users, roles, userRoles, majors, levels, parcours, courses, examTypes] =
-      await Promise.all([
-        readCsvFile(path.join(dataDir, "users.csv")),
-        readCsvFile(path.join(dataDir, "roles.csv")),
-        readCsvFile(path.join(dataDir, "user_roles.csv")),
-        readCsvFile(path.join(dataDir, "majors.csv")),
-        readCsvFile(path.join(dataDir, "levels.csv")),
-        readCsvFile(path.join(dataDir, "parcours.csv")),
-        readCsvFile(path.join(dataDir, "courses.csv")),
-        readCsvFile(path.join(dataDir, "exam_types.csv")),
-      ]);
+    const [
+      users,
+      roles,
+      userRoles,
+      majors,
+      levels,
+      parcours,
+      courses,
+      examTypes,
+    ] = await Promise.all([
+      readCsvFile(path.join(dataDir, "users.csv")),
+      readCsvFile(path.join(dataDir, "roles.csv")),
+      readCsvFile(path.join(dataDir, "user_roles.csv")),
+      readCsvFile(path.join(dataDir, "majors.csv")),
+      readCsvFile(path.join(dataDir, "levels.csv")),
+      readCsvFile(path.join(dataDir, "parcours.csv")),
+      readCsvFile(path.join(dataDir, "courses.csv")),
+      readCsvFile(path.join(dataDir, "exam_types.csv")),
+    ]);
 
     const [pastExams, annexes, webCreds, webChallenges, passkeyChallenges] =
       await Promise.all([
@@ -566,8 +574,12 @@ export const restoreExportArchive = async (exportId: number) => {
       for (const { table, rows } of rawJoinTables) {
         if (!rows.length) continue;
         const columns = Object.keys(rows[0]);
-        const sanitizedCols = columns.map((col) => col.replace(/[^A-Za-z0-9_]/g, ""));
-        const values = rows.map((r) => sanitizedCols.map((c) => parseJoinRow(r)[c]));
+        const sanitizedCols = columns.map((col) =>
+          col.replace(/[^A-Za-z0-9_]/g, ""),
+        );
+        const values = rows.map((r) =>
+          sanitizedCols.map((c) => parseJoinRow(r)[c]),
+        );
         for (const rowValues of values) {
           const colsSql = sanitizedCols.map((c) => `"${c}"`).join(",");
           const placeholders = rowValues
@@ -665,7 +677,10 @@ export const restoreExportArchive = async (exportId: number) => {
   }
 };
 
-export const registerUploadedArchive = async (storedPath: string, originalName: string) => {
+export const registerUploadedArchive = async (
+  storedPath: string,
+  originalName: string,
+) => {
   await syncExportsFromDisk();
   const stats = await fs.stat(storedPath);
   const filename = path.basename(storedPath);

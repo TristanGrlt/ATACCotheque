@@ -163,9 +163,13 @@ export function ImportExport() {
     setImportingId(job.id);
     try {
       await apiRequest.post(`/export/${job.id}/import`);
-      toast.success("Import terminé. Pensez à recharger l'application si besoin.");
+      toast.success(
+        "Import terminé. Pensez à recharger l'application si besoin.",
+      );
     } catch (err) {
-      toast.error(`Import impossible (${getRequestMessage(err) || "erreur inconnue"})`);
+      toast.error(
+        `Import impossible (${getRequestMessage(err) || "erreur inconnue"})`,
+      );
     } finally {
       setImportingId(null);
       fetchExports();
@@ -176,7 +180,9 @@ export function ImportExport() {
     uploadInputRef.current?.click();
   };
 
-  const handleUploadChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -191,7 +197,9 @@ export function ImportExport() {
       toast.success("Archive ajoutée");
       await fetchExports();
     } catch (err) {
-      toast.error(`Upload impossible (${getRequestMessage(err) || "erreur inconnue"})`);
+      toast.error(
+        `Upload impossible (${getRequestMessage(err) || "erreur inconnue"})`,
+      );
     } finally {
       setIsUploading(false);
       event.target.value = "";
