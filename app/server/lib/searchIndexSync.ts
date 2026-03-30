@@ -15,6 +15,7 @@ type ExamSource = {
   examtype: { name: string } | null;
   course: {
     name: string;
+    aliases: string | null;
     level: { name: string } | null;
     parcours: Array<{
       name: string;
@@ -41,6 +42,7 @@ interface ExamSearchDocument {
   parcours: string;
   majorIcon: string;
   isVerified: boolean;
+  aliases: string[];
   annexes: Array<{
     name: string;
   }>;
@@ -72,10 +74,24 @@ async function ensureExamsIndexSettings(): Promise<void> {
       "level",
       "majors.name",
       "parcours",
+      "aliases",
     ],
   });
 
   settingsEnsured = true;
+}
+
+function parseAliases(rawAliases?: string | null): string[] {
+  if (!rawAliases) return [];
+
+  const uniqueAliases = new Set(
+    rawAliases
+      .split(",")
+      .map((alias) => alias.trim())
+      .filter((alias) => alias.length > 0),
+  );
+
+  return Array.from(uniqueAliases);
 }
 
 function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
@@ -85,6 +101,7 @@ function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
   const firstMajor = majors[0];
   const majorName = firstMajor?.name || "Non defini";
   const majorIcon = firstMajor?.icon || "Book";
+  const aliases = parseAliases(exam.course?.aliases);
 
   return {
     id: exam.id,
@@ -97,6 +114,7 @@ function toExamSearchDocument(exam: ExamSource): ExamSearchDocument {
     parcours: parcoursName,
     majorIcon: majorIcon,
     isVerified: exam.isVerified,
+    aliases,
     annexes: exam.annexe.map((annexe) => ({
       name: annexe.name,
     })),
@@ -123,11 +141,14 @@ async function upsertDocumentsFromExams(
       examtype: true,
       annexe: true,
       course: {
-        include: {
-          level: true,
+        select: {
+          name: true,
+          aliases: true,
+          level: { select: { name: true } },
           parcours: {
-            include: {
-              majors: true,
+            select: {
+              name: true,
+              majors: { select: { name: true, icon: true } },
             },
           },
         },

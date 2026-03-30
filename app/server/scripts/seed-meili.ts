@@ -7,6 +7,19 @@ const host = process.env.MEILI_HOST || "http://meilisearch:7700";
 const apiKey = process.env.MEILI_MASTER_KEY || "devMasterKey";
 const meiliClient = new MeiliSearch({ host, apiKey });
 
+function parseAliases(rawAliases?: string | null): string[] {
+  if (!rawAliases) return [];
+
+  const uniqueAliases = new Set(
+    rawAliases
+      .split(",")
+      .map((alias) => alias.trim())
+      .filter((alias) => alias.length > 0),
+  );
+
+  return Array.from(uniqueAliases);
+}
+
 async function seedMeilisearch() {
   console.log(`🔎 Connecting to Meilisearch at: ${host}`);
   const index = meiliClient.index("exams");
@@ -52,6 +65,8 @@ async function seedMeilisearch() {
       name: annexe.name,
     }));
 
+    const aliases = parseAliases(exam.course?.aliases);
+
     return {
       id: exam.id.toString(),
       course: exam.course?.name || "N/A",
@@ -62,6 +77,7 @@ async function seedMeilisearch() {
       parcours: parcoursName,
       majorIcon: majorIcon,
       year: exam.year,
+      aliases,
       annexes: annexes,
     };
   });
@@ -89,6 +105,7 @@ async function seedMeilisearch() {
     "level",
     "majors.name",
     "parcours",
+    "aliases",
   ]);
 
   console.log(`📤 Sending ${documents.length} documents to Meilisearch...`);
