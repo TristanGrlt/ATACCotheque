@@ -57,18 +57,6 @@ if (isProd && isBrowserLocalhostLike(apiEndpoint)) {
   );
 }
 
-if (isProd && isBrowserLocalhostLike(meiliHost)) {
-  throw new Error(
-    "VITE_MEILI_HOST must not target localhost in production. Use '/meili' behind nginx.",
-  );
-}
-
-if (isProd && /^http:\/\//i.test(meiliHost)) {
-  throw new Error(
-    "VITE_MEILI_HOST must use HTTPS in production (or '/meili' behind nginx).",
-  );
-}
-
 // Prevent accidental exposure of privileged keys in production bundles.
 if (isProd && /(master|admin|devmasterkey)/i.test(meiliApiKey)) {
   throw new Error(
