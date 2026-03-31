@@ -50,12 +50,6 @@ if (isProd && isBrowserLocalhostLike(meiliHost)) {
   );
 }
 
-if (meiliApiKey === "MEILI_SEARCH_KEY_PLACEHOLDER") {
-  throw new Error(
-    "VITE_MEILI_API_KEY placeholder was not replaced. Check nginx/entrypoint.sh key injection.",
-  );
-}
-
 // Prevent accidental exposure of privileged keys in production bundles.
 if (isProd && /(master|admin|devmasterkey)/i.test(meiliApiKey)) {
   throw new Error(
