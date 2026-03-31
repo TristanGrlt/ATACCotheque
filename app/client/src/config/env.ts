@@ -2,11 +2,24 @@ const isProd = import.meta.env.PROD;
 
 const normalize = (value: string | undefined) => value?.trim();
 
+const resolveMeiliHost = (value: string) => {
+  if (!value.startsWith("/")) {
+    return value;
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}${value}`;
+  }
+
+  return value;
+};
+
 const apiEndpoint =
   normalize(import.meta.env.VITE_API_ENDPOINT) || (isProd ? "/api" : undefined);
-const meiliHost =
+const meiliHostRaw =
   normalize(import.meta.env.VITE_MEILI_HOST) ||
   (isProd ? "/meili" : "http://localhost:7700");
+const meiliHost = resolveMeiliHost(meiliHostRaw);
 const meiliApiKey = normalize(import.meta.env.VITE_MEILI_API_KEY);
 
 const isBrowserLocalhostLike = (value: string) => {
@@ -47,6 +60,12 @@ if (isProd && isBrowserLocalhostLike(apiEndpoint)) {
 if (isProd && isBrowserLocalhostLike(meiliHost)) {
   throw new Error(
     "VITE_MEILI_HOST must not target localhost in production. Use '/meili' behind nginx.",
+  );
+}
+
+if (isProd && /^http:\/\//i.test(meiliHost)) {
+  throw new Error(
+    "VITE_MEILI_HOST must use HTTPS in production (or '/meili' behind nginx).",
   );
 }
 
