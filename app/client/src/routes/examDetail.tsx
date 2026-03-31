@@ -65,11 +65,21 @@ interface PDFDocument {
 }
 interface PDFGetDocumentResponse {
   promise: Promise<PDFDocument>;
+  destroy: () => void;
 }
 interface PDFJsLib {
   version: string;
   GlobalWorkerOptions: { workerSrc: string };
-  getDocument(url: string): PDFGetDocumentResponse;
+  getDocument(
+    source:
+      | string
+      | {
+          url: string;
+          disableAutoFetch?: boolean;
+          disableStream?: boolean;
+          rangeChunkSize?: number;
+        },
+  ): PDFGetDocumentResponse;
 }
 declare global {
   interface Window {
@@ -198,6 +208,7 @@ export function ExamDetail() {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pdfLoading, setPdfLoading] = useState(true);
   const pdfDocRef = useRef<PDFDocument | null>(null);
+  const loadedPdfExamIdRef = useRef<string | null>(null);
 
   const fetchExam = useCallback(async () => {
     if (!examId) return;
@@ -249,10 +260,22 @@ export function ExamDetail() {
   }, [fetchExam]);
 
   useEffect(() => {
-    if (!exam) return;
+    const currentExamId = exam?.id;
+    if (!currentExamId) return;
+
+    if (loadedPdfExamIdRef.current === currentExamId && pdfDocRef.current) {
+      return;
+    }
+
+    let isCancelled = false;
+    let loadingTask: PDFGetDocumentResponse | null = null;
+
     const initializePdf = async () => {
       try {
         setPdfLoading(true);
+        setNumPages(null);
+        pdfDocRef.current = null;
+
         let pdfjsLib = window.pdfjsLib;
         let attempts = 0;
         while (!pdfjsLib && attempts < 10) {
@@ -263,20 +286,44 @@ export function ExamDetail() {
         if (!pdfjsLib) throw new Error("Librairie PDF.js non chargée");
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${exam.id}/file`;
-        const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${currentExamId}/file`;
+        loadingTask = pdfjsLib.getDocument({
+          url: pdfUrl,
+          disableAutoFetch: true,
+          disableStream: true,
+          rangeChunkSize: 65536,
+        });
+        const pdf = await loadingTask.promise;
+
+        if (isCancelled) {
+          loadingTask.destroy();
+          return;
+        }
 
         pdfDocRef.current = pdf;
+        loadedPdfExamIdRef.current = currentExamId;
         setNumPages(pdf.numPages);
-        setPdfLoading(false);
       } catch (err) {
-        console.error("PDF init error:", err);
-        setError(`Erreur de chargement du PDF.`);
-        setPdfLoading(false);
+        if (!isCancelled) {
+          console.error("PDF init error:", err);
+          setError(`Erreur de chargement du PDF.`);
+        }
+      } finally {
+        if (!isCancelled) {
+          setPdfLoading(false);
+        }
       }
     };
+
     initializePdf();
-  }, [exam]);
+
+    return () => {
+      isCancelled = true;
+      if (loadingTask) {
+        loadingTask.destroy();
+      }
+    };
+  }, [exam?.id]);
 
   if (isLoading)
     return (
