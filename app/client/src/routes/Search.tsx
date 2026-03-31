@@ -296,6 +296,7 @@ export function Search() {
       }
 
       console.error("Search error:", err);
+      setHasMore(false);
       setError("Erreur lors de la recherche. Veuillez réessayer.");
     } finally {
       if (currentRequestId === requestIdRef.current) {
@@ -324,7 +325,13 @@ export function Search() {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && hasMore && !isSearching) {
+        if (
+          entry.isIntersecting &&
+          hasMore &&
+          !isSearching &&
+          !error &&
+          results.length > 0
+        ) {
           setPage((current) => current + 1);
         }
       },
@@ -333,7 +340,7 @@ export function Search() {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, isSearching]);
+  }, [hasMore, isSearching, error, results.length]);
 
   useEffect(() => {
     return () => {
