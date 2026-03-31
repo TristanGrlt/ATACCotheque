@@ -1,5 +1,5 @@
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PERMISSIONS } from "@/config/permissions";
 import { getIconByName } from "@/config/icons";
 
+// --- Import react-pdf ---
+import { Document, Page, pdfjs } from "react-pdf";
+// Import des styles obligatoires pour react-pdf
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+
+// Configuration automatique du Web Worker (indispensable pour les performances)
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 const STACK_ICON_COLORS = [
   "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700",
   "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-100 dark:border-emerald-700",
@@ -32,59 +41,11 @@ const STACK_ICON_COLORS = [
 
 function getStackIconColor(key: string): string {
   if (!key) return STACK_ICON_COLORS[0];
-
   const hash = key.split("").reduce((acc, char) => {
     const hashVal = (acc << 5) - acc + char.charCodeAt(0);
     return hashVal | 0;
   }, 0);
-
   return STACK_ICON_COLORS[Math.abs(hash) % STACK_ICON_COLORS.length];
-}
-
-// --- PDF.js Interfaces ---
-interface PDFViewport {
-  width: number;
-  height: number;
-  scale: number;
-}
-interface PDFRenderContext {
-  canvasContext: CanvasRenderingContext2D;
-  viewport: PDFViewport;
-}
-interface PDFRenderTask {
-  promise: Promise<void>;
-  cancel: () => void;
-}
-interface PDFPage {
-  getViewport(options: { scale: number }): PDFViewport;
-  render(renderContext: PDFRenderContext): PDFRenderTask;
-}
-interface PDFDocument {
-  numPages: number;
-  getPage(pageNumber: number): Promise<PDFPage>;
-}
-interface PDFGetDocumentResponse {
-  promise: Promise<PDFDocument>;
-  destroy: () => void;
-}
-interface PDFJsLib {
-  version: string;
-  GlobalWorkerOptions: { workerSrc: string };
-  getDocument(
-    source:
-      | string
-      | {
-          url: string;
-          disableAutoFetch?: boolean;
-          disableStream?: boolean;
-          rangeChunkSize?: number;
-        },
-  ): PDFGetDocumentResponse;
-}
-declare global {
-  interface Window {
-    pdfjsLib: PDFJsLib;
-  }
 }
 
 // --- Data Interfaces ---
@@ -110,88 +71,6 @@ interface ExamDetail {
   annexes: Annexe[];
 }
 
-// --- Composant d'affichage de page (Lazy Loading) ---
-const PdfPageRenderer = ({
-  pdf,
-  pageNumber,
-}: {
-  pdf: PDFDocument;
-  pageNumber: number;
-}) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isRendered, setIsRendered] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "800px 0px" },
-    );
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!isInView || isRendered || !pdf || !canvasRef.current) return;
-
-    let renderTask: PDFRenderTask;
-    const renderPage = async () => {
-      try {
-        const page = await pdf.getPage(pageNumber);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const context = canvas.getContext("2d");
-        if (!context) return;
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        renderTask = page.render({ canvasContext: context, viewport });
-        await renderTask.promise;
-        setIsRendered(true);
-      } catch (err: any) {
-        if (err?.name !== "RenderingCancelledException") {
-          console.error(`Erreur rendu page ${pageNumber}:`, err);
-        }
-      }
-    };
-
-    renderPage();
-    return () => {
-      if (renderTask) renderTask.cancel();
-    };
-  }, [isInView, isRendered, pdf, pageNumber]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="w-full flex justify-center mb-6 relative"
-      style={{
-        minHeight: !isRendered ? "800px" : "auto",
-        aspectRatio: !isRendered ? "1/1.414" : "auto",
-      }}
-    >
-      {!isRendered && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-800/50 rounded-lg animate-pulse">
-          <Spinner className="h-8 w-8 text-primary/50" />
-        </div>
-      )}
-      <canvas
-        ref={canvasRef}
-        className={`shadow-lg max-w-full block rounded-lg bg-white transition-opacity duration-500 ${isRendered ? "opacity-100" : "opacity-0"}`}
-      />
-    </div>
-  );
-};
-
 // --- Composant Principal ---
 export function ExamDetail() {
   const { examId } = useParams<{ examId: string }>();
@@ -202,13 +81,24 @@ export function ExamDetail() {
   );
   const [isLoading, setIsLoading] = useState(!exam);
   const [error, setError] = useState<string | null>(null);
+
   const { perms } = useAuth();
   const canManageAnnales = perms.includes(PERMISSIONS.MANAGE_EXAMS);
 
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(true);
-  const pdfDocRef = useRef<PDFDocument | null>(null);
-  const loadedPdfExamIdRef = useRef<string | null>(null);
+  // States pour react-pdf
+  const [numPages, setNumPages] = useState<number>();
+  const [containerWidth, setContainerWidth] = useState<number>(800);
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+  };
+
+  // Ajustement dynamique de la largeur du PDF en fonction du conteneur
+  const pdfContainerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node !== null) {
+      setContainerWidth(node.getBoundingClientRect().width);
+    }
+  }, []);
 
   const fetchExam = useCallback(async () => {
     if (!examId) return;
@@ -220,19 +110,15 @@ export function ExamDetail() {
 
       const dbExam = await response.json();
 
-      // Extraction de toutes les majors (tous parcours), déduplication par nom
       const allMajorsRaw: MajorEntry[] = (dbExam.course?.parcours || [])
         .flatMap((p: any) => p.majors || [])
         .map((m: any) => ({ name: m.name, icon: m.icon ?? null }));
 
       const majorsMap = new Map<string, MajorEntry>();
       allMajorsRaw.forEach((m) => {
-        if (!majorsMap.has(m.name)) {
-          majorsMap.set(m.name, m);
-        }
+        if (!majorsMap.has(m.name)) majorsMap.set(m.name, m);
       });
       const majorsList = Array.from(majorsMap.values());
-
       const firstMajorIcon = majorsList[0]?.icon || "";
 
       setExam({
@@ -258,72 +144,6 @@ export function ExamDetail() {
   useEffect(() => {
     fetchExam();
   }, [fetchExam]);
-
-  useEffect(() => {
-    const currentExamId = exam?.id;
-    if (!currentExamId) return;
-
-    if (loadedPdfExamIdRef.current === currentExamId && pdfDocRef.current) {
-      return;
-    }
-
-    let isCancelled = false;
-    let loadingTask: PDFGetDocumentResponse | null = null;
-
-    const initializePdf = async () => {
-      try {
-        setPdfLoading(true);
-        setNumPages(null);
-        pdfDocRef.current = null;
-
-        let pdfjsLib = window.pdfjsLib;
-        let attempts = 0;
-        while (!pdfjsLib && attempts < 10) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          pdfjsLib = window.pdfjsLib;
-          attempts++;
-        }
-        if (!pdfjsLib) throw new Error("Librairie PDF.js non chargée");
-
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        const pdfUrl = `${API_ENDPOINT}/pastExam/public/${currentExamId}/file`;
-        loadingTask = pdfjsLib.getDocument({
-          url: pdfUrl,
-          disableAutoFetch: true,
-          disableStream: true,
-          rangeChunkSize: 65536,
-        });
-        const pdf = await loadingTask.promise;
-
-        if (isCancelled) {
-          loadingTask.destroy();
-          return;
-        }
-
-        pdfDocRef.current = pdf;
-        loadedPdfExamIdRef.current = currentExamId;
-        setNumPages(pdf.numPages);
-      } catch (err) {
-        if (!isCancelled) {
-          console.error("PDF init error:", err);
-          setError(`Erreur de chargement du PDF.`);
-        }
-      } finally {
-        if (!isCancelled) {
-          setPdfLoading(false);
-        }
-      }
-    };
-
-    initializePdf();
-
-    return () => {
-      isCancelled = true;
-      if (loadingTask) {
-        loadingTask.destroy();
-      }
-    };
-  }, [exam?.id]);
 
   if (isLoading)
     return (
@@ -369,9 +189,13 @@ export function ExamDetail() {
     majorEntries.length - iconsToRender.length,
   );
 
+  // URL directe vers le fichier PDF
+  const pdfFileUrl = `${API_ENDPOINT}/pastExam/public/${exam.id}/file`;
+
   return (
     <div className="min-h-screen bg-animated-gradient sm:pt-15 pt-10 pb-12 font-sans text-foreground selection:bg-primary/20 flex flex-col items-center px-4">
       <div className="w-full max-w-300 space-y-6">
+        {/* EN-TÊTE BOUTONS */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Button
             onClick={() => navigate(-1)}
@@ -391,6 +215,7 @@ export function ExamDetail() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+          {/* COLONNE GAUCHE : INFOS DE L'EXAMEN */}
           <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
             <Card className="p-5 sm:p-6 rounded-xl border border-border/50 bg-background/80 backdrop-blur-sm shadow-sm">
               <div className="flex items-start gap-4 mb-5">
@@ -457,17 +282,10 @@ export function ExamDetail() {
                     {exam.type}
                   </Badge>
                 )}
-
-                {/* NOUVEAU : Affichage de toutes les majors sous forme de badges */}
-                {/* Affichage sécurisé des majors (gère les objets et les chaînes de caractères) */}
                 {(exam.majors || []).map((majorItem: any, index: number) => {
-                  // Si c'est un objet (ex: {name: "Infor"}), on extrait le nom. Sinon on garde la chaîne.
                   const displayName =
                     typeof majorItem === "object" ? majorItem.name : majorItem;
-
-                  // On ne rend rien si le nom est vide
                   if (!displayName) return null;
-
                   return (
                     <Badge
                       key={index}
@@ -478,19 +296,6 @@ export function ExamDetail() {
                     </Badge>
                   );
                 })}
-
-                {/* Fallback de sécurité si l'ancienne propriété 'major' est présente mais pas 'majors' */}
-                {!exam.majors && exam.majors && (
-                  <Badge
-                    variant="secondary"
-                    className="gap-1 text-xs bg-secondary/50"
-                  >
-                    {typeof exam.majors === "object"
-                      ? (exam.majors as any).name
-                      : exam.majors}
-                  </Badge>
-                )}
-
                 <Badge variant="outline" className="text-xs border-border/50">
                   {exam.level}
                 </Badge>
@@ -506,10 +311,7 @@ export function ExamDetail() {
                 size="lg"
                 className="w-full gap-2 rounded-xl shadow-sm mb-6"
               >
-                <a
-                  href={`${API_ENDPOINT}/pastExam/public/${exam.id}/file`}
-                  download
-                >
+                <a href={pdfFileUrl} download>
                   <Download className="h-4 w-4" /> Télécharger le Sujet
                 </a>
               </Button>
@@ -562,6 +364,7 @@ export function ExamDetail() {
             </Card>
           </div>
 
+          {/* COLONNE DROITE : AFFICHAGE DU PDF AVEC REACT-PDF */}
           <div className="lg:col-span-8">
             <Card className="rounded-xl border border-border/50 p-2 sm:p-4 bg-slate-900/90 backdrop-blur-sm shadow-sm h-[80vh] flex flex-col">
               <div className="flex items-center justify-between mb-3 px-2">
@@ -575,26 +378,48 @@ export function ExamDetail() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar rounded-lg bg-slate-950 p-4 sm:p-8">
-                {pdfLoading && (
-                  <div className="h-full w-full flex items-center justify-center">
-                    <Spinner className="h-8 w-8 text-primary" />
-                  </div>
-                )}
-
-                {!pdfLoading && pdfDocRef.current && numPages && (
-                  <div className="flex flex-col mx-auto max-w-4xl">
-                    {Array.from({ length: numPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <PdfPageRenderer
-                          key={`page-${page}`}
-                          pdf={pdfDocRef.current!}
-                          pageNumber={page}
-                        />
-                      ),
-                    )}
-                  </div>
-                )}
+              <div
+                className="flex-1 overflow-y-auto custom-scrollbar rounded-lg bg-slate-950 p-4 sm:p-8"
+                ref={pdfContainerRef}
+              >
+                <Document
+                  file={pdfFileUrl}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  loading={
+                    <div className="flex items-center justify-center h-full w-full py-20">
+                      <Spinner className="h-8 w-8 text-primary" />
+                    </div>
+                  }
+                  error={
+                    <div className="text-center text-destructive py-10">
+                      Impossible de charger le PDF.
+                    </div>
+                  }
+                  className="flex flex-col items-center"
+                >
+                  {Array.from(new Array(numPages), (_, index) => (
+                    <div
+                      key={`page_${index + 1}`}
+                      className="mb-6 shadow-xl rounded-lg overflow-hidden bg-white"
+                    >
+                      <Page
+                        pageNumber={index + 1}
+                        width={
+                          containerWidth
+                            ? Math.min(containerWidth - 32, 800)
+                            : 800
+                        } // Gère le padding et max-width
+                        renderTextLayer={false} // Désactivé pour de meilleures performances (mets true si tu veux que le texte soit sélectionnable)
+                        renderAnnotationLayer={false} // Idem
+                        loading={
+                          <div className="h-200 flex items-center justify-center bg-slate-800/50 animate-pulse">
+                            <Spinner className="h-8 w-8 text-primary/50" />
+                          </div>
+                        }
+                      />
+                    </div>
+                  ))}
+                </Document>
               </div>
             </Card>
           </div>
