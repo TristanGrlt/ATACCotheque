@@ -106,7 +106,7 @@ export const createColumnsExam = ({ onDelete, onOpenDetails }: ColumnActions): C
             variant="ghost"
             onClick={() => onOpenDetails(exam)}
             title="Gérer les fichiers et annexes"
-            className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+            className="hover:bg-muted hover:text-foreground transition-colors"
           >
             <Pencil className="h-4 w-4" />
             <span className="hidden sm:inline ml-2 text-xs">Gérer</span>

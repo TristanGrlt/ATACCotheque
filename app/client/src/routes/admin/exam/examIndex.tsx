@@ -1,10 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePaginatedData } from '@/hooks/usePaginatedData';
 import { DataTableServer } from '@/components/dataTable/dataTableServer';
 import { createColumnsExam, type Exam } from './columnsExam';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExamFormDialog } from '@/components/admin/exam/examFormDialog';
 import { DeleteConfirmDialog } from '@/components/deleteConfirmDialog';
 import { apiRequest, getRequestMessage } from '@/services/api';
 import { toast } from 'sonner';
@@ -20,18 +19,41 @@ import { Download, Trash2 } from 'lucide-react';
 
 export function ExamIndex() {
   const navigate = useNavigate();
-  const [openEditExam, setOpenEditExam] = useState<Exam | null>(null);
   const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
   const [selectedRows, setSelectedRows] = useState<Exam[]>([]);
   const [filterMajor, setFilterMajor] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [filterOptions, setFilterOptions] = useState<{
+    majors: string[];
+    types: string[];
+    levels: string[];
+    years: number[];
+  }>({
+    majors: [],
+    types: [],
+    levels: [],
+    years: [],
+  });
+
+  const activeFilters = useMemo(
+    () => ({
+      major: filterMajor,
+      level: filterLevel,
+      type: filterType,
+      year: filterYear,
+    }),
+    [filterMajor, filterLevel, filterType, filterYear]
+  );
 
   const { 
     data: exams, 
     pagination, 
     isLoading, 
+    search,
+    sortBy,
+    sortOrder,
     handlePageChange, 
     handlePageSizeChange, 
     handleSearchChange, 
@@ -41,32 +63,67 @@ export function ExamIndex() {
   } = usePaginatedData<Exam>({
     endpoint: '/pastExam/list',
     initialPageSize: 20,
+    filters: activeFilters,
   });
 
-  // Extract unique filter options from data
-  const filterOptions = useMemo(() => {
-    const allExams = exams;
-    return {
-      majors: [...new Set(allExams.map(e => e.major))].sort(),
-      types: [...new Set(allExams.map(e => e.type))].sort(),
-      levels: [...new Set(allExams.map(e => e.level))].sort(),
-      years: [...new Set(allExams.map(e => e.year))].sort().reverse(),
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const [majorsRes, levelsRes, typesRes] = await Promise.all([
+          apiRequest.get('/major'),
+          apiRequest.get('/level'),
+          apiRequest.get('/examType'),
+        ]);
+
+        const majors: string[] = (majorsRes.data ?? [])
+          .map((item: { name?: string }) => item.name)
+          .filter((name: string | undefined): name is string => Boolean(name))
+          .sort((a: string, b: string) => a.localeCompare(b));
+
+        const levels: string[] = (levelsRes.data ?? [])
+          .map((item: { name?: string }) => item.name)
+          .filter((name: string | undefined): name is string => Boolean(name))
+          .sort((a: string, b: string) => a.localeCompare(b));
+
+        const types: string[] = (typesRes.data ?? [])
+          .map((item: { name?: string }) => item.name)
+          .filter((name: string | undefined): name is string => Boolean(name))
+          .sort((a: string, b: string) => a.localeCompare(b));
+
+        const yearsSet = new Set<number>();
+        let page = 1;
+        let hasNextPage = true;
+
+        while (hasNextPage) {
+          const params = new URLSearchParams({
+            page: String(page),
+            pageSize: '200',
+            sortBy: 'year',
+            sortOrder: 'desc',
+          });
+
+          const response = await apiRequest.get(`/pastExam/list?${params.toString()}`);
+          const pageData = response.data?.data ?? [];
+          const pagePagination = response.data?.pagination;
+
+          pageData.forEach((exam: Exam) => yearsSet.add(exam.year));
+
+          hasNextPage = Boolean(pagePagination?.hasNextPage);
+          page += 1;
+        }
+
+        setFilterOptions({
+          majors,
+          levels,
+          types,
+          years: [...yearsSet].sort((a, b) => b - a),
+        });
+      } catch (err) {
+        toast.error(`Erreur chargement des filtres: ${getRequestMessage(err)}`);
+      }
     };
-  }, [exams]);
 
-  // Filter exams based on selected filters
-  const filteredExams = useMemo(() => {
-    return exams.filter(exam => {
-      if (filterMajor && exam.major !== filterMajor) return false;
-      if (filterType && exam.type !== filterType) return false;
-      if (filterLevel && exam.level !== filterLevel) return false;
-      if (filterYear && exam.year !== parseInt(filterYear)) return false;
-      return true;
-    });
-  }, [exams, filterMajor, filterType, filterLevel, filterYear]);
-
-  const handleEdit = useCallback((exam: Exam) => {
-    setOpenEditExam(exam);
+    loadFilterOptions();
   }, []);
 
   const handleDelete = useCallback((exam: Exam) => {
@@ -120,44 +177,75 @@ export function ExamIndex() {
     }
   }, [selectedRows, setData, refetch]);
 
-  const exportToCSV = useCallback(() => {
-    if (filteredExams.length === 0) {
-      toast.error('Aucun examen à exporter');
-      return;
+  const exportToCSV = useCallback(async () => {
+    try {
+      const allExams: Exam[] = [];
+      let page = 1;
+      let hasNextPage = true;
+
+      while (hasNextPage) {
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: '200',
+          sortBy,
+          sortOrder,
+          ...(search ? { search } : {}),
+          ...(filterMajor ? { major: filterMajor } : {}),
+          ...(filterLevel ? { level: filterLevel } : {}),
+          ...(filterType ? { type: filterType } : {}),
+          ...(filterYear ? { year: filterYear } : {}),
+        });
+
+        const response = await apiRequest.get(`/pastExam/list?${params.toString()}`);
+        const pageData: Exam[] = response.data?.data ?? [];
+        const pagePagination = response.data?.pagination;
+
+        allExams.push(...pageData);
+        hasNextPage = Boolean(pagePagination?.hasNextPage);
+        page += 1;
+      }
+
+      if (allExams.length === 0) {
+        toast.error('Aucun examen à exporter');
+        return;
+      }
+
+      const headers = ['Année', 'Spécialité', 'Niveau', 'Type', 'Cours', 'État', 'Annexes'];
+      const escapeCsvCell = (value: string | number | boolean) => `"${String(value).replace(/"/g, '""')}"`;
+      const rows = allExams.map(exam => [
+        exam.year,
+        exam.major,
+        exam.level,
+        exam.type,
+        exam.course,
+        exam.isVerified ? 'Vérifié' : 'En attente',
+        exam.annexeCount,
+      ]);
+
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => escapeCsvCell(cell)).join(',')),
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `annales-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`${allExams.length} examen${allExams.length > 1 ? 's' : ''} exporté${allExams.length > 1 ? 's' : ''}`);
+    } catch (err) {
+      toast.error(`Erreur export CSV: ${getRequestMessage(err)}`);
     }
-
-    const headers = ['Année', 'Spécialité', 'Niveau', 'Type', 'Cours', 'État', 'Annexes'];
-    const rows = filteredExams.map(exam => [
-      exam.year,
-      exam.major,
-      exam.level,
-      exam.type,
-      exam.course,
-      exam.isVerified ? 'Vérifié' : 'En attente',
-      exam.annexeCount,
-    ]);
-
-    const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `annales-export-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    toast.success(`${filteredExams.length} examen${filteredExams.length > 1 ? 's' : ''} exported`);
-  }, [filteredExams]);
+  }, [search, sortBy, sortOrder, filterMajor, filterLevel, filterType, filterYear]);
 
   const columns = useMemo(
     () => createColumnsExam({ onDelete: handleDelete, onOpenDetails: handleOpenDetails }),
-    [handleEdit, handleDelete]
+    [handleDelete, handleOpenDetails]
   );
 
   return (
@@ -166,10 +254,11 @@ export function ExamIndex() {
       <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestion des Annales</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {filteredExams.length} examen{filteredExams.length !== 1 ? 's' : ''} 
-            {selectedRows.length > 0 && ` • ${selectedRows.length} sélectionné${selectedRows.length !== 1 ? 's' : ''}`}
-          </p>
+          {selectedRows.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedRows.length} sélectionné{selectedRows.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -189,7 +278,7 @@ export function ExamIndex() {
             variant="outline"
             size="sm"
             onClick={exportToCSV}
-            disabled={filteredExams.length === 0}
+            disabled={pagination.totalCount === 0}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
@@ -285,7 +374,7 @@ export function ExamIndex() {
         <CardContent className="pt-6">
           <DataTableServer
             columns={columns}
-            data={filteredExams}
+            data={exams}
             pagination={pagination}
             isLoading={isLoading}
             onPageChange={handlePageChange}
@@ -298,13 +387,6 @@ export function ExamIndex() {
           />
         </CardContent>
       </Card>
-
-      <ExamFormDialog
-        exam={openEditExam}
-        open={!!openEditExam}
-        onOpenChange={(open) => !open && setOpenEditExam(null)}
-        onSaved={refetch}
-      />
 
       <DeleteConfirmDialog
         open={!!examToDelete}

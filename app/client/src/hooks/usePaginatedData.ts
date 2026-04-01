@@ -9,6 +9,7 @@ interface UsePaginatedDataOptions {
   initialPageSize?: number
   defaultSortBy?: string
   defaultSortOrder?: 'asc' | 'desc'
+  filters?: Record<string, string | number>
   onError?: (error: unknown) => void
 }
 
@@ -32,6 +33,7 @@ export function usePaginatedData<T>({
   initialPageSize = 20,
   defaultSortBy = "id",
   defaultSortOrder = "desc",
+  filters,
   onError,
 }: UsePaginatedDataOptions): UsePaginatedDataResult<T> {
   const [data, setData] = useState<T[]>([])
@@ -53,12 +55,19 @@ export function usePaginatedData<T>({
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
+      const normalizedFilters = Object.fromEntries(
+        Object.entries(filters ?? {}).filter(([, value]) => value !== '' && value !== null && value !== undefined)
+      )
+
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         pageSize: pagination.pageSize.toString(),
         ...(search && { search }),
         sortBy,
         sortOrder,
+        ...Object.fromEntries(
+          Object.entries(normalizedFilters).map(([key, value]) => [key, String(value)])
+        ),
       })
 
       const response = await apiRequest.get(`${endpoint}?${params}`)
@@ -78,7 +87,7 @@ export function usePaginatedData<T>({
     } finally {
       setIsLoading(false)
     }
-  }, [endpoint, pagination.page, pagination.pageSize, search, sortBy, sortOrder, onError])
+  }, [endpoint, pagination.page, pagination.pageSize, search, sortBy, sortOrder, filters, onError])
 
   useEffect(() => {
     loadData()
@@ -102,6 +111,10 @@ export function usePaginatedData<T>({
     setSortBy(newSortBy)
     setSortOrder(newSortOrder)
   }, [])
+
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [filters])
 
   return {
     data,

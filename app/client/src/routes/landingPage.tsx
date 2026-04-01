@@ -50,6 +50,11 @@ export function LandingPage() {
   const [totalPastExams, setTotalPastExams] = useState(0);
   const [landingQuery, setLandingQuery] = useState("");
 
+  const isDarkMode =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
   const handleTitleClick = () => {
     if (titleClicks >= 9) {
       setIsRaining(true);
@@ -88,7 +93,7 @@ export function LandingPage() {
   }, []);
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(isDarkMode ? "light" : "dark");
   };
 
   return (
@@ -117,7 +122,7 @@ export function LandingPage() {
             onClick={toggleTheme}
             className="rounded-full w-9 h-9 sm:w-10 sm:h-10"
           >
-            {theme === "dark" ? (
+            {isDarkMode ? (
               <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
             ) : (
               <Moon className="w-4 h-4 sm:w-5 sm:h-5" />

@@ -888,27 +888,73 @@ export const getAllPastExams = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const search = (req.query.search as string) || "";
+    const major = ((req.query.major as string) || "").trim();
+    const level = ((req.query.level as string) || "").trim();
+    const type = ((req.query.type as string) || "").trim();
+    const year = parseInt((req.query.year as string) || "", 10);
     const sortBy = (req.query.sortBy as string) || "id";
     const sortOrder =
       (req.query.sortOrder as string) === "asc" ? "asc" : "desc";
     const skip = (page - 1) * pageSize;
 
-    const whereClause = search
-      ? {
-          OR: [
-            {
-              course: {
-                name: { contains: search, mode: "insensitive" as const },
+    const filters: any[] = [];
+
+    if (search) {
+      filters.push({
+        OR: [
+          {
+            course: {
+              name: { contains: search, mode: "insensitive" as const },
+            },
+          },
+          {
+            examtype: {
+              name: { contains: search, mode: "insensitive" as const },
+            },
+          },
+        ],
+      });
+    }
+
+    if (major) {
+      filters.push({
+        course: {
+          parcours: {
+            some: {
+              majors: {
+                some: {
+                  name: { equals: major, mode: "insensitive" as const },
+                },
               },
             },
-            {
-              examtype: {
-                name: { contains: search, mode: "insensitive" as const },
-              },
-            },
-          ],
-        }
-      : {};
+          },
+        },
+      });
+    }
+
+    if (level) {
+      filters.push({
+        course: {
+          level: {
+            name: { equals: level, mode: "insensitive" as const },
+          },
+        },
+      });
+    }
+
+    if (type) {
+      filters.push({
+        examtype: {
+          name: { equals: type, mode: "insensitive" as const },
+        },
+      });
+    }
+
+    if (!Number.isNaN(year)) {
+      filters.push({ year });
+    }
+
+    const whereClause = filters.length > 0 ? { AND: filters } : {};
 
     // Map frontend field names to Prisma fields
     const sortFieldMap: Record<string, any> = {

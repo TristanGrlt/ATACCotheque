@@ -133,7 +133,6 @@ export function DataTableServer<TData, TValue>({
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="max-w-sm"
-            disabled={isLoading}
           />
         )}
         <DropdownMenu>
