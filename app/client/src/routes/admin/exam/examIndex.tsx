@@ -254,10 +254,11 @@ export function ExamIndex() {
       <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestion des Annales</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {pagination.totalCount} examen{pagination.totalCount !== 1 ? 's' : ''} 
-            {selectedRows.length > 0 && ` • ${selectedRows.length} sélectionné${selectedRows.length !== 1 ? 's' : ''}`}
-          </p>
+          {selectedRows.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedRows.length} sélectionné{selectedRows.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Action Buttons */}
