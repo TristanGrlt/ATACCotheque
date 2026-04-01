@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 import { PDFDocument } from "pdf-lib";
 
 const storage = multer.memoryStorage();
-const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 
 const upload = multer({
   storage: storage,
